@@ -3,6 +3,9 @@ set dotenv-load := false
 help:
     @just --list --unsorted
 
+clean:
+    cargo clean
+
 build:
     cargo build
 alias b := build
@@ -30,6 +33,9 @@ alias c := check
 fix:
     cargo clippy --fix
 
+bench:
+    cargo criterion --features bench
+
 # Bump version. level=major,minor,patch
 version level:
     git diff-index --exit-code HEAD > /dev/null || ! echo You have untracked changes. Commit your changes before bumping the version.
@@ -47,3 +53,7 @@ publish:
 patch: test
     just version patch
     just publish
+
+expand n:
+    @echo $(dye -c INFO) Expandable targets are defined as [[bin]] in Cargo.toml
+    cargo expand --bin {{n}}

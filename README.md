@@ -1,133 +1,146 @@
+# `ormlite`
+
+**`ormlite` is an ORM in Rust for developers that love SQL.**
+
+`ormlite` gives structs an ergonomic interface to communicate with the database (e.g. `insert`, `delete`, `update`), 
+but stays close to SQL for all query building, both in syntax and performance.
+
+The objectives of this project:
+
+* **fast**: We aim for minimal to no measurable overhead for using the ORM.
+* **true to SQL**: We eschew any custom query syntax, and stay true to SQL as much as possible while providing ORM and query builder functionality.
+* **`async`-first**: We built on top of the great foundation of `sqlx`, providing `async` interfaces.
+
+> **NOTE**: This is alpha-quality and being actively developed. In usage so far, the software is functional, performant, and correct, but until it undergoes more rigorous battle testing, we recommend vetting the code yourself before using the crate in production environments.
+
 # Usage
 
 ```rust
 
-// TODO figure out what exactly the derives are
-#[derive(Partial, Insertable, FromRow)]
-#[ormlite("user")]
-struct User {
-    id: Uuid,
-    name: String,
-    age: i32,
+use ormlite::model::*;
 
+#[derive(ormlite::Model)]
+pub struct Person {
+    pub id: u32,
+    pub name: String,
+    pub age: u8,
 }
 
-impl User {
-    fn new(name: &str) -> Self {
-        User { 
-            id: Uuid::new_v4(),
-            name: name.to_string(),
-            age: 55,
-        }
-    }
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    /// Start by making a sqlx connection.
+    let mut conn = sqlx::SqliteConnection::connect_with(&sqlx::sqlite::SqliteConnectOptions::from_str("sqlite://:memory:").unwrap()).await?;
+    
+    /// You can insert the model directly.
+    let mut john = Person {
+        id: 1,
+        name: "John".to_string(),
+        age: 99,
+    }.insert(&mut conn).await;
+    
+    /// After modifying the object, you can update all its fields.
+    john.age += 1;
+    john.update_all_fields(&mut conn).await?;
+    
+    /// Lastly, you can delete the object.
+    john.delete(&mut conn).await?;
+    
+    /// You can use builder syntax to do insertion with only certain fields.
+    let john = Person::build()
+        .name("John".to_string())
+        .age(99)
+        .insert(&mut conn).await?;
+    
+    /// You can also use builder syntax to update only certain fields.
+    let john = john.update_partial()
+        .age(100)
+        .update(&mut conn).await?;
+ 
+    /// You can get a single user.
+    let john = Person::get_one(1, &mut conn).await?;
+  
+    /// You can create a query builder.
+    let people = Person::select()
+            .filter("age > ?").bind(50)
+            .fetch_all(&mut conn).await?;
+  
+    /// You can also fall back to raw sql.
+    let people = Person::query("SELECT * FROM person WHERE age > ?")
+            .bind(50)
+            .fetch_all(&mut conn).await?;
+    Ok(())
 }
-
-fn main() {
-    let mut user = User::new("Benjamin Button").insert(&db).await;
-    user.age = 44;
-    user.update_all_columns(&db).await;
-    
-    user.update_partial()
-        .age(33)
-        .update(&db).await;
-
-    user.delete(&db);
-    
-    // ergonomic
-    User::build() // a PartialUser
-        .name("Marie Curie")
-        .age(27)
-        .insert(&db).await;
-    
-    // NB: Even on Postgres, this accepts ? parameters, because
-    // the binding can become conditional.
-    // I don't have a great alternative API idea to this. If you have other ideas let me know!
-    User::select()
-        .filter("id = ?").bind(user.id)
-        // .join("foo", "foo.id = user.id and bar.created_at > ?", ())
-        .join("join foo on foo.id = user.id and bar.created_at > ?").bind(foo)
-        .filter()
-        .having()
-        .group_by()
-        .order_by("name asc nulls last")
-        .fetch_one(&db).await;
-    
-    User::query("select * from user where id = ?")
-            .bind(user.id)
-            .fetch_one(&db).await;
-
-    // Possible future work. Not part of V1. If you want static checking, you can be 
-    // creating the natural object (i.e. User)
-    InsertUser {
-      name: "new user's name".to_string()
-    }.insert(&db);
-    // select *
-    // from foo on foo.id = bar.id  and bar > created_at > now() - interval '1 day'
-}
-
 ```
 
-- [ ] select with complex queries
-  - ormx creates a new struct InsertUser. SeaORM creates a new struct ActiveModel.
-  - why not call it PartialUser
-- [ ] insert with default values.
-- [ ] need something that you can bind a raw sql value (i.e. a string, but its NOT escaped.)
+### Partial Structs
 
-
-
-# Raw sqlx
+If, instead of builder syntax, you prefer to create partial structs to statically enforce which columns are affected for insertions, use the following:
 
 ```rust
+use ormlite::model::*;
 
-fn main() {
-
-    // Compile time checked SQL.
-    struct Country { 
-        country: String, 
-        count: i64 
-    }
-
-    let countries = sqlx::query_as!(Country, "
-SELECT country, COUNT(*) as count
-FROM users
-GROUP BY country
-WHERE organization = $1
-        ",
-        organization
-    )
-        .fetch_all(&pool) // -> Vec<Country>
-        .await?;
-
-    // Runtime structured response.
-    // 1. Can be put in type params...
-    #[derive(sqlx::FromRow)]
-    struct User { 
-        name: String, 
-        id: i64 
-    }
-
-    let mut stream = sqlx::query_as::<_, User>("SELECT * FROM users WHERE email = $1 OR name = $2")
-        .bind(user_email)
-        .bind(user_name)
-        .fetch(&mut conn);
-
-    // 2. Or as a type annotation on return object.
-    let row: (i64,) = sqlx::query_as("SELECT $1")
-        .bind(150_i64)
-        .fetch_one(&pool).await?;
-    
-    // Response options.
-    // .fetch_one() // 1 or Error
-    // .fetch_optional() // -> 0 or 1
-    // .fetch_many() // Vec<T>
-    // .fetch() // impl Iter<Type=T>
-    // .execute() // usize. number of affected rows.
-    
-    
+#[derive(ormlite::Model)]
+#[ormlite(table_name = "person")]
+pub struct InsertPerson {
+    pub name: String,
+    pub age: u8,
 }
 
-
-
-
-
+async fn do_partial_insertion() {
+    let mut john = InsertPerson {
+        name: "John".to_string(),
+        age: 99,
+    }.insert(&mut conn).await;
+}
 ```
+
+# Installation
+
+For postgres:
+
+    [dependencies]
+    ormlite = { version = "0.1.0", features = ["postgres", "runtime-tokio-rustls"]
+
+For sqlite:
+
+    [dependencies]
+    ormlite = { version = "0.1.0", features = ["sqlite", "runtime-tokio-rustls"]
+    
+    
+Other databases (mysql) and runtimes should work smoothly, but might not be 100% wired up yet. Please submit an issue if you encounter issues.
+
+# Roadmap
+- [x] insert, update, delete directly on model instances
+- [x] builder for partial update and insertions
+- [x] user can create insert models that ignore default values
+- [x] select query builder
+- [x] build the derive macro
+- [x] get() function for fetching a single entity.
+- [x] ability to specify the name of a table and name of primary column
+- [ ] macro option to auto adjust columns like updated_at
+- [ ] upsert functionality
+- [ ] joins
+- [ ] bulk insertions
+- [ ] query builder for bulk update
+- [ ] automatically generate insert models
+- [ ] benchmarks against raw sql, sqlx, ormx, seaorm, sqlite3-sys, pg, diesel
+- [ ] macro option to delete with deleted_at rather than `DELETE`
+- [ ] support for patch records, i.e. update with static fields.
+```rust
+/// You can also create objects to statically enforce update fields.
+#[derive(TODO)]
+struct UpdatePerson {
+    age: u8,
+}
+fn main() {
+    john.update_from(UpdatePerson {
+        age: 100,
+    }, &mut conn).await?;    
+}
+```
+
+# Documentation
+
+### Logging
+
+You can log queries using sqlx's logger: `RUST_LOG=sqlx=info`

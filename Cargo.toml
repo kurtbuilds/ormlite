@@ -1,11 +1,6 @@
-[package]
-name = "ormlite"
-version = "0.1.0"
-edition = "2021"
+[workspace]
+members = ["ormlite-macro", "ormlite-core", "ormlite-core", "ormlite-bench", "ormlite"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-datetime = "0.5.2"
-sqlx = { version = "0.5.9", features = ["runtime-actix-native-tls", "sqlite"] }
-tokio = { version = "1", features = ["full"] }
+[patch.crates-io]
+ormlite-macro = { path = "./ormlite-macro" }
+ormlite-core = { path = "./ormlite-core" }

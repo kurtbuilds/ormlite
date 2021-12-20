@@ -1,0 +1,256 @@
+use ormlite_core::model::{BuildsQueryBuilder, PartialModel, TableMeta};
+use ormlite_core::{BoxFuture, Error, Result, SelectQueryBuilder};
+use sqlx::Database;
+
+pub static PLACEHOLDER: &str = "?";
+pub static CREATE_TABLE_SQL: &str =
+    "CREATE TABLE person (id INTEGER PRIMARY KEY, name TEXT, age INTEGER)";
+
+type DB = sqlx::Sqlite;
+
+#[derive(sqlx::FromRow, Debug)]
+pub struct Person {
+    pub id: u32,
+    pub name: String,
+    pub age: u8,
+}
+
+impl ormlite_core::model::TableMeta for Person {
+    fn table_name() -> &'static str {
+        "person"
+    }
+
+    fn fields() -> &'static [&'static str] {
+        &["id", "name", "age"]
+    }
+
+    fn num_fields() -> usize {
+        3
+    }
+    fn primary_key_column() -> &'static str {
+        "id"
+    }
+}
+
+impl crate::model::Model<DB> for Person {
+    fn insert(self, db: &mut <DB as Database>::Connection) -> BoxFuture<Result<Self>> {
+        Box::pin(async move {
+            let q = format!(
+                "INSERT INTO {} ({}) VALUES ({}) RETURNING *",
+                Self::table_name(),
+                Self::fields().join(", "),
+                (0..Self::num_fields())
+                    .map(|_| PLACEHOLDER)
+                    .collect::<Vec<_>>()
+                    .join(", "),
+            );
+            sqlx::query_as::<_, Self>(&q)
+                .bind(self.id)
+                .bind(self.name)
+                .bind(self.age)
+                .fetch_one(db)
+                .await
+                .map_err(Error::from)
+        })
+    }
+
+    fn update_all_fields(self, db: &mut <DB as Database>::Connection) -> BoxFuture<Result<Self>> {
+        Box::pin(async move {
+            let q = format!(
+                "UPDATE {} SET {} WHERE {} = {} RETURNING *",
+                Self::table_name(),
+                "name=?, age=?",
+                Self::primary_key_column(),
+                PLACEHOLDER,
+            );
+            sqlx::query_as::<_, Self>(&q)
+                .bind(self.name)
+                .bind(self.age)
+                .bind(self.id)
+                .fetch_one(db)
+                .await
+                .map_err(Error::from)
+        })
+    }
+
+    fn delete(self, db: &mut <DB as sqlx::Database>::Connection) -> BoxFuture<Result<()>> {
+        Box::pin(async move {
+            let q = format!(
+                "DELETE from {} WHERE {} = {}",
+                Self::table_name(),
+                Self::primary_key_column(),
+                PLACEHOLDER,
+            );
+            let row = sqlx::query(&q).bind(self.id).execute(db).await?;
+            if row.rows_affected() == 0 {
+                Err(sqlx::Error::RowNotFound.into())
+            } else {
+                Ok(())
+            }
+        })
+    }
+
+    fn get_one<'db, 'arg: 'db, T>(
+        id: T,
+        db: &'db mut <DB as Database>::Connection,
+    ) -> BoxFuture<'db, Result<Self>>
+    where
+        T: 'arg + Send + for<'r> sqlx::Encode<'r, DB> + sqlx::Type<DB>,
+    {
+        let text = format!(
+            "SELECT * FROM {} WHERE {} = {}",
+            Self::table_name(),
+            Self::primary_key_column(),
+            PLACEHOLDER,
+        );
+        Box::pin(async move {
+            sqlx::query_as::<DB, Self>(&text)
+                .bind(id)
+                .fetch_one(db) // executor outlives the
+                .await
+                .map_err(Error::from)
+        })
+    }
+
+    fn query(
+        query: &str,
+    ) -> sqlx::query::QueryAs<DB, Person, <DB as ::ormlite_core::export::HasArguments>::Arguments>
+    {
+        sqlx::query_as::<_, Self>(query)
+    }
+}
+
+// done
+impl BuildsQueryBuilder<DB, Box<dyn Iterator<Item = String>>> for Person {
+    fn select<'args>() -> SelectQueryBuilder<'args, DB, Self, Box<dyn Iterator<Item = String>>> {
+        SelectQueryBuilder::default().column(&format!("{}.*", Self::table_name()))
+    }
+}
+
+// done
+impl<'a> ormlite_core::model::BuildsPartialModel<'a, PartialPerson<'a>> for Person {
+    fn build() -> PartialPerson<'a> {
+        PartialPerson::default()
+    }
+
+    fn update_partial(&'a self) -> PartialPerson<'a> {
+        let mut partial = PartialPerson::default();
+        partial.updating = Some(self);
+        partial
+    }
+}
+
+// done
+pub struct PartialPerson<'a> {
+    id: Option<u32>,
+    name: Option<String>,
+    age: Option<u8>,
+
+    updating: Option<&'a Person>,
+}
+
+// done
+impl<'a> Default for PartialPerson<'a> {
+    fn default() -> Self {
+        PartialPerson {
+            id: None,
+            name: None,
+            age: None,
+            updating: None,
+        }
+    }
+}
+
+// done
+impl<'a> PartialPerson<'a> {
+    pub fn id(mut self, id: u32) -> Self {
+        self.id = Some(id);
+        self
+    }
+
+    pub fn name(mut self, name: String) -> Self {
+        self.name = Some(name);
+        self
+    }
+
+    pub fn age(mut self, age: u8) -> Self {
+        self.age = Some(age);
+        self
+    }
+
+    fn modified_fields(&self) -> Vec<&'static str> {
+        let mut ret = Vec::new();
+        if self.id.is_some() {
+            ret.push("id");
+        }
+        if self.name.is_some() {
+            ret.push("name");
+        }
+        if self.age.is_some() {
+            ret.push("age");
+        }
+        ret
+    }
+}
+
+// done
+impl<'a> PartialModel<'a, DB> for PartialPerson<'a> {
+    type Model = Person;
+
+    fn insert<'db: 'a>(
+        self,
+        db: &'db mut <DB as sqlx::Database>::Connection,
+    ) -> BoxFuture<'a, Result<Self::Model>> {
+        Box::pin(async move {
+            let insert_fields = self.modified_fields();
+            let query = format!(
+                "INSERT INTO {} ({}) VALUES ({}) RETURNING *",
+                Self::Model::table_name(),
+                insert_fields.join(", "),
+                insert_fields
+                    .iter()
+                    .map(|_| PLACEHOLDER)
+                    .collect::<Vec<_>>()
+                    .join(", "),
+            );
+            let mut q = sqlx::query_as::<DB, Self::Model>(&query);
+            if let Some(value) = self.id {
+                q = q.bind(value);
+            }
+            if let Some(value) = self.name {
+                q = q.bind(value);
+            }
+            if let Some(value) = self.age {
+                q = q.bind(value);
+            }
+            q.fetch_one(db).await.map_err(Error::from)
+        })
+    }
+
+    fn update<'db: 'a>(
+        self,
+        db: &'db mut <DB as sqlx::Database>::Connection,
+    ) -> BoxFuture<'a, Result<Self::Model>> {
+        Box::pin(async move {
+            let update_fields = self.modified_fields();
+            let text = format!(
+                "UPDATE {} SET {} WHERE {} = {} RETURNING *",
+                Self::Model::table_name(),
+                update_fields.into_iter().map(|col| format!("{} = {}", col, PLACEHOLDER)).collect::<Vec<_>>().join(", "),
+                Self::Model::primary_key_column(),
+                self.updating.expect("Tried to call PartialModel::update(), but no model found to update. Call should look something like: <Model>.update_partial().update(&mut db)").id,
+            );
+            let mut q = sqlx::query_as::<DB, Self::Model>(&text);
+            if let Some(value) = self.id {
+                q = q.bind(value);
+            }
+            if let Some(value) = self.name {
+                q = q.bind(value);
+            }
+            if let Some(value) = self.age {
+                q = q.bind(value);
+            }
+            q.fetch_one(db).await.map_err(Error::from)
+        })
+    }
+}
