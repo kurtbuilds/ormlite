@@ -6,7 +6,6 @@ description = "An ORM for people who love SQL. Use the `ormlite` crate, not this
 authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
 license = "MIT"
 repository = "https://github.com/kurtbuilds/ormlite"
-autotests = false
 
 [lib]
 proc-macro = true
@@ -18,10 +17,6 @@ path = "tests/01-exists.rs"
 [[bin]]
 name = "2"
 path = "tests/02-table-name-attr.rs"
-
-[[test]]
-name = "tests"
-path = "tests/suite.rs"
 
 [features]
 postgres = []

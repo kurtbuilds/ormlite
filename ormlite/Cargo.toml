@@ -6,6 +6,11 @@ authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
 description = "An ORM for people who love SQL"
 license = "MIT"
 repository = "https://github.com/kurtbuilds/ormlite"
+autotests = false
+
+[[test]]
+name = "tests"
+path = "tests/suite.rs"
 
 [dependencies]
 ormlite-macro = "0.1.0"
