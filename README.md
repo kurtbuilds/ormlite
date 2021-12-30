@@ -126,18 +126,6 @@ Other databases (mysql) and runtimes should work smoothly, but might not be 100%
 - [ ] benchmarks against raw sql, sqlx, ormx, seaorm, sqlite3-sys, pg, diesel
 - [ ] macro option to delete with deleted_at rather than `DELETE`
 - [ ] support for patch records, i.e. update with static fields.
-```rust
-/// You can also create objects to statically enforce update fields.
-#[derive(TODO)]
-struct UpdatePerson {
-    age: u8,
-}
-fn main() {
-    john.update_from(UpdatePerson {
-        age: 100,
-    }, &mut conn).await?;    
-}
-```
 
 # Documentation
 
