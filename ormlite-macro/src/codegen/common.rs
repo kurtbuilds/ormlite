@@ -50,7 +50,6 @@ pub trait OrmliteCodegen {
         let n_fields = fields.len();
 
         quote! {
-            impl #model {}
             impl ::ormlite_core::model::TableMeta for #model {
                 fn table_name() -> &'static str {
                     #table_name

@@ -112,14 +112,7 @@ where
 impl<'args, DB, Model, PlaceholderGenerator>
     SelectQueryBuilder<'args, DB, Model, PlaceholderGenerator>
 where
-    Model: Sized
-        + Send
-        + Sync
-        + Unpin
-        + TableMeta
-        + for<'r> sqlx::FromRow<'r, DB::Row>
-        + 'static
-        + std::fmt::Debug,
+    Model: Sized + Send + Sync + Unpin + TableMeta + for<'r> sqlx::FromRow<'r, DB::Row> + 'static,
     DB: sqlx::Database,
     <DB as HasArguments<'args>>::Arguments: IntoArguments<'args, DB>,
     PlaceholderGenerator: Iterator<Item = String>,

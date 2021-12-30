@@ -1,6 +1,6 @@
-use ormlite_macro::Model;
+use ormlite::{FromRow, Model};
 
-#[derive(Model)]
+#[derive(Model, FromRow)]
 pub struct Person {
     id: u32,
     name: String,
