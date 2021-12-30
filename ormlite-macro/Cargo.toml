@@ -10,14 +10,6 @@ repository = "https://github.com/kurtbuilds/ormlite"
 [lib]
 proc-macro = true
 
-[[bin]]
-name = "1"
-path = "tests/01-exists.rs"
-
-[[bin]]
-name = "2"
-path = "tests/02-table-name-attr.rs"
-
 [features]
 postgres = []
 sqlite = []
