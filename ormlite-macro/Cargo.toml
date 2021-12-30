@@ -16,9 +16,6 @@ sqlite = []
 mysql = []
 runtime-tokio-rustls = ["sqlx/runtime-tokio-rustls"]
 
-[dev-dependencies]
-trybuild = { version = "1.0.49", features = ["diff"] }
-
 [dependencies]
 proc-macro2 = "1.0.34"
 quote = "1.0.10"

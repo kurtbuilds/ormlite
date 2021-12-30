@@ -1,5 +1,9 @@
 # Development
 
+Run test code:
+    
+    just run --bin plain --features runtime-tokio-rustls,sqlite,handwritten
+
 ### Workflow
 
 Try to build and compile using the derive macros.

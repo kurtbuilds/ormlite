@@ -837,6 +837,7 @@ dependencies = [
  "ormlite-macro",
  "sqlx",
  "tokio",
+ "trybuild",
 ]
 
 [[package]]
@@ -868,7 +869,6 @@ dependencies = [
  "quote",
  "sqlx",
  "syn",
- "trybuild",
 ]
 
 [[package]]

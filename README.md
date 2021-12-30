@@ -55,7 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let john = john.update_partial()
         .age(100)
         .update(&mut conn).await?;
- 
+    
     /// You can get a single user.
     let john = Person::get_one(1, &mut conn).await?;
   
@@ -105,7 +105,6 @@ For sqlite:
 
     [dependencies]
     ormlite = { version = "0.1.0", features = ["sqlite", "runtime-tokio-rustls"]
-    
     
 Other databases (mysql) and runtimes should work smoothly, but might not be 100% wired up yet. Please submit an issue if you encounter issues.
 

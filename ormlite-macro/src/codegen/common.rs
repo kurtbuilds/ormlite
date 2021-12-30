@@ -51,7 +51,7 @@ pub trait OrmliteCodegen {
 
         quote! {
             impl #model {}
-            impl ::ormlite::model::TableMeta for #model {
+            impl ::ormlite_core::model::TableMeta for #model {
                 fn table_name() -> &'static str {
                     #table_name
                 }
@@ -247,8 +247,8 @@ pub trait OrmliteCodegen {
         let db = Self::database();
         quote! {
             impl ::ormlite::model::BuildsQueryBuilder<#db, ::std::boxed::Box<dyn Iterator<Item=String>>> for #model {
-                fn select<'args>() -> ::ormlite::SelectQueryBuilder<'args, #db, Self, Box<dyn Iterator<Item=String>>> {
-                    ::ormlite::SelectQueryBuilder::default()
+                fn select<'args>() -> ::ormlite_core::SelectQueryBuilder<'args, #db, Self, Box<dyn Iterator<Item=String>>> {
+                    ::ormlite_core::SelectQueryBuilder::default()
                         .column(&format!("{}.*", #table_name))
                 }
             }

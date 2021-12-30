@@ -32,6 +32,32 @@ impl ormlite_core::model::TableMeta for Person {
     }
 }
 
+/*
+impl Person {
+    fn upsert(self, db: &mut <DB as Database>::Connection) -> BoxFuture<Result<Self>> {
+        Box::pin(async move {
+            let q = format!(
+                "INSERT INTO {} ({}) VALUES ({}) ON CONFLICT ({}) DO UPDATE SET {}\
+                RETURNING *",
+                Self::table_name(),
+                Self::fields().join(", "),
+                (0..Self::num_fields())
+                    .map(|_| PLACEHOLDER)
+                    .collect::<Vec<_>>()
+                    .join(", "),
+            );
+            sqlx::query_as::<_, Self>(&q)
+                .bind(self.id)
+                .bind(self.name)
+                .bind(self.age)
+                .fetch_one(db)
+                .await
+                .map_err(Error::from)
+        })
+    }
+}
+*/
+
 impl crate::model::Model<DB> for Person {
     fn insert(self, db: &mut <DB as Database>::Connection) -> BoxFuture<Result<Self>> {
         Box::pin(async move {
@@ -114,8 +140,7 @@ impl crate::model::Model<DB> for Person {
 
     fn query(
         query: &str,
-    ) -> sqlx::query::QueryAs<DB, Person, <DB as ::ormlite_core::export::HasArguments>::Arguments>
-    {
+    ) -> sqlx::query::QueryAs<DB, Person, <DB as ::sqlx::database::HasArguments>::Arguments> {
         sqlx::query_as::<_, Self>(query)
     }
 }

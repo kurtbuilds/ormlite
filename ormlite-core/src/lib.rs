@@ -3,6 +3,5 @@ pub use self::query_builder::SelectQueryBuilder;
 pub use futures_core::future::BoxFuture;
 
 mod error;
-pub mod export;
 pub mod model;
 mod query_builder;
