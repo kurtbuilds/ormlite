@@ -117,11 +117,13 @@ Other databases (mysql) and runtimes should work smoothly, but might not be 100%
 - [x] build the derive macro
 - [x] get() function for fetching a single entity.
 - [x] ability to specify the name of a table and name of primary column
+- [ ] make sure features are wired up correctly to support mysql and different runtimes & SSL libraries.
 - [ ] macro option to auto adjust columns like updated_at
 - [ ] upsert functionality
 - [ ] joins
 - [ ] bulk insertions
 - [ ] query builder for bulk update
+- [ ] handle on conflict clauses for bulk update
 - [ ] automatically generate insert models
 - [ ] benchmarks against raw sql, sqlx, ormx, seaorm, sqlite3-sys, pg, diesel
 - [ ] macro option to delete with deleted_at rather than `DELETE`
