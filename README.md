@@ -2,14 +2,17 @@
 
 **`ormlite` is an ORM in Rust for developers that love SQL.**
 
-`ormlite` gives structs an ergonomic interface to communicate with the database (e.g. `insert`, `delete`, `update`), 
-but stays close to SQL for all query building, both in syntax and performance.
+It provides the following, while staying close to SQL, both in syntax and performance:
 
-The objectives of this project:
+- Struct methods for database interface (e.g. `.insert()`, `.delete()`, `.update()`)
+- Builder syntax for select queries and partial column insertions and updates
 
-* **fast**: We aim for minimal to no measurable overhead for using the ORM.
-* **true to SQL**: We eschew any custom query syntax, and stay true to SQL as much as possible while providing ORM and query builder functionality.
-* **`async`-first**: We built on top of the great foundation of `sqlx`, providing `async` interfaces.
+We prioritize these objectives in the project:
+
+* **Fast**: We aim for minimal to no measurable overhead for using the ORM.
+* **True to SQL**: Where logical, the API interface is Just Plain Old SQL. We eschew custom query syntax so that users don't have to learn yet another query syntax.
+* **`async`-first**: We built on top of the great foundation of `sqlx`, allowing our API design to be fully `async`.
+* **No Surprises**: We want an API that is explicit and locally understandable and doesn't require cross-referencing other parts of the codebase or specific knowledge of the ORM. We maintain ergonomics by making decisions driven by real-world usage of the library.
 
 > **NOTE**: This is alpha-quality and being actively developed. In usage so far, the software is functional, performant, and correct, but until it undergoes more rigorous battle testing, we recommend vetting the code yourself before using the crate in production environments.
 
@@ -127,6 +130,7 @@ Other databases (mysql) and runtimes should work smoothly, but might not be 100%
 - [ ] benchmarks against raw sql, sqlx, ormx, seaorm, sqlite3-sys, pg, diesel
 - [ ] macro option to delete with deleted_at rather than `DELETE`
 - [ ] support for patch records, i.e. update with static fields.
+- [ ] Consider a blocking interface, perhaps for sqlite/Rusqlite only.
 
 # Documentation
 
