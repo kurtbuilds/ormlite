@@ -1,21 +1,46 @@
+/// A model is a struct that represents a row in a relational database table.
 use crate::Result;
 use crate::SelectQueryBuilder;
 use futures_core::future::BoxFuture;
 
-pub trait BuildsPartialModel<'a, PartialModel>
+/// `HasModelBuilder` structs are ones that can create `ModelBuilder`s.
+/// The base model structs typically implement this.
+pub trait HasModelBuilder<'a, ModelBuilder>
 where
-    PartialModel: Sized + Send,
+    ModelBuilder: Sized + Send,
     Self: Sized + Send,
 {
-    fn build() -> PartialModel;
-    fn update_partial(&'a self) -> PartialModel;
+    fn build() -> ModelBuilder;
+    fn update_partial(&'a self) -> ModelBuilder;
 }
 
-//
-// /** Declares that a struct can generate queries and execute them.
-// Put another way, this trait is defined *on* the "builder" to execute it.
-//  */
-pub trait PartialModel<'a, DB>
+/// A struct that is `Insertable` is expected to have same fields as the model, excluding fields
+/// that have sane defaults at the database level. Concretely, if you have a Person struct:
+/// #[derive(ormlite::Model)]
+/// struct Person {
+///     id: i32,
+///     name: String,
+///     age: i32,
+/// }
+///
+/// Then the `Insertable` struct looks like:
+/// struct InsertPerson {
+///     name: String,
+///     age: i32,
+/// }
+pub trait Insertable<'a, DB>
+where
+    Self: Sized + Send + Sync,
+    DB: sqlx::Database,
+{
+    type Model;
+    fn insert<'e: 'a, E>(self, db: E) -> BoxFuture<'a, Result<Self::Model>>
+    where
+        E: 'e + sqlx::Executor<'e, Database = DB>;
+}
+
+/// A struct that implements `ModelBuilder` implements the builder pattern for a model.
+pub trait ModelBuilder<'a, DB>
 where
     Self: Sized + Send + Sync,
     DB: sqlx::Database,
@@ -25,11 +50,13 @@ where
     fn insert<'e: 'a, E>(self, db: E) -> BoxFuture<'a, Result<Self::Model>>
     where
         E: 'e + sqlx::Executor<'e, Database = DB>;
+
     fn update<'e: 'a, E>(self, db: E) -> BoxFuture<'a, Result<Self::Model>>
     where
         E: 'e + sqlx::Executor<'e, Database = DB>;
 }
 
+/// The core trait. a struct that implements `Model` can also implement `BuildsPartialModel`, `BuildsQueryBuilder` (and is required to implement `Insertable`)
 pub trait Model<DB>
 where
     DB: sqlx::Database,
@@ -58,13 +85,16 @@ where
     ) -> sqlx::query::QueryAs<DB, Self, <DB as sqlx::database::HasArguments>::Arguments>;
 }
 
-pub trait BuildsQueryBuilder<DB, PlaceholderGenerator>
+pub trait HasQueryBuilder<DB, PlaceholderGenerator>
 where
     DB: sqlx::Database,
     Self: Sized,
     PlaceholderGenerator: Iterator<Item = String>,
 {
     fn select<'args>() -> SelectQueryBuilder<'args, DB, Self, PlaceholderGenerator>;
+    // fn insert()
+    // fn update()
+    // fn delete()
 }
 
 pub trait TableMeta {
@@ -74,9 +104,9 @@ pub trait TableMeta {
     fn primary_key_column() -> &'static str;
 }
 
-pub trait ModelExcludingDefaults<'a, DB>
+pub trait HasInsertModel<'a, DB>
 where
     DB: sqlx::Database,
 {
-    type Insert: PartialModel<'a, DB>;
+    type Insert: Insertable<'a, DB>;
 }

@@ -1,3 +1,1 @@
-pub use ormlite_core::model::{
-    BuildsPartialModel, BuildsQueryBuilder, Model, PartialModel, TableMeta,
-};
+pub use ormlite_core::model::{HasModelBuilder, HasQueryBuilder, Model, ModelBuilder, TableMeta};

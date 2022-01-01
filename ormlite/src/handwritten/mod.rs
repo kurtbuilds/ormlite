@@ -1,4 +1,6 @@
-use ormlite_core::model::{BuildsQueryBuilder, ModelExcludingDefaults, PartialModel, TableMeta};
+use ormlite_core::model::{
+    HasInsertModel, HasQueryBuilder, Insertable, Model, ModelBuilder, TableMeta,
+};
 use ormlite_core::{BoxFuture, Error, Result, SelectQueryBuilder};
 
 pub static PLACEHOLDER: &str = "?";
@@ -31,32 +33,6 @@ impl ormlite_core::model::TableMeta for Person {
     }
 }
 
-/*
-impl Person {
-    fn upsert(self, db: &mut <DB as Database>::Connection) -> BoxFuture<Result<Self>> {
-        Box::pin(async move {
-            let q = format!(
-                "INSERT INTO {} ({}) VALUES ({}) ON CONFLICT ({}) DO UPDATE SET {}\
-                RETURNING *",
-                Self::table_name(),
-                Self::fields().join(", "),
-                (0..Self::num_fields())
-                    .map(|_| PLACEHOLDER)
-                    .collect::<Vec<_>>()
-                    .join(", "),
-            );
-            sqlx::query_as::<_, Self>(&q)
-                .bind(self.id)
-                .bind(self.name)
-                .bind(self.age)
-                .fetch_one(db)
-                .await
-                .map_err(Error::from)
-        })
-    }
-}
-*/
-
 impl crate::model::Model<DB> for Person {
     fn insert<'e, E>(self, db: E) -> BoxFuture<'e, Result<Self>>
     where
@@ -81,7 +57,6 @@ impl crate::model::Model<DB> for Person {
                 .map_err(Error::from)
         })
     }
-
     fn update_all_fields<'e, E>(self, db: E) -> BoxFuture<'e, Result<Self>>
     where
         E: 'e + sqlx::Executor<'e, Database = DB>,
@@ -152,14 +127,14 @@ impl crate::model::Model<DB> for Person {
     }
 }
 
-impl BuildsQueryBuilder<DB, Box<dyn Iterator<Item = String>>> for Person {
+impl HasQueryBuilder<DB, Box<dyn Iterator<Item = String>>> for Person {
     fn select<'a>() -> SelectQueryBuilder<'a, DB, Self, Box<dyn Iterator<Item = String>>> {
         SelectQueryBuilder::default().column(&format!("{}.*", Self::table_name()))
     }
 }
 
 // done
-impl<'a> ormlite_core::model::BuildsPartialModel<'a, PartialPerson<'a>> for Person {
+impl<'a> ormlite_core::model::HasModelBuilder<'a, PartialPerson<'a>> for Person {
     fn build() -> PartialPerson<'a> {
         PartialPerson::default()
     }
@@ -171,7 +146,6 @@ impl<'a> ormlite_core::model::BuildsPartialModel<'a, PartialPerson<'a>> for Pers
     }
 }
 
-// done
 pub struct PartialPerson<'a> {
     id: Option<u32>,
     name: Option<String>,
@@ -180,7 +154,6 @@ pub struct PartialPerson<'a> {
     updating: Option<&'a Person>,
 }
 
-// done
 impl<'a> Default for PartialPerson<'a> {
     fn default() -> Self {
         PartialPerson {
@@ -192,7 +165,6 @@ impl<'a> Default for PartialPerson<'a> {
     }
 }
 
-// done
 impl<'a> PartialPerson<'a> {
     pub fn id(mut self, id: u32) -> Self {
         self.id = Some(id);
@@ -224,7 +196,7 @@ impl<'a> PartialPerson<'a> {
     }
 }
 
-impl<'a> PartialModel<'a, DB> for PartialPerson<'a> {
+impl<'a> ModelBuilder<'a, DB> for PartialPerson<'a> {
     type Model = Person;
 
     fn insert<'e: 'a, E>(self, db: E) -> BoxFuture<'a, Result<Self::Model>>
@@ -268,7 +240,7 @@ impl<'a> PartialModel<'a, DB> for PartialPerson<'a> {
                 Self::Model::table_name(),
                 update_fields.into_iter().map(|col| format!("{} = {}", col, PLACEHOLDER)).collect::<Vec<_>>().join(", "),
                 Self::Model::primary_key_column(),
-                self.updating.expect("Tried to call PartialModel::update(), but no model found to update. Call should look something like: <Model>.update_partial().update(&mut db)").id,
+                self.updating.expect("Tried to call ModelBuilder::update(), but no model found to update. Call should look something like: <Model>.update_partial().update(&mut db)").id,
             );
             let mut q = sqlx::query_as::<DB, Self::Model>(&text);
             if let Some(value) = self.id {
@@ -280,6 +252,42 @@ impl<'a> PartialModel<'a, DB> for PartialPerson<'a> {
             if let Some(value) = self.age {
                 q = q.bind(value);
             }
+            q.fetch_one(db).await.map_err(Error::from)
+        })
+    }
+}
+
+pub struct InsertPerson {
+    name: String,
+    age: u8,
+}
+
+impl<'a> HasInsertModel<'a, DB> for Person {
+    type Insert = InsertPerson;
+}
+
+impl<'a> Insertable<'a, DB> for InsertPerson {
+    type Model = Person;
+
+    fn insert<'e: 'a, E>(self, db: E) -> BoxFuture<'a, Result<Self::Model>>
+    where
+        E: 'e + sqlx::Executor<'e, Database = DB>,
+    {
+        Box::pin(async move {
+            let insert_fields = ["name", "age"];
+            let query = format!(
+                "INSERT INTO {} ({}) VALUES ({}) RETURNING *",
+                Self::Model::table_name(),
+                insert_fields.join(", "),
+                insert_fields
+                    .iter()
+                    .map(|_| PLACEHOLDER)
+                    .collect::<Vec<_>>()
+                    .join(", "),
+            );
+            let mut q = sqlx::query_as::<DB, Self::Model>(&query);
+            q = q.bind(self.name);
+            q = q.bind(self.age);
             q.fetch_one(db).await.map_err(Error::from)
         })
     }
