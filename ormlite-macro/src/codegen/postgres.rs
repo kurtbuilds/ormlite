@@ -1,10 +1,6 @@
 use crate::codegen::common::OrmliteCodegen;
-use crate::TableAttr;
 use proc_macro2::TokenStream;
 use quote::quote;
-use sqlx;
-use std::iter::Map;
-use std::ops::Range;
 
 pub struct PostgresBackend {}
 

@@ -4,4 +4,4 @@ pub use futures_core::future::BoxFuture;
 
 mod error;
 pub mod model;
-mod query_builder;
+pub mod query_builder;

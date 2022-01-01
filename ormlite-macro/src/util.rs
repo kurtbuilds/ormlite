@@ -6,7 +6,7 @@ use syn::Data::Struct;
 use syn::{DataStruct, DeriveInput, Field, Fields, FieldsNamed};
 
 pub fn box_future() -> TokenStream {
-    quote!(::ormlite_core::BoxFuture)
+    quote!(::ormlite::BoxFuture)
 }
 
 /// Given derive input of a struct, get the fields of the struct.

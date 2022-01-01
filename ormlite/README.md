@@ -1,12 +1,19 @@
 # Development
 
+Run the handwritten code:
+
+    cargo run --bin handwritten --features handwritten,sqlite,runtime-tokio-rustls
+
+Run the derive model code:
+
+    cargo run --bin plain --features runtime-tokio-rustls,sqlite,handwritten
+
 Run test code:
-    
-    just run --bin plain --features runtime-tokio-rustls,sqlite,handwritten
+
+    cargo test --features runtime-tokio-rustls,sqlite,handwritten
 
 Run tests themselves
 
-    cargo test --features runtime-tokio-rustls,sqlite,handwritten
 
 ### Workflow
 

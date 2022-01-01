@@ -1,3 +1,4 @@
+pub use ormlite_core::BoxFuture;
 pub use ormlite_core::SelectQueryBuilder;
 pub use ormlite_core::{Error, Result};
 pub use ormlite_macro::Model;
