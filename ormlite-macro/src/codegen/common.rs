@@ -467,7 +467,7 @@ pub trait OrmliteCodegen {
             .map(|(f, _)| {
                 let name = &f.ident;
                 let ty = &f.ty;
-                quote! { #name: #ty }
+                quote! { pub #name: #ty }
             });
 
         quote! {
@@ -517,7 +517,7 @@ pub trait OrmliteCodegen {
             });
 
         quote! {
-            impl<'a> Insertable<'a, #db> for #insert_model {
+            impl<'a> ::ormlite::model::Insertable<'a, #db> for #insert_model {
                 type Model = #model;
 
                 fn insert<'e: 'a, E>(self, db: E) -> #box_future<'a, ::ormlite::Result<Self::Model>>
