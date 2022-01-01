@@ -55,6 +55,7 @@ fn finish_table_meta(ast: &DeriveInput, mut builder: TableMetaBuilder) -> TableM
 
 fn partial_build_table_meta(ast: &DeriveInput) -> TableMetaBuilder {
     let mut builder = TableMetaBuilder::default();
+    builder.insert_struct(None);
     for attr in ast.attrs.iter().filter(|a| a.path.is_ident("ormlite")) {
         let args: ModelAttributes = attr.parse_args().unwrap();
         if let Some(value) = args.table {
