@@ -1,2 +1,5 @@
 /target
 expanded.rs
+
+.env*
+!.env.example

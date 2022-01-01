@@ -32,6 +32,7 @@ fn get_field_names(fields: &Punctuated<Field, Comma>) -> impl Iterator<Item = St
     fields.iter().map(|f| f.ident.as_ref().unwrap().to_string())
 }
 
+/// bool whether the given type is `String`
 fn ty_is_string(ty: &syn::Type) -> bool {
     let p = match ty {
         syn::Type::Path(p) => p,
@@ -95,9 +96,12 @@ pub trait OrmliteCodegen {
         });
 
         quote! {
-            fn insert(self, db: &mut <#db as ::sqlx::Database>::Connection) -> #box_future<::ormlite::Result<Self>> {
+            fn insert<'e, E>(self, db: E) -> #box_future<'e, ::ormlite::Result<Self>>
+            where
+                E: 'e + ::ormlite::export::Executor<'e, Database = #db>,
+            {
                 Box::pin(async move {
-                    let mut q = sqlx::query_as::<#db, Self>(#query);
+                    let mut q = ::ormlite::export::query_as::<#db, Self>(#query);
                     #(#query_bindings)*
                     q.fetch_one(db)
                         .await
@@ -138,9 +142,12 @@ pub trait OrmliteCodegen {
             });
 
         quote! {
-            fn update_all_fields(self, db: &mut <#db as ::sqlx::Database>::Connection) -> #box_future<::ormlite::Result<Self>> {
+            fn update_all_fields<'e, E>(self, db: E) -> #box_future<'e, ::ormlite::Result<Self>>
+            where
+                E: 'e + ::ormlite::export::Executor<'e, Database = #db>,
+            {
                 Box::pin(async move {
-                    let mut q = sqlx::query_as::<_, Self>(#query);
+                    let mut q = ::ormlite::export::query_as::<_, Self>(#query);
                     #(#query_bindings)*
                     q.bind(self.#id_field)
                         .fetch_one(db)
@@ -165,9 +172,12 @@ pub trait OrmliteCodegen {
         let db = Self::database();
         let id_field = quote::format_ident!("{}", attr.primary_key_column);
         quote! {
-           fn delete(self, db: &mut <#db as ::sqlx::Database>::Connection) -> #box_future<::ormlite::Result<()>> {
+            fn delete<'e, E>(self, db: E) -> #box_future<'e, ::ormlite::Result<()>>
+            where
+                E: 'e + ::ormlite::export::Executor<'e, Database = #db>
+            {
                 Box::pin(async move {
-                    let row = ::sqlx::query(#query)
+                    let row = ::ormlite::export::query(#query)
                         .bind(self.#id_field)
                         .execute(db)
                         .await
@@ -195,13 +205,11 @@ pub trait OrmliteCodegen {
         let db = Self::database();
         let box_future = crate::util::box_future();
         quote! {
-            fn get_one<'db, 'arg: 'db, T>(
-                id: T,
-                db: &'db mut <#db as ::sqlx::Database>::Connection,
-            ) ->
-                #box_future<'db, ::ormlite::Result<Self>>
-                where
-                    T: 'arg + Send + for<'r> ::sqlx::Encode<'r, #db> + ::sqlx::Type<#db>,
+            fn get_one<'e, 'a, Arg, E>(id: Arg, db: E) -> #box_future<'e, ::ormlite::Result<Self>>
+            where
+                'a: 'e,
+                Arg: 'a + Send + for<'r> ::sqlx::Encode<'r, #db> + ::sqlx::Type<#db>,
+                E: 'e + ::ormlite::export::Executor<'e, Database = #db>
             {
                 Box::pin(async move {
                     ::sqlx::query_as::<#db, Self>(#query)
@@ -225,7 +233,6 @@ pub trait OrmliteCodegen {
         let impl_Model__get_one = Self::impl_Model__get_one(ast, attr);
 
         quote! {
-            // impl #model : ::ormlite::model::Model<#db> {}
             impl ::ormlite::model::Model<#db> for #model {
                 #impl_Model__insert
                 #impl_Model__update_all_fields
