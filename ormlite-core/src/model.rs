@@ -56,7 +56,7 @@ where
         E: 'e + sqlx::Executor<'e, Database = DB>;
 }
 
-/// The core trait. a struct that implements `Model` can also implement `BuildsPartialModel`, `BuildsQueryBuilder` (and is required to implement `Insertable`)
+/// The core trait. a struct that implements `Model` can also implement `HasModelBuilder`, `HasQueryBuilder` (and is required to implement `Insertable`)
 pub trait Model<DB>
 where
     DB: sqlx::Database,

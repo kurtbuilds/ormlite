@@ -1,5 +1,7 @@
 #![allow(non_snake_case)]
-use crate::attr::{extract_meta, parse_attrs, Column, TableAttr, TableAttrBuilder};
+use crate::attr::{
+    ColumnAttributes, ColumnMeta, ColumnMetaBuilder, ModelAttributes, TableMeta, TableMetaBuilder,
+};
 use crate::codegen::common::OrmliteCodegen;
 use proc_macro::TokenStream;
 
@@ -11,81 +13,91 @@ pub(crate) mod attr;
 pub(crate) mod codegen;
 pub(crate) mod util;
 
-fn finish_attr_builder(ast: &DeriveInput, mut attr_builder: TableAttrBuilder) -> TableAttr {
+fn finish_table_meta(ast: &DeriveInput, mut builder: TableMetaBuilder) -> TableMeta {
     let model = &ast.ident;
     let model_lowercased = model.to_string().to_lowercase();
-
-    attr_builder.table_name = attr_builder.table_name.or(Some(model_lowercased.clone()));
-
+    builder.table_name = builder.table_name.or(Some(model_lowercased.clone()));
     let fields = get_fields(&ast);
-    let columns = fields
+
+    let cols = fields
         .iter()
-        .map(|f| {
-            let mut primary_key = false;
-            let column_name = f.ident.as_ref().unwrap().to_string();
-            extract_meta(&f.attrs)
-                .map(|(path, _lit)| match path.as_str() {
-                    "primary_key" => {
-                        primary_key = true;
-                    }
-                    _ => (),
-                })
-                .for_each(|_| {});
-            if !primary_key
-                && [
-                    "id".to_string(),
-                    "uuid".to_string(),
-                    format!("{}_id", model_lowercased),
-                    format!("{}_uuid", model_lowercased),
-                ]
-                .contains(&column_name)
+        .map(|f| build_column_meta(f))
+        .collect::<Vec<ColumnMeta>>();
+    let mut primary_key = cols.iter().filter(|c| c.marked_primary_key).next();
+    if primary_key.is_none() {
+        for f in cols.iter() {
+            eprintln!("checking for primary key on {}", f.column_name);
+            if [
+                "id".to_string(),
+                "uuid".to_string(),
+                format!("{}_id", model_lowercased),
+                format!("{}_uuid", model_lowercased),
+            ]
+            .contains(&f.column_name)
             {
-                primary_key = true;
+                primary_key = Some(f);
+                break;
             }
-            Column {
-                column_name,
-                column_type: f.ty.clone(),
-                primary_key,
-            }
-        })
-        .collect::<Vec<Column>>();
+        }
+    }
+    if primary_key.is_none() {
+        panic!("No column marked with #[ormlite(primary_key)], and no column named id, uuid, {0}_id, or {0}_uuid", model_lowercased);
+    } else {
+        builder.primary_key(primary_key.unwrap().column_name.clone());
+    }
+    builder.columns(cols);
+    builder.build().unwrap()
+}
 
-    attr_builder.primary_key_column = Some(
-        columns
-            .iter()
-            .filter(|c| c.primary_key)
-            .next()
-            .expect("No primary key column found.")
-            .column_name
-            .clone(),
-    );
+fn partial_build_table_meta(ast: &DeriveInput) -> TableMetaBuilder {
+    let mut builder = TableMetaBuilder::default();
+    for attr in ast.attrs.iter().filter(|a| a.path.is_ident("ormlite")) {
+        let args: ModelAttributes = attr.parse_args().unwrap();
+        if let Some(value) = args.table {
+            builder.table_name(value.value());
+        }
+        if let Some(value) = args.insert {
+            builder.insert_struct(Some(value.to_string()));
+        }
+    }
+    builder
+}
 
-    attr_builder.columns(columns);
-
-    attr_builder.build().unwrap()
+fn build_column_meta(f: &syn::Field) -> ColumnMeta {
+    let mut builder = ColumnMetaBuilder::default();
+    builder.column_name(f.ident.as_ref().unwrap().to_string());
+    builder.column_type(f.ty.clone());
+    builder.marked_primary_key(false);
+    for attr in f.attrs.iter().filter(|a| a.path.is_ident("ormlite")) {
+        let args: ColumnAttributes = attr.parse_args().unwrap();
+        if args.primary_key {
+            builder.marked_primary_key(true);
+        }
+    }
+    builder.build().unwrap()
 }
 
 #[proc_macro_derive(Model, attributes(ormlite))]
 pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
 
-    let attr_builder = parse_attrs(&ast.attrs, ast.ident.span()).unwrap();
-    let attr = finish_attr_builder(&ast, attr_builder);
+    let builder = partial_build_table_meta(&ast);
+    let table_meta = finish_table_meta(&ast, builder);
 
-    let impl_Model = codegen::DB::impl_Model(&ast, &attr);
-    let impl_BuildsQueryBuilder = codegen::DB::impl_BuildsQueryBuilder(&ast, &attr);
-    let impl_BuildsPartialModel = codegen::DB::impl_BuildsPartialModel(&ast, &attr);
+    let impl_Model = codegen::DB::impl_Model(&ast, &table_meta);
+    let impl_HasQueryBuilder = codegen::DB::impl_HasQueryBuilder(&ast, &table_meta);
+    let impl_HasModelBuilder = codegen::DB::impl_HasModelBuilder(&ast, &table_meta);
 
-    let struct_PartialModel = codegen::DB::struct_PartialModel(&ast, &attr);
-    let impl_PartialModel = codegen::DB::impl_PartialModel(&ast, &attr);
+    let struct_ModelBuilder = codegen::DB::struct_ModelBuilder(&ast, &table_meta);
+    let impl_ModelBuilder = codegen::DB::impl_ModelBuilder(&ast, &table_meta);
 
     let expanded = quote! {
         #impl_Model
-        #impl_BuildsPartialModel
-        #impl_BuildsQueryBuilder
+        #impl_HasModelBuilder
+        #impl_HasQueryBuilder
 
-        #struct_PartialModel
-        #impl_PartialModel
+        #struct_ModelBuilder
+        #impl_ModelBuilder
     };
     TokenStream::from(expanded)
 }

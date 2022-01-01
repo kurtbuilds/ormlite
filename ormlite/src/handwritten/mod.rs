@@ -1,4 +1,4 @@
-use ormlite_core::model::{HasQueryBuilder, Insertable, Model, ModelBuilder, TableMeta};
+use ormlite_core::model::{HasQueryBuilder, Insertable, ModelBuilder, TableMeta};
 use ormlite_core::{BoxFuture, Error, Result, SelectQueryBuilder};
 
 pub static PLACEHOLDER: &str = "?";
@@ -8,7 +8,6 @@ pub static CREATE_TABLE_SQL: &str =
 type DB = sqlx::Sqlite;
 
 #[derive(sqlx::FromRow, Debug)]
-// #[ormlite(insert = InsertPerson)]
 pub struct Person {
     pub id: u32,
     pub name: String,

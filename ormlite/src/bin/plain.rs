@@ -4,16 +4,9 @@ use sqlx::Connection;
 use std::str::FromStr;
 
 #[derive(Model, sqlx::FromRow, Debug)]
+#[ormlite(table = "person", insert = InsertPerson)]
+// #[ormlite(table = "person", insert=InsertPerson)]
 pub struct Person {
-    pub id: u32,
-    pub name: String,
-    pub age: u8,
-}
-
-#[derive(Model, sqlx::FromRow, Debug)]
-#[ormlite(table = "person")]
-pub struct Person2 {
-    #[ormlite(primary_key)]
     pub id: u32,
     pub name: String,
     pub age: u8,
