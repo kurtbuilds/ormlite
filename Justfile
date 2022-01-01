@@ -21,6 +21,6 @@ version level:
    git push
 
 publish:
-   cd ormlite-core && cargo publish
-   cd ormlite-macro && cargo publish
-   cd ormlite && cargo publish
+   cd ormlite-core && cargo publish --features runtime-tokio-rustls,sqlite
+   cd ormlite-macro && cargo publish --features runtime-tokio-rustls,sqlite
+   cd ormlite && cargo publish --features runtime-tokio-rustls,sqlite,handwritten
