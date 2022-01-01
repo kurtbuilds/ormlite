@@ -11,7 +11,7 @@ impl OrmliteCodegen for PostgresBackend {
 
     fn placeholder() -> TokenStream {
         quote! {
-            (0..u32::MAX).map(|i| format!("${}", i))
+            (1..u32::MAX).map(|i| format!("${}", i))
         }
     }
 
