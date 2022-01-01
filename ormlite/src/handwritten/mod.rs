@@ -1,4 +1,4 @@
-use ormlite_core::model::{BuildsQueryBuilder, PartialModel, TableMeta};
+use ormlite_core::model::{BuildsQueryBuilder, ModelExcludingDefaults, PartialModel, TableMeta};
 use ormlite_core::{BoxFuture, Error, Result, SelectQueryBuilder};
 
 pub static PLACEHOLDER: &str = "?";
@@ -224,14 +224,13 @@ impl<'a> PartialPerson<'a> {
     }
 }
 
-// done
 impl<'a> PartialModel<'a, DB> for PartialPerson<'a> {
     type Model = Person;
 
-    fn insert<'db: 'a>(
-        self,
-        db: &'db mut <DB as sqlx::Database>::Connection,
-    ) -> BoxFuture<'a, Result<Self::Model>> {
+    fn insert<'e: 'a, E>(self, db: E) -> BoxFuture<'a, Result<Self::Model>>
+    where
+        E: 'e + sqlx::Executor<'e, Database = DB>,
+    {
         Box::pin(async move {
             let insert_fields = self.modified_fields();
             let query = format!(
@@ -258,10 +257,10 @@ impl<'a> PartialModel<'a, DB> for PartialPerson<'a> {
         })
     }
 
-    fn update<'db: 'a>(
-        self,
-        db: &'db mut <DB as sqlx::Database>::Connection,
-    ) -> BoxFuture<'a, Result<Self::Model>> {
+    fn update<'e: 'a, E>(self, db: E) -> BoxFuture<'a, Result<Self::Model>>
+    where
+        E: 'e + sqlx::Executor<'e, Database = DB>,
+    {
         Box::pin(async move {
             let update_fields = self.modified_fields();
             let text = format!(

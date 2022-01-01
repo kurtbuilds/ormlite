@@ -10,6 +10,15 @@ pub struct Person {
     pub age: u8,
 }
 
+#[derive(Model, sqlx::FromRow, Debug)]
+#[ormlite(table = "person")]
+pub struct Person2 {
+    #[ormlite(default, primary_key)]
+    pub id: u32,
+    pub name: String,
+    pub age: u8,
+}
+
 #[tokio::main]
 async fn main() -> core::result::Result<(), Box<dyn std::error::Error>> {
     let mut conn = sqlx::SqliteConnection::connect_with(

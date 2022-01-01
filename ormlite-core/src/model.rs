@@ -22,14 +22,12 @@ where
 {
     type Model;
 
-    fn insert<'db: 'a>(
-        self,
-        db: &'db mut <DB as sqlx::Database>::Connection,
-    ) -> BoxFuture<'a, crate::Result<Self::Model>>;
-    fn update<'db: 'a>(
-        self,
-        db: &'db mut <DB as sqlx::Database>::Connection,
-    ) -> BoxFuture<'a, crate::Result<Self::Model>>;
+    fn insert<'e: 'a, E>(self, db: E) -> BoxFuture<'a, Result<Self::Model>>
+    where
+        E: 'e + sqlx::Executor<'e, Database = DB>;
+    fn update<'e: 'a, E>(self, db: E) -> BoxFuture<'a, Result<Self::Model>>
+    where
+        E: 'e + sqlx::Executor<'e, Database = DB>;
 }
 
 pub trait Model<DB>
@@ -74,4 +72,11 @@ pub trait TableMeta {
     fn fields() -> &'static [&'static str];
     fn num_fields() -> usize;
     fn primary_key_column() -> &'static str;
+}
+
+pub trait ModelExcludingDefaults<'a, DB>
+where
+    DB: sqlx::Database,
+{
+    type Insert: PartialModel<'a, DB>;
 }
