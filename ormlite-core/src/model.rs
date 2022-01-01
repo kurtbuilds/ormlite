@@ -1,3 +1,4 @@
+use crate::Result;
 use crate::SelectQueryBuilder;
 use futures_core::future::BoxFuture;
 
@@ -36,18 +37,24 @@ where
     DB: sqlx::Database,
     Self: Sized,
 {
-    fn insert(self, db: &mut <DB as sqlx::Database>::Connection) -> BoxFuture<crate::Result<Self>>;
-    fn update_all_fields(
-        self,
-        db: &mut <DB as sqlx::Database>::Connection,
-    ) -> BoxFuture<crate::Result<Self>>;
-    fn delete(self, db: &mut <DB as sqlx::Database>::Connection) -> BoxFuture<crate::Result<()>>;
-    fn get_one<'db, 'arg: 'db, T>(
-        id: T,
-        db: &'db mut <DB as sqlx::Database>::Connection,
-    ) -> BoxFuture<'db, crate::Result<Self>>
+    fn insert<'e, E>(self, db: E) -> BoxFuture<'e, Result<Self>>
     where
-        T: 'arg + Send + for<'r> sqlx::Encode<'r, DB> + sqlx::Type<DB>;
+        E: 'e + sqlx::Executor<'e, Database = DB>;
+
+    fn update_all_fields<'e, E>(self, db: E) -> BoxFuture<'e, Result<Self>>
+    where
+        E: 'e + sqlx::Executor<'e, Database = DB>;
+
+    fn delete<'e, E>(self, db: E) -> BoxFuture<'e, Result<()>>
+    where
+        E: 'e + sqlx::Executor<'e, Database = DB>;
+
+    fn get_one<'e, 'a, Arg, E>(id: Arg, db: E) -> BoxFuture<'e, Result<Self>>
+    where
+        'a: 'e,
+        E: 'e + sqlx::Executor<'e, Database = DB>,
+        Arg: 'a + Send + for<'r> sqlx::Encode<'r, DB> + sqlx::Type<DB>;
+
     fn query(
         query: &str,
     ) -> sqlx::query::QueryAs<DB, Self, <DB as sqlx::database::HasArguments>::Arguments>;

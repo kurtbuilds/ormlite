@@ -1,6 +1,5 @@
 use ormlite_core::model::{BuildsQueryBuilder, PartialModel, TableMeta};
 use ormlite_core::{BoxFuture, Error, Result, SelectQueryBuilder};
-use sqlx::Database;
 
 pub static PLACEHOLDER: &str = "?";
 pub static CREATE_TABLE_SQL: &str =
@@ -59,7 +58,10 @@ impl Person {
 */
 
 impl crate::model::Model<DB> for Person {
-    fn insert(self, db: &mut <DB as Database>::Connection) -> BoxFuture<Result<Self>> {
+    fn insert<'e, E>(self, db: E) -> BoxFuture<'e, Result<Self>>
+    where
+        E: 'e + sqlx::Executor<'e, Database = DB>,
+    {
         Box::pin(async move {
             let q = format!(
                 "INSERT INTO {} ({}) VALUES ({}) RETURNING *",
@@ -80,7 +82,10 @@ impl crate::model::Model<DB> for Person {
         })
     }
 
-    fn update_all_fields(self, db: &mut <DB as Database>::Connection) -> BoxFuture<Result<Self>> {
+    fn update_all_fields<'e, E>(self, db: E) -> BoxFuture<'e, Result<Self>>
+    where
+        E: 'e + sqlx::Executor<'e, Database = DB>,
+    {
         Box::pin(async move {
             let q = format!(
                 "UPDATE {} SET {} WHERE {} = {} RETURNING *",
@@ -99,7 +104,10 @@ impl crate::model::Model<DB> for Person {
         })
     }
 
-    fn delete(self, db: &mut <DB as sqlx::Database>::Connection) -> BoxFuture<Result<()>> {
+    fn delete<'e, E>(self, db: E) -> BoxFuture<'e, Result<()>>
+    where
+        E: 'e + sqlx::Executor<'e, Database = DB>,
+    {
         Box::pin(async move {
             let q = format!(
                 "DELETE from {} WHERE {} = {}",
@@ -116,12 +124,11 @@ impl crate::model::Model<DB> for Person {
         })
     }
 
-    fn get_one<'db, 'arg: 'db, T>(
-        id: T,
-        db: &'db mut <DB as Database>::Connection,
-    ) -> BoxFuture<'db, Result<Self>>
+    fn get_one<'e, 'a, Arg, E>(id: Arg, db: E) -> BoxFuture<'e, Result<Self>>
     where
-        T: 'arg + Send + for<'r> sqlx::Encode<'r, DB> + sqlx::Type<DB>,
+        'a: 'e,
+        E: 'e + sqlx::Executor<'e, Database = DB>,
+        Arg: 'a + Send + for<'r> sqlx::Encode<'r, DB> + sqlx::Type<DB>,
     {
         let text = format!(
             "SELECT * FROM {} WHERE {} = {}",
@@ -145,9 +152,8 @@ impl crate::model::Model<DB> for Person {
     }
 }
 
-// done
 impl BuildsQueryBuilder<DB, Box<dyn Iterator<Item = String>>> for Person {
-    fn select<'args>() -> SelectQueryBuilder<'args, DB, Self, Box<dyn Iterator<Item = String>>> {
+    fn select<'a>() -> SelectQueryBuilder<'a, DB, Self, Box<dyn Iterator<Item = String>>> {
         SelectQueryBuilder::default().column(&format!("{}.*", Self::table_name()))
     }
 }
