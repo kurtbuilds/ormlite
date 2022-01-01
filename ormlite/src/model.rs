@@ -1,1 +1,3 @@
-pub use ormlite_core::model::{HasModelBuilder, HasQueryBuilder, Model, ModelBuilder, TableMeta};
+pub use ormlite_core::model::{
+    HasModelBuilder, HasQueryBuilder, Insertable, Model, ModelBuilder, TableMeta,
+};

@@ -4,8 +4,7 @@ use sqlx::Connection;
 use std::str::FromStr;
 
 #[derive(Model, sqlx::FromRow, Debug)]
-#[ormlite(table = "person", insert = InsertPerson)]
-// #[ormlite(table = "person", insert=InsertPerson)]
+#[ormlite(insert = InsertPerson)]
 pub struct Person {
     pub id: u32,
     pub name: String,
@@ -71,6 +70,13 @@ async fn main() -> core::result::Result<(), Box<dyn std::error::Error>> {
     println!("get_one {:?}", dan);
 
     dan.update_partial().age(29).update(&mut conn).await?;
+
+    InsertPerson {
+        name: "Albert Einstein".to_string(),
+        age: 60,
+    }
+    .insert(&mut conn)
+    .await?;
 
     println!("build {:?}", dan);
     let kurt = Person::build()

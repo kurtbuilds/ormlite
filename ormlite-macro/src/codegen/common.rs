@@ -42,6 +42,10 @@ fn ty_is_string(ty: &syn::Type) -> bool {
 }
 
 pub trait OrmliteCodegen {
+    fn database() -> TokenStream;
+    fn placeholder() -> TokenStream;
+    fn raw_placeholder() -> Box<dyn Iterator<Item = String>>;
+
     fn impl_TableMeta(ast: &DeriveInput, attr: &TableMeta) -> TokenStream {
         let model = &ast.ident;
         let table_name = &attr.table_name;
@@ -280,11 +284,8 @@ pub trait OrmliteCodegen {
     }
 
     fn struct_ModelBuilder(ast: &DeriveInput, _attr: &TableMeta) -> TokenStream {
-        let base_ident = &ast.ident;
-        let partial_ident = syn::Ident::new(
-            &("Partial".to_string() + ast.ident.to_string().as_str()),
-            proc_macro2::Span::call_site(),
-        );
+        let model = &ast.ident;
+        let model_builder = quote::format_ident!("Partial{}", model.to_string());
         let pub_marker = &ast.vis;
 
         let fields = crate::util::get_fields(ast);
@@ -333,12 +334,12 @@ pub trait OrmliteCodegen {
         });
 
         quote! {
-            #pub_marker struct #partial_ident<'a> {
+            #pub_marker struct #model_builder<'a> {
                 #(#settable,)*
-                updating: Option<&'a #base_ident>,
+                updating: Option<&'a #model>,
             }
 
-            impl<'a> std::default::Default for #partial_ident<'a> {
+            impl<'a> std::default::Default for #model_builder<'a> {
                 fn default() -> Self {
                     Self {
                         #(#fields_none,)*
@@ -347,7 +348,7 @@ pub trait OrmliteCodegen {
                 }
             }
 
-            impl<'a> #partial_ident<'a> {
+            impl<'a> #model_builder<'a> {
                 #(#methods)*
 
                 fn modified_fields(&self) -> Vec<&'static str> {
@@ -384,7 +385,7 @@ pub trait OrmliteCodegen {
                         set_fields.join(", "),
                         set_fields.iter().map(|_| placeholder.next().unwrap()).collect::<Vec<_>>().join(", "),
                     );
-                    let mut q = ::sqlx::query_as::<#db, Self::Model>(&query);
+                    let mut q = ::ormlite::export::query_as::<#db, Self::Model>(&query);
                     #(#bind_parameters)*
                     q.fetch_one(db)
                         .await
@@ -452,7 +453,86 @@ pub trait OrmliteCodegen {
         }
     }
 
-    fn database() -> TokenStream;
-    fn placeholder() -> TokenStream;
-    fn raw_placeholder() -> Box<dyn Iterator<Item = String>>;
+    fn struct_InsertModel(ast: &DeriveInput, attr: &TableMeta) -> TokenStream {
+        if attr.insert_struct.is_none() {
+            return quote! {};
+        }
+        let model_builder = quote::format_ident!("{}", attr.insert_struct.as_ref().unwrap());
+        let pub_marker = &ast.vis;
+        let fields = crate::util::get_fields(ast);
+        let struct_fields = fields
+            .iter()
+            .zip(attr.columns.iter())
+            .filter(|(_f, col_meta)| !col_meta.has_database_default)
+            .map(|(f, _)| {
+                let name = &f.ident;
+                let ty = &f.ty;
+                quote! { #name: #ty }
+            });
+
+        quote! {
+            #pub_marker struct #model_builder {
+                #(#struct_fields,)*
+            }
+        }
+    }
+
+    fn impl_InsertModel(ast: &DeriveInput, attr: &TableMeta) -> TokenStream {
+        if attr.insert_struct.is_none() {
+            return quote! {};
+        }
+        let box_future = crate::util::box_future();
+        let model = &ast.ident;
+        let db = Self::database();
+        let insert_model = quote::format_ident!("{}", attr.insert_struct.as_ref().unwrap());
+        let fields = attr
+            .columns
+            .iter()
+            .filter(|col_meta| !col_meta.has_database_default)
+            .map(|col_meta| col_meta.column_name.clone())
+            .collect::<Vec<_>>()
+            .join(",");
+        let mut placeholder = Self::raw_placeholder();
+        let placeholders = attr
+            .columns
+            .iter()
+            .filter(|col_meta| !col_meta.has_database_default)
+            .map(|_| placeholder.next().unwrap())
+            .collect::<Vec<_>>()
+            .join(",");
+        let query = format!(
+            "INSERT INTO {} ({}) VALUES ({}) RETURNING *",
+            attr.table_name, fields, placeholders,
+        );
+
+        let query_bindings = attr
+            .columns
+            .iter()
+            .filter(|col_meta| !col_meta.has_database_default)
+            .map(|f| {
+                let name = quote::format_ident!("{}", f.column_name);
+                quote! {
+                    q = q.bind(self.#name);
+                }
+            });
+
+        quote! {
+            impl<'a> Insertable<'a, #db> for #insert_model {
+                type Model = #model;
+
+                fn insert<'e: 'a, E>(self, db: E) -> #box_future<'a, ::ormlite::Result<Self::Model>>
+                where
+                    E: 'e + ::ormlite::export::Executor<'e, Database = #db>,
+                {
+                    Box::pin(async move {
+                        let mut q = ::ormlite::export::query_as::<#db, Self::Model>(#query);
+                        #(#query_bindings)*
+                        q.fetch_one(db)
+                            .await
+                            .map_err(::ormlite::Error::from)
+                    })
+                }
+            }
+        }
+    }
 }

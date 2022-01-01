@@ -19,14 +19,17 @@ fn finish_table_meta(ast: &DeriveInput, mut builder: TableMetaBuilder) -> TableM
     builder.table_name = builder.table_name.or(Some(model_lowercased.clone()));
     let fields = get_fields(&ast);
 
-    let cols = fields
-        .iter()
+    let mut cols = fields
+        .into_iter()
         .map(|f| build_column_meta(f))
         .collect::<Vec<ColumnMeta>>();
-    let mut primary_key = cols.iter().filter(|c| c.marked_primary_key).next();
+    let mut primary_key = cols
+        .iter()
+        .filter(|c| c.marked_primary_key)
+        .map(|m| m.column_name.clone())
+        .next();
     if primary_key.is_none() {
-        for f in cols.iter() {
-            eprintln!("checking for primary key on {}", f.column_name);
+        for f in cols.iter_mut() {
             if [
                 "id".to_string(),
                 "uuid".to_string(),
@@ -35,7 +38,8 @@ fn finish_table_meta(ast: &DeriveInput, mut builder: TableMetaBuilder) -> TableM
             ]
             .contains(&f.column_name)
             {
-                primary_key = Some(f);
+                primary_key = Some(f.column_name.clone());
+                f.has_database_default = true;
                 break;
             }
         }
@@ -43,7 +47,7 @@ fn finish_table_meta(ast: &DeriveInput, mut builder: TableMetaBuilder) -> TableM
     if primary_key.is_none() {
         panic!("No column marked with #[ormlite(primary_key)], and no column named id, uuid, {0}_id, or {0}_uuid", model_lowercased);
     } else {
-        builder.primary_key(primary_key.unwrap().column_name.clone());
+        builder.primary_key(primary_key.unwrap());
     }
     builder.columns(cols);
     builder.build().unwrap()
@@ -68,10 +72,15 @@ fn build_column_meta(f: &syn::Field) -> ColumnMeta {
     builder.column_name(f.ident.as_ref().unwrap().to_string());
     builder.column_type(f.ty.clone());
     builder.marked_primary_key(false);
+    builder.has_database_default(false);
     for attr in f.attrs.iter().filter(|a| a.path.is_ident("ormlite")) {
         let args: ColumnAttributes = attr.parse_args().unwrap();
         if args.primary_key {
             builder.marked_primary_key(true);
+            builder.has_database_default(true);
+        }
+        if args.default {
+            builder.has_database_default(true);
         }
     }
     builder.build().unwrap()
@@ -91,6 +100,9 @@ pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
     let struct_ModelBuilder = codegen::DB::struct_ModelBuilder(&ast, &table_meta);
     let impl_ModelBuilder = codegen::DB::impl_ModelBuilder(&ast, &table_meta);
 
+    let struct_InsertModel = codegen::DB::struct_InsertModel(&ast, &table_meta);
+    let impl_InsertModel = codegen::DB::impl_InsertModel(&ast, &table_meta);
+
     let expanded = quote! {
         #impl_Model
         #impl_HasModelBuilder
@@ -98,6 +110,9 @@ pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
 
         #struct_ModelBuilder
         #impl_ModelBuilder
+
+        #struct_InsertModel
+        #impl_InsertModel
     };
     TokenStream::from(expanded)
 }
