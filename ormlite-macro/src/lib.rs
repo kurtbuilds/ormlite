@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-use crate::attr::{parse_attrs, Column, TableAttr, TableAttrBuilder};
+use crate::attr::{extract_meta, parse_attrs, Column, TableAttr, TableAttrBuilder};
 use crate::codegen::common::OrmliteCodegen;
 use proc_macro::TokenStream;
 
@@ -18,35 +18,49 @@ fn finish_attr_builder(ast: &DeriveInput, mut attr_builder: TableAttrBuilder) ->
     attr_builder.table_name = attr_builder.table_name.or(Some(model_lowercased.clone()));
 
     let fields = get_fields(&ast);
-    attr_builder.columns(
-        fields
-            .iter()
-            .map(|f| Column {
-                column_name: f.ident.as_ref().unwrap().to_string(),
-                column_type: f.ty.clone(),
-            })
-            .collect(),
-    );
-
-    attr_builder.primary_key_column = attr_builder.primary_key_column.or_else(|| {
-        fields
-            .iter()
-            .filter_map(|f| {
-                if [
+    let columns = fields
+        .iter()
+        .map(|f| {
+            let mut primary_key = false;
+            let column_name = f.ident.as_ref().unwrap().to_string();
+            extract_meta(&f.attrs)
+                .map(|(path, _lit)| match path.as_str() {
+                    "primary_key" => {
+                        primary_key = true;
+                    }
+                    _ => (),
+                })
+                .for_each(|_| {});
+            if !primary_key
+                && [
                     "id".to_string(),
                     "uuid".to_string(),
                     format!("{}_id", model_lowercased),
                     format!("{}_uuid", model_lowercased),
                 ]
-                .contains(&f.ident.as_ref().unwrap().to_string())
-                {
-                    Some(f.ident.as_ref().unwrap().to_string())
-                } else {
-                    None
-                }
-            })
+                .contains(&column_name)
+            {
+                primary_key = true;
+            }
+            Column {
+                column_name,
+                column_type: f.ty.clone(),
+                primary_key,
+            }
+        })
+        .collect::<Vec<Column>>();
+
+    attr_builder.primary_key_column = Some(
+        columns
+            .iter()
+            .filter(|c| c.primary_key)
             .next()
-    });
+            .expect("No primary key column found.")
+            .column_name
+            .clone(),
+    );
+
+    attr_builder.columns(columns);
 
     attr_builder.build().unwrap()
 }

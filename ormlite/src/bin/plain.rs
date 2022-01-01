@@ -13,7 +13,7 @@ pub struct Person {
 #[derive(Model, sqlx::FromRow, Debug)]
 #[ormlite(table = "person")]
 pub struct Person2 {
-    #[ormlite(default, primary_key)]
+    #[ormlite(primary_key)]
     pub id: u32,
     pub name: String,
     pub age: u8,

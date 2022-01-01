@@ -31,3 +31,4 @@ postgres = ["sqlx/postgres", "ormlite-macro/postgres", "ormlite-core/postgres"]
 handwritten = ["env_logger"]
 
 runtime-tokio-rustls = ["ormlite-macro/runtime-tokio-rustls", "sqlx/runtime-tokio-rustls", "ormlite-core/runtime-tokio-rustls"]
+insert = []

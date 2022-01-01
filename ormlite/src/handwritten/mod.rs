@@ -1,6 +1,4 @@
-use ormlite_core::model::{
-    HasInsertModel, HasQueryBuilder, Insertable, Model, ModelBuilder, TableMeta,
-};
+use ormlite_core::model::{HasQueryBuilder, Insertable, Model, ModelBuilder, TableMeta};
 use ormlite_core::{BoxFuture, Error, Result, SelectQueryBuilder};
 
 pub static PLACEHOLDER: &str = "?";
@@ -10,6 +8,7 @@ pub static CREATE_TABLE_SQL: &str =
 type DB = sqlx::Sqlite;
 
 #[derive(sqlx::FromRow, Debug)]
+// #[ormlite(insert = InsertPerson)]
 pub struct Person {
     pub id: u32,
     pub name: String,
@@ -258,12 +257,8 @@ impl<'a> ModelBuilder<'a, DB> for PartialPerson<'a> {
 }
 
 pub struct InsertPerson {
-    name: String,
-    age: u8,
-}
-
-impl<'a> HasInsertModel<'a, DB> for Person {
-    type Insert = InsertPerson;
+    pub name: String,
+    pub age: u8,
 }
 
 impl<'a> Insertable<'a, DB> for InsertPerson {

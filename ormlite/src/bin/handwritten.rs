@@ -2,8 +2,8 @@ use sqlx::Connection;
 
 use std::str::FromStr;
 
-use ormlite::handwritten::Person;
-use ormlite_core::model::{HasModelBuilder, HasQueryBuilder, Model, ModelBuilder};
+use ormlite::handwritten::{InsertPerson, Person};
+use ormlite_core::model::{HasModelBuilder, HasQueryBuilder, Insertable, Model, ModelBuilder};
 
 #[tokio::main]
 async fn main() -> core::result::Result<(), Box<dyn std::error::Error>> {
@@ -70,6 +70,14 @@ async fn main() -> core::result::Result<(), Box<dyn std::error::Error>> {
         .age(29)
         .insert(&mut conn)
         .await?;
+
+    // type Insert<'a> = <Person as HasInsertModel<'a, sqlx::Sqlite>>::Insert;
+    InsertPerson {
+        name: "Albert Einstein".to_string(),
+        age: 60,
+    }
+    .insert(&mut conn)
+    .await?;
 
     // // You can create a query builder.
     let people = Person::select()

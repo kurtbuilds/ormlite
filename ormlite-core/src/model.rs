@@ -103,10 +103,3 @@ pub trait TableMeta {
     fn num_fields() -> usize;
     fn primary_key_column() -> &'static str;
 }
-
-pub trait HasInsertModel<'a, DB>
-where
-    DB: sqlx::Database,
-{
-    type Insert: Insertable<'a, DB>;
-}
