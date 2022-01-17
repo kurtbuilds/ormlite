@@ -125,8 +125,8 @@ impl crate::model::Model<DB> for Person {
     }
 }
 
-impl HasQueryBuilder<DB, Box<dyn Iterator<Item = String>>> for Person {
-    fn select<'a>() -> SelectQueryBuilder<'a, DB, Self, Box<dyn Iterator<Item = String>>> {
+impl HasQueryBuilder<DB, Box<dyn Iterator<Item = String> + Send>> for Person {
+    fn select<'a>() -> SelectQueryBuilder<'a, DB, Self, Box<dyn Iterator<Item = String> + Send>> {
         SelectQueryBuilder::default().column(&format!("{}.*", Self::table_name()))
     }
 }
