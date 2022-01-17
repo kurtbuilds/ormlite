@@ -9,6 +9,9 @@ repository = "https://github.com/kurtbuilds/ormlite"
 autotests = false
 readme = "../README.md"
 
+[package.metadata.docs.rs]
+features = ["sqlite", "runtime-tokio-rustls"]
+
 [[test]]
 name = "tests"
 path = "tests/suite.rs"
