@@ -1,3 +1,4 @@
+#![cfg(feature = "handwritten")]
 use sqlx::Connection;
 
 use std::str::FromStr;
