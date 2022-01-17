@@ -78,7 +78,7 @@ where
     where
         'a: 'e,
         E: 'e + sqlx::Executor<'e, Database = DB>,
-        Arg: 'a + Send + for<'r> sqlx::Encode<'r, DB> + sqlx::Type<DB>;
+        Arg: 'a + Send + sqlx::Encode<'a, DB> + sqlx::Type<DB>;
 
     fn query(
         query: &str,

@@ -212,7 +212,7 @@ pub trait OrmliteCodegen {
             fn get_one<'e, 'a, Arg, E>(id: Arg, db: E) -> #box_future<'e, ::ormlite::Result<Self>>
             where
                 'a: 'e,
-                Arg: 'a + Send + for<'r> ::sqlx::Encode<'r, #db> + ::sqlx::Type<#db>,
+                Arg: 'a + Send + ::sqlx::Encode<'a, #db> + ::sqlx::Type<#db>,
                 E: 'e + ::ormlite::export::Executor<'e, Database = #db>
             {
                 Box::pin(async move {
