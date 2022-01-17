@@ -44,7 +44,7 @@ fn ty_is_string(ty: &syn::Type) -> bool {
 pub trait OrmliteCodegen {
     fn database() -> TokenStream;
     fn placeholder() -> TokenStream;
-    fn raw_placeholder() -> Box<dyn Iterator<Item = String>>;
+    fn raw_placeholder() -> Box<dyn Iterator<Item = String> + Send>;
 
     fn impl_TableMeta(ast: &DeriveInput, attr: &TableMeta) -> TokenStream {
         let model = &ast.ident;
@@ -256,8 +256,8 @@ pub trait OrmliteCodegen {
         let model = &ast.ident;
         let db = Self::database();
         quote! {
-            impl ::ormlite::model::HasQueryBuilder<#db, ::std::boxed::Box<dyn Iterator<Item=String>>> for #model {
-                fn select<'args>() -> ::ormlite::SelectQueryBuilder<'args, #db, Self, Box<dyn Iterator<Item=String>>> {
+            impl ::ormlite::model::HasQueryBuilder<#db, ::std::boxed::Box<dyn Iterator<Item=String> + Send>> for #model {
+                fn select<'args>() -> ::ormlite::SelectQueryBuilder<'args, #db, Self, Box<dyn Iterator<Item=String> + Send>> {
                     ::ormlite::SelectQueryBuilder::default()
                         .column(&format!("{}.*", #table_name))
                 }

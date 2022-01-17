@@ -16,7 +16,7 @@ impl OrmliteCodegen for SqliteBackend {
         }
     }
 
-    fn raw_placeholder() -> Box<dyn Iterator<Item = String>> {
+    fn raw_placeholder() -> Box<dyn Iterator<Item = String> + Send> {
         Box::new(std::iter::repeat("?".to_string()))
     }
 }

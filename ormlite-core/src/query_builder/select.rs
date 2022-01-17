@@ -35,7 +35,7 @@ where
     Model: Sized + Send + Sync + Unpin + TableMeta + for<'r> sqlx::FromRow<'r, DB::Row> + 'static,
     DB: sqlx::Database,
     <DB as HasArguments<'args>>::Arguments: IntoArguments<'args, DB>,
-    PlaceholderGenerator: Iterator<Item = String>,
+    PlaceholderGenerator: Iterator<Item = String> + Send,
 {
     pub async fn fetch_all<'executor, E>(mut self, db: E) -> Result<Vec<Model>>
     where
@@ -230,7 +230,7 @@ where
 }
 
 impl<'args, DB, Model> Default
-    for SelectQueryBuilder<'args, DB, Model, Box<dyn Iterator<Item = String>>>
+    for SelectQueryBuilder<'args, DB, Model, Box<dyn Iterator<Item = String> + Send>>
 where
     DB: sqlx::Database,
 {
