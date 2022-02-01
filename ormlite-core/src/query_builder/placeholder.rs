@@ -4,8 +4,8 @@ pub enum Placeholder {
 }
 
 impl Placeholder {
-    pub fn dollar_sign(index: usize) -> Self {
-        Placeholder::DollarSign(index)
+    pub fn dollar_sign() -> Self {
+        Placeholder::DollarSign(1)
     }
 
     pub fn question_mark() -> Self {

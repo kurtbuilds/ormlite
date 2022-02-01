@@ -14,12 +14,12 @@ impl OrmliteCodegen for PostgresBackend {
 
     fn placeholder() -> TokenStream {
         quote! {
-            ::ormlite::query_builder::Placeholder::dollar_sign(0)
+            ::ormlite::query_builder::Placeholder::dollar_sign()
         }
     }
 
     fn raw_placeholder() -> Placeholder {
-        Placeholder::dollar_sign(0)
+        Placeholder::dollar_sign()
     }
 
     fn impl_HasQueryBuilder(ast: &DeriveInput, attr: &TableMeta) -> TokenStream {
@@ -29,7 +29,7 @@ impl OrmliteCodegen for PostgresBackend {
         quote! {
             impl ::ormlite::model::HasQueryBuilder<#db> for #model {
                 fn select<'args>() -> ::ormlite::SelectQueryBuilder<'args, #db, Self> {
-                    ::ormlite::SelectQueryBuilder::new(::ormlite::query_builder::Placeholder::dollar_sign(0))
+                    ::ormlite::SelectQueryBuilder::new(::ormlite::query_builder::Placeholder::dollar_sign())
                         .column(&format!("{}.*", #table_name))
                 }
             }
