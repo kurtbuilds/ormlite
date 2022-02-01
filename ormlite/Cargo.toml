@@ -12,6 +12,17 @@ readme = "../README.md"
 [package.metadata.docs.rs]
 features = ["sqlite", "runtime-tokio-rustls"]
 
+lib = ["lib.rs"]
+
+[[bin]]
+name = "plain"
+path = "src/bin/plain.rs"
+
+
+[[bin]]
+name = "handwritten"
+path = "src/bin/handwritten.rs"
+
 [[test]]
 name = "tests"
 path = "tests/suite.rs"
