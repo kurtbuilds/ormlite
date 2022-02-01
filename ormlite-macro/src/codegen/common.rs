@@ -1,4 +1,5 @@
 use crate::TableMeta;
+use ormlite_core::query_builder::Placeholder;
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::punctuated::Punctuated;
@@ -44,7 +45,7 @@ fn ty_is_string(ty: &syn::Type) -> bool {
 pub trait OrmliteCodegen {
     fn database() -> TokenStream;
     fn placeholder() -> TokenStream;
-    fn raw_placeholder() -> Box<dyn Iterator<Item = String> + Send>;
+    fn raw_placeholder() -> Placeholder;
 
     fn impl_TableMeta(ast: &DeriveInput, attr: &TableMeta) -> TokenStream {
         let model = &ast.ident;
@@ -256,9 +257,9 @@ pub trait OrmliteCodegen {
         let model = &ast.ident;
         let db = Self::database();
         quote! {
-            impl ::ormlite::model::HasQueryBuilder<#db, ::std::boxed::Box<dyn Iterator<Item=String> + Send>> for #model {
-                fn select<'args>() -> ::ormlite::SelectQueryBuilder<'args, #db, Self, Box<dyn Iterator<Item=String> + Send>> {
-                    ::ormlite::SelectQueryBuilder::default()
+            impl ::ormlite::model::HasQueryBuilder<#db> for #model {
+                fn select<'args>() -> ::ormlite::SelectQueryBuilder<'args, #db, Self> {
+                    ::ormlite::SelectQueryBuilder::new(::ormlite::query_builder::Placeholder::question_mark())
                         .column(&format!("{}.*", #table_name))
                 }
             }

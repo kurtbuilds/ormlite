@@ -1,18 +1,16 @@
 use crate::error::{Error, Result};
 use crate::model::TableMeta;
 use crate::query_builder::args::QueryBuilderArgs;
-use crate::query_builder::util;
-use core::default::Default;
+use crate::query_builder::{util, Placeholder};
 
 use sqlx::database::HasArguments;
 
 use sqlx::{Executor, IntoArguments};
 use std::marker::PhantomData;
 
-pub struct SelectQueryBuilder<'args, DB, Model, PlaceholderGenerator>
+pub struct SelectQueryBuilder<'args, DB, Model>
 where
     DB: sqlx::Database,
-    PlaceholderGenerator: Iterator<Item = String>,
 {
     with: Vec<(String, String)>,
     columns: Vec<String>,
@@ -26,16 +24,14 @@ where
 
     arguments: QueryBuilderArgs<'args, DB>,
     model: PhantomData<Model>,
-    gen: PlaceholderGenerator,
+    gen: Placeholder,
 }
 
-impl<'args, DB, Model, PlaceholderGenerator>
-    SelectQueryBuilder<'args, DB, Model, PlaceholderGenerator>
+impl<'args, DB, Model> SelectQueryBuilder<'args, DB, Model>
 where
     Model: Sized + Send + Sync + Unpin + TableMeta + for<'r> sqlx::FromRow<'r, DB::Row> + 'static,
     DB: sqlx::Database,
     <DB as HasArguments<'args>>::Arguments: IntoArguments<'args, DB>,
-    PlaceholderGenerator: Iterator<Item = String> + Send,
 {
     pub async fn fetch_all<'executor, E>(mut self, db: E) -> Result<Vec<Model>>
     where
@@ -227,14 +223,11 @@ where
         }
         Ok(r)
     }
-}
 
-impl<'args, DB, Model> Default
-    for SelectQueryBuilder<'args, DB, Model, Box<dyn Iterator<Item = String> + Send>>
-where
-    DB: sqlx::Database,
-{
-    fn default() -> Self {
+    // Bit of a hack for this function to exist, since we have the DB, we *should* know the placeholder, but
+    // DB comes from sqlx, and we don't have a notion of the placeholder. Ergo, let's just pass in the placeholder.
+    // Maybe refactor it in the future
+    pub fn new(placeholder: Placeholder) -> Self {
         Self {
             with: Vec::new(),
             columns: Vec::new(),
@@ -245,10 +238,9 @@ where
             having: Vec::new(),
             limit: None,
             offset: None,
-
             arguments: QueryBuilderArgs::default(),
             model: PhantomData,
-            gen: Box::new(std::iter::repeat("?".to_string())),
+            gen: placeholder,
         }
     }
 }

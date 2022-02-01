@@ -1,5 +1,6 @@
 use crate::codegen::common::OrmliteCodegen;
 
+use ormlite_core::query_builder::Placeholder;
 use proc_macro2::TokenStream;
 use quote::quote;
 
@@ -12,11 +13,11 @@ impl OrmliteCodegen for SqliteBackend {
 
     fn placeholder() -> TokenStream {
         quote! {
-            std::iter::repeat("?".to_string())
+            ::ormlite::query_builder::Placeholder::question_mark()
         }
     }
 
-    fn raw_placeholder() -> Box<dyn Iterator<Item = String> + Send> {
-        Box::new(std::iter::repeat("?".to_string()))
+    fn raw_placeholder() -> Placeholder {
+        Placeholder::question_mark()
     }
 }

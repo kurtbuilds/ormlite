@@ -11,3 +11,7 @@ pub mod model;
 
 #[cfg(feature = "handwritten")]
 pub mod handwritten;
+
+pub mod query_builder {
+    pub use ormlite_core::query_builder::*;
+}

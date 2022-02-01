@@ -1,4 +1,13 @@
 /// A model is a struct that represents a row in a relational database table.
+/// Using the `[derive(ormlite::Model)]` macro, it will acquire the following traits:
+///
+///  - `ormlite::Model`, giving it direct database access, e.g. `insert`, `update_all_fields`, etc.
+///  - `ormlite::HasModelBuilder`, letting it build partials, so you can insert or update some
+///    fields instead of all of them at once, e.g. `model.name("John").update()`
+///  - `ormlite::HasQueryBuilder`, letting it build queries, e.g. `Model::select()`
+///  - `ormlite::TableMeta`, which you typically don't use directly, but provides table metadata
+///    (e.g. table name)
+///
 use crate::Result;
 use crate::SelectQueryBuilder;
 use futures_core::future::BoxFuture;
@@ -85,16 +94,12 @@ where
     ) -> sqlx::query::QueryAs<DB, Self, <DB as sqlx::database::HasArguments>::Arguments>;
 }
 
-pub trait HasQueryBuilder<DB, PlaceholderGenerator>
+pub trait HasQueryBuilder<DB>
 where
     DB: sqlx::Database,
     Self: Sized,
-    PlaceholderGenerator: Iterator<Item = String>,
 {
-    fn select<'args>() -> SelectQueryBuilder<'args, DB, Self, PlaceholderGenerator>;
-    // fn insert()
-    // fn update()
-    // fn delete()
+    fn select<'args>() -> SelectQueryBuilder<'args, DB, Self>;
 }
 
 pub trait TableMeta {
