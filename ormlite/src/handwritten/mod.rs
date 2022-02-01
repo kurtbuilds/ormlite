@@ -103,14 +103,15 @@ impl crate::model::Model<DB> for Person {
         E: 'e + sqlx::Executor<'e, Database = DB>,
         Arg: 'a + Send + sqlx::Encode<'a, DB> + sqlx::Type<DB>,
     {
-        let text = format!(
-            "SELECT * FROM {} WHERE {} = {}",
-            Self::table_name(),
-            Self::primary_key_column(),
-            PLACEHOLDER,
-        );
+        // let text = format!(
+        //     "SELECT * FROM {} WHERE {} = {}",
+        //     Self::table_name(),
+        //     Self::primary_key_column(),
+        //     PLACEHOLDER,
+        // );
+        let text = "SELECT * FROM person WHERE id = ?";
         Box::pin(async move {
-            sqlx::query_as::<DB, Self>(&text)
+            sqlx::query_as::<DB, Self>(text)
                 .bind(id)
                 .fetch_one(db) // executor outlives the
                 .await
