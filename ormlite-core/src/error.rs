@@ -2,10 +2,10 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    #[error("sqlx error: {0}")]
+    #[error(transparent)]
     SqlxError(#[from] sqlx::Error),
 
-    #[error("tokenization error: {0}")]
+    #[error(transparent)]
     TokenizationError(#[from] sqlparser::tokenizer::TokenizerError),
 
     #[error("{0}")]
