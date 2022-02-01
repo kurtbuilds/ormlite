@@ -8,6 +8,6 @@ pub enum Error {
     #[error("tokenization error: {0}")]
     TokenizationError(#[from] sqlparser::tokenizer::TokenizerError),
 
-    #[error("{0}")]
+    #[error(transparent)]
     OrmliteError(String),
 }
