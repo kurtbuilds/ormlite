@@ -89,7 +89,7 @@ pub trait OrmliteCodegen {
             .join(", ");
 
         let query = format!(
-            "INSERT INTO {} ({}) VALUES ({}) RETURNING *",
+            "INSERT INTO \"{}\" ({}) VALUES ({}) RETURNING *",
             attr.table_name, field_names, params
         );
 
@@ -128,7 +128,7 @@ pub trait OrmliteCodegen {
             .join(", ");
 
         let query = format!(
-            "UPDATE {} SET {} WHERE {} = {} RETURNING *",
+            "UPDATE \"{}\" SET {} WHERE {} = {} RETURNING *",
             attr.table_name,
             update_clause,
             attr.primary_key,
@@ -167,7 +167,7 @@ pub trait OrmliteCodegen {
         let mut placeholder = Self::raw_placeholder();
 
         let query = format!(
-            "DELETE FROM {} WHERE {} = {}",
+            "DELETE FROM \"{}\" WHERE {} = {}",
             attr.table_name,
             attr.primary_key,
             placeholder.next().unwrap()
@@ -201,7 +201,7 @@ pub trait OrmliteCodegen {
         let mut placeholder = Self::raw_placeholder();
 
         let query = format!(
-            "SELECT * FROM {} WHERE {} = {}",
+            "SELECT * FROM \"{}\" WHERE {} = {}",
             attr.table_name,
             attr.primary_key,
             placeholder.next().unwrap()
@@ -260,7 +260,7 @@ pub trait OrmliteCodegen {
             impl ::ormlite::model::HasQueryBuilder<#db> for #model {
                 fn select<'args>() -> ::ormlite::SelectQueryBuilder<'args, #db, Self> {
                     ::ormlite::SelectQueryBuilder::new(::ormlite::query_builder::Placeholder::question_mark())
-                        .column(&format!("{}.*", #table_name))
+                        .column(&format!("\"{}\".*", #table_name))
                 }
             }
         }
@@ -366,7 +366,7 @@ pub trait OrmliteCodegen {
         let db = Self::database();
         let placeholder = Self::placeholder();
         let query = format!(
-            "INSERT INTO {} ({{}}) VALUES ({{}}) RETURNING *",
+            "INSERT INTO \"{}\" ({{}}) VALUES ({{}}) RETURNING *",
             attr.table_name
         );
 
@@ -400,7 +400,7 @@ pub trait OrmliteCodegen {
         let fields = crate::util::get_fields(ast);
 
         let query = format!(
-            "UPDATE {} SET {{}} WHERE {} = {{}} RETURNING *",
+            "UPDATE \"{}\" SET {{}} WHERE {} = {{}} RETURNING *",
             attr.table_name, attr.primary_key,
         );
 
@@ -502,7 +502,7 @@ pub trait OrmliteCodegen {
             .collect::<Vec<_>>()
             .join(",");
         let query = format!(
-            "INSERT INTO {} ({}) VALUES ({}) RETURNING *",
+            "INSERT INTO \"{}\" ({}) VALUES ({}) RETURNING *",
             attr.table_name, fields, placeholders,
         );
 

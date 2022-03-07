@@ -46,3 +46,7 @@ handwritten = ["env_logger"]
 
 runtime-tokio-rustls = ["ormlite-macro/runtime-tokio-rustls", "sqlx/runtime-tokio-rustls", "ormlite-core/runtime-tokio-rustls"]
 insert = []
+
+[patch.crates-io]
+ormlite-core = { path = "../ormlite-core" }
+ormlite-macro = { path = "../ormlite-macro" }

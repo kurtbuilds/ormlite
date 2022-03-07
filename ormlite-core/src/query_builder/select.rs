@@ -181,7 +181,7 @@ where
         }
         r += "SELECT\n";
         r += &self.columns.join(", ");
-        r += &format!("\nFROM {}", Model::table_name());
+        r += &format!("\nFROM \"{}\"", Model::table_name());
         if !self.join.is_empty() {
             r += &self.join.join("\n");
         }

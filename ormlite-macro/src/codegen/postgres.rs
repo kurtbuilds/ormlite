@@ -30,7 +30,7 @@ impl OrmliteCodegen for PostgresBackend {
             impl ::ormlite::model::HasQueryBuilder<#db> for #model {
                 fn select<'args>() -> ::ormlite::SelectQueryBuilder<'args, #db, Self> {
                     ::ormlite::SelectQueryBuilder::new(::ormlite::query_builder::Placeholder::dollar_sign())
-                        .column(&format!("{}.*", #table_name))
+                        .column(&format!("\"{}\".*", #table_name))
                 }
             }
         }
