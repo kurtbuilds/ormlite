@@ -1,4 +1,4 @@
-use ormlite_core::model::{HasQueryBuilder, Insertable, ModelBuilder, TableMeta};
+use ormlite_core::model::{HasQueryBuilder, HasInsert, ModelBuilder, TableMeta};
 use ormlite_core::{BoxFuture, Error, Result, SelectQueryBuilder};
 
 pub static PLACEHOLDER: &str = "?";
@@ -265,7 +265,7 @@ pub struct InsertPerson {
     pub age: u8,
 }
 
-impl<'a> Insertable<'a, DB> for InsertPerson {
+impl<'a> HasInsert<'a, DB> for InsertPerson {
     type Model = Person;
 
     fn insert<'e: 'a, E>(self, db: E) -> BoxFuture<'a, Result<Self::Model>>

@@ -23,7 +23,7 @@ where
     fn update_partial(&'a self) -> ModelBuilder;
 }
 
-/// A struct that is `Insertable` is expected to have same fields as the model, excluding fields
+/// A struct that is `HasInsert` is expected to have same fields as the model, excluding fields
 /// that have sane defaults at the database level. Concretely, if you have a Person struct:
 /// #[derive(ormlite::Model)]
 /// struct Person {
@@ -32,12 +32,12 @@ where
 ///     age: i32,
 /// }
 ///
-/// Then the `Insertable` struct looks like:
+/// Then the `HasInsert` struct looks like:
 /// struct InsertPerson {
 ///     name: String,
 ///     age: i32,
 /// }
-pub trait Insertable<'a, DB>
+pub trait HasInsert<'a, DB>
 where
     Self: Sized + Send + Sync,
     DB: sqlx::Database,
@@ -65,7 +65,7 @@ where
         E: 'e + sqlx::Executor<'e, Database = DB>;
 }
 
-/// The core trait. a struct that implements `Model` can also implement `HasModelBuilder`, `HasQueryBuilder` (and is required to implement `Insertable`)
+/// The core trait. a struct that implements `Model` can also implement `HasModelBuilder`, `HasQueryBuilder` (and is required to implement `HasInsert`)
 pub trait Model<DB>
 where
     DB: sqlx::Database,

@@ -518,7 +518,7 @@ pub trait OrmliteCodegen {
             });
 
         quote! {
-            impl<'a> ::ormlite::model::Insertable<'a, #db> for #insert_model {
+            impl<'a> ::ormlite::model::HasInsert<'a, #db> for #insert_model {
                 type Model = #model;
 
                 fn insert<'e: 'a, E>(self, db: E) -> #box_future<'a, ::ormlite::Result<Self::Model>>

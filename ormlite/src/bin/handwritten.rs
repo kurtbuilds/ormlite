@@ -4,7 +4,7 @@ use sqlx::Connection;
 use std::str::FromStr;
 
 use ormlite::handwritten::{InsertPerson, Person};
-use ormlite_core::model::{HasModelBuilder, HasQueryBuilder, Insertable, Model, ModelBuilder};
+use ormlite_core::model::{HasModelBuilder, HasQueryBuilder, HasInsert, Model, ModelBuilder};
 
 #[tokio::main]
 async fn main() -> core::result::Result<(), Box<dyn std::error::Error>> {
