@@ -70,6 +70,11 @@ where
     DB: sqlx::Database,
     Self: Sized,
 {
+    fn table_name() -> &'static str;
+    fn fields() -> &'static [&'static str];
+    fn num_fields() -> usize;
+    fn primary_key_column() -> &'static str;
+
     fn insert<'e, E>(self, db: E) -> BoxFuture<'e, Result<Self>>
     where
         E: 'e + sqlx::Executor<'e, Database = DB>;
@@ -93,12 +98,4 @@ where
     ) -> sqlx::query::QueryAs<DB, Self, <DB as sqlx::database::HasArguments>::Arguments>;
 
     fn select<'args>() -> SelectQueryBuilder<'args, DB, Self>;
-}
-
-
-pub trait TableMeta {
-    fn table_name() -> &'static str;
-    fn fields() -> &'static [&'static str];
-    fn num_fields() -> usize;
-    fn primary_key_column() -> &'static str;
 }

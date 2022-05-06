@@ -1,4 +1,4 @@
-use ormlite_core::model::{HasInsert, ModelBuilder, TableMeta};
+use ormlite_core::model::{HasInsert, Model, ModelBuilder};
 use ormlite_core::{BoxFuture, Error, Result, SelectQueryBuilder};
 
 pub static PLACEHOLDER: &str = "?";
@@ -16,7 +16,8 @@ pub struct Person {
 
 use ormlite_core::query_builder::Placeholder;
 
-impl ormlite_core::model::TableMeta for Person {
+
+impl crate::model::Model<DB> for Person {
     fn table_name() -> &'static str {
         "person"
     }
@@ -31,9 +32,7 @@ impl ormlite_core::model::TableMeta for Person {
     fn primary_key_column() -> &'static str {
         "id"
     }
-}
 
-impl crate::model::Model<DB> for Person {
     fn insert<'e, E>(self, db: E) -> BoxFuture<'e, Result<Self>>
     where
         E: 'e + sqlx::Executor<'e, Database = DB>,

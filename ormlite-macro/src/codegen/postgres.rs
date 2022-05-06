@@ -1,5 +1,5 @@
 use crate::codegen::common::OrmliteCodegen;
-use crate::TableMeta;
+use crate::attr;
 use ormlite_core::query_builder::Placeholder;
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -22,7 +22,7 @@ impl OrmliteCodegen for PostgresBackend {
         Placeholder::dollar_sign()
     }
 
-    fn impl_Model__select(_ast: &DeriveInput, attr: &TableMeta) -> TokenStream {
+    fn impl_Model__select(_ast: &DeriveInput, attr: &attr::TableMeta) -> TokenStream {
         let table_name = &attr.table_name;
         let db = Self::database();
         quote! {

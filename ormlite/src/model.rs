@@ -1,3 +1,3 @@
 pub use ormlite_core::model::{
-    HasModelBuilder, HasInsert, Model, ModelBuilder, TableMeta,
+    HasModelBuilder, HasInsert, Model, ModelBuilder,
 };

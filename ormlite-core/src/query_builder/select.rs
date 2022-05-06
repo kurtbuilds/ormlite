@@ -1,7 +1,7 @@
 use crate::error::{Error, Result};
-use crate::model::TableMeta;
 use crate::query_builder::args::QueryBuilderArgs;
 use crate::query_builder::{util, Placeholder};
+use crate::model::Model;
 
 use sqlx::database::HasArguments;
 
@@ -27,46 +27,46 @@ where
     gen: Placeholder,
 }
 
-impl<'args, DB, Model> SelectQueryBuilder<'args, DB, Model>
+impl<'args, DB, M> SelectQueryBuilder<'args, DB, M>
 where
-    Model: Sized + Send + Sync + Unpin + TableMeta + for<'r> sqlx::FromRow<'r, DB::Row> + 'static,
+    M: Sized + Send + Sync + Unpin + for<'r> sqlx::FromRow<'r, DB::Row> + 'static + Model<DB>,
     DB: sqlx::Database,
     <DB as HasArguments<'args>>::Arguments: IntoArguments<'args, DB>,
 {
-    pub async fn fetch_all<'executor, E>(mut self, db: E) -> Result<Vec<Model>>
+    pub async fn fetch_all<'executor, E>(mut self, db: E) -> Result<Vec<M>>
     where
         E: Executor<'executor, Database = DB>,
     {
         let text = self.build_sql()?;
         let z: &str = &text;
         let args = std::mem::take(&mut self.arguments);
-        util::query_as_with_recast_lifetime::<DB, Model>(z, args)
+        util::query_as_with_recast_lifetime::<DB, M>(z, args)
             .fetch_all(db)
             .await
             .map_err(|e| Error::from(e))
     }
 
-    pub async fn fetch_one<'executor, E>(mut self, db: E) -> Result<Model>
+    pub async fn fetch_one<'executor, E>(mut self, db: E) -> Result<M>
     where
         E: Executor<'executor, Database = DB>,
     {
         let text = self.build_sql()?;
         let z: &str = &text;
         let args = std::mem::take(&mut self.arguments);
-        util::query_as_with_recast_lifetime::<DB, Model>(z, args)
+        util::query_as_with_recast_lifetime::<DB, M>(z, args)
             .fetch_one(db)
             .await
             .map_err(|e| Error::from(e))
     }
 
-    pub async fn fetch_optional<'executor, E>(mut self, db: E) -> Result<Option<Model>>
+    pub async fn fetch_optional<'executor, E>(mut self, db: E) -> Result<Option<M>>
     where
         E: Executor<'executor, Database = DB>,
     {
         let text = self.build_sql()?;
         let z: &str = &text;
         let args = std::mem::take(&mut self.arguments);
-        util::query_as_with_recast_lifetime::<DB, Model>(z, args)
+        util::query_as_with_recast_lifetime::<DB, M>(z, args)
             .fetch_optional(db)
             .await
             .map_err(|e| Error::from(e))
@@ -181,7 +181,7 @@ where
         }
         r += "SELECT\n";
         r += &self.columns.join(", ");
-        r += &format!("\nFROM \"{}\"", Model::table_name());
+        r += &format!("\nFROM \"{}\"", M::table_name());
         if !self.join.is_empty() {
             r += &self.join.join("\n");
         }
