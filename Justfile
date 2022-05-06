@@ -1,5 +1,7 @@
 
 
+test:
+    just ormlite/test --features runtime-tokio-rustls,sqlite
 
 # Bump version. level=major,minor,patch
 version level:
