@@ -1,5 +1,3 @@
-#![cfg_attr(feature = "insert", feature(inherent_associated_types))]
-
 pub use ormlite_core::BoxFuture;
 pub use ormlite_core::SelectQueryBuilder;
 pub use ormlite_core::{Error, Result};

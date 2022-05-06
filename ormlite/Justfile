@@ -11,8 +11,9 @@ build:
 alias b := build
 
 run *args:
-    cargo run {{args}}
+    cargo run --bin plain --features sqlite,runtime-tokio-rustls,handwritten
 alias r := run
+
 
 release:
     cargo build --release
