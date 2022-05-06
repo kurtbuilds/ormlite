@@ -37,13 +37,13 @@ where
 ///     name: String,
 ///     age: i32,
 /// }
-pub trait HasInsert<'a, DB>
+pub trait HasInsert<DB>
 where
     Self: Sized + Send + Sync,
     DB: sqlx::Database,
 {
     type Model;
-    fn insert<'e: 'a, E>(self, db: E) -> BoxFuture<'a, Result<Self::Model>>
+    fn insert<'e, E>(self, db: E) -> BoxFuture<'e, Result<Self::Model>>
     where
         E: 'e + sqlx::Executor<'e, Database = DB>;
 }

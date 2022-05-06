@@ -265,10 +265,10 @@ pub struct InsertPerson {
     pub age: u8,
 }
 
-impl<'a> HasInsert<'a, DB> for InsertPerson {
+impl HasInsert<DB> for InsertPerson {
     type Model = Person;
 
-    fn insert<'e: 'a, E>(self, db: E) -> BoxFuture<'a, Result<Self::Model>>
+    fn insert<'e, E>(self, db: E) -> BoxFuture<'e, Result<Self::Model>>
     where
         E: 'e + sqlx::Executor<'e, Database = DB>,
     {

@@ -518,10 +518,10 @@ pub trait OrmliteCodegen {
             });
 
         quote! {
-            impl<'a> ::ormlite::model::HasInsert<'a, #db> for #insert_model {
+            impl ::ormlite::model::HasInsert<#db> for #insert_model {
                 type Model = #model;
 
-                fn insert<'e: 'a, E>(self, db: E) -> #box_future<'a, ::ormlite::Result<Self::Model>>
+                fn insert<'e, E>(self, db: E) -> #box_future<'e, ::ormlite::Result<Self::Model>>
                 where
                     E: 'e + ::ormlite::export::Executor<'e, Database = #db>,
                 {
