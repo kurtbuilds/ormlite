@@ -89,7 +89,8 @@ fn build_column_meta(f: &syn::Field) -> ColumnMeta {
 
 #[proc_macro_derive(Model, attributes(ormlite))]
 pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
-    let ast = parse_macro_input!(input as DeriveInput);
+    let input2 = input.clone();
+    let ast = parse_macro_input!(input2 as DeriveInput);
 
     let builder = partial_build_table_meta(&ast);
     let table_meta = finish_table_meta(&ast, builder);
@@ -113,5 +114,6 @@ pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
         #struct_InsertModel
         #impl_InsertModel
     };
+
     TokenStream::from(expanded)
 }

@@ -1,9 +1,9 @@
 use ormlite::model::*;
-use ormlite::Model;
-use sqlx::Connection;
+use ormlite::{Model, FromRow};
+use ormlite::Connection;
 use std::str::FromStr;
 
-#[derive(Model, sqlx::FromRow, Debug)]
+#[derive(Model, FromRow, Debug)]
 #[ormlite(insert = InsertPerson)]
 pub struct Person {
     pub id: u32,
@@ -13,13 +13,13 @@ pub struct Person {
 
 #[tokio::main]
 async fn main() -> core::result::Result<(), Box<dyn std::error::Error>> {
-    let mut conn = sqlx::SqliteConnection::connect_with(
-        &sqlx::sqlite::SqliteConnectOptions::from_str("sqlite://:memory:").unwrap(),
+    let mut conn = ormlite::export::SqliteConnection::connect_with(
+        &ormlite::export::SqliteConnectOptions::from_str("sqlite://:memory:").unwrap(),
     )
     .await?;
     env_logger::init();
 
-    sqlx::query(ormlite::handwritten::CREATE_TABLE_SQL)
+    ormlite::query(ormlite::handwritten::CREATE_TABLE_SQL)
         .execute(&mut conn)
         .await?;
 

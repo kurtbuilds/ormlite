@@ -255,8 +255,8 @@ pub trait OrmliteCodegen {
         let table_name = &attr.table_name;
         let db = Self::database();
         quote! {
-            fn select<'args>() -> ::ormlite::SelectQueryBuilder<'args, #db, Self> {
-                ::ormlite::SelectQueryBuilder::new(::ormlite::query_builder::Placeholder::question_mark())
+            fn select<'args>() -> ::ormlite::query_builder::SelectQueryBuilder<'args, #db, Self> {
+                ::ormlite::query_builder::SelectQueryBuilder::new(::ormlite::query_builder::Placeholder::question_mark())
                     .column(&format!("\"{}\".*", #table_name))
             }
         }
