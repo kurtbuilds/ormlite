@@ -1,4 +1,4 @@
-use ormlite_core::model::{HasQueryBuilder, HasInsert, ModelBuilder, TableMeta};
+use ormlite_core::model::{HasInsert, ModelBuilder, TableMeta};
 use ormlite_core::{BoxFuture, Error, Result, SelectQueryBuilder};
 
 pub static PLACEHOLDER: &str = "?";
@@ -13,6 +13,8 @@ pub struct Person {
     pub name: String,
     pub age: u8,
 }
+
+use ormlite_core::query_builder::Placeholder;
 
 impl ormlite_core::model::TableMeta for Person {
     fn table_name() -> &'static str {
@@ -124,17 +126,14 @@ impl crate::model::Model<DB> for Person {
     ) -> sqlx::query::QueryAs<DB, Person, <DB as ::sqlx::database::HasArguments>::Arguments> {
         sqlx::query_as::<_, Self>(query)
     }
-}
 
-
-use ormlite_core::query_builder::Placeholder;
-
-
-impl HasQueryBuilder<DB> for Person {
     fn select<'a>() -> SelectQueryBuilder<'a, DB, Self> {
         SelectQueryBuilder::new(Placeholder::question_mark()).column(&format!("{}.*", Self::table_name()))
     }
 }
+
+
+
 
 // done
 impl<'a> ormlite_core::model::HasModelBuilder<'a, PartialPerson<'a>> for Person {

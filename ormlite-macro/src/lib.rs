@@ -95,7 +95,6 @@ pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
     let table_meta = finish_table_meta(&ast, builder);
 
     let impl_Model = codegen::DB::impl_Model(&ast, &table_meta);
-    let impl_HasQueryBuilder = codegen::DB::impl_HasQueryBuilder(&ast, &table_meta);
     let impl_HasModelBuilder = codegen::DB::impl_HasModelBuilder(&ast, &table_meta);
 
     let struct_ModelBuilder = codegen::DB::struct_ModelBuilder(&ast, &table_meta);
@@ -107,7 +106,6 @@ pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
     let expanded = quote! {
         #impl_Model
         #impl_HasModelBuilder
-        #impl_HasQueryBuilder
 
         #struct_ModelBuilder
         #impl_ModelBuilder

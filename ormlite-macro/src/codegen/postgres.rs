@@ -22,16 +22,13 @@ impl OrmliteCodegen for PostgresBackend {
         Placeholder::dollar_sign()
     }
 
-    fn impl_HasQueryBuilder(ast: &DeriveInput, attr: &TableMeta) -> TokenStream {
+    fn impl_Model__select(_ast: &DeriveInput, attr: &TableMeta) -> TokenStream {
         let table_name = &attr.table_name;
-        let model = &ast.ident;
         let db = Self::database();
         quote! {
-            impl ::ormlite::model::HasQueryBuilder<#db> for #model {
-                fn select<'args>() -> ::ormlite::SelectQueryBuilder<'args, #db, Self> {
-                    ::ormlite::SelectQueryBuilder::new(::ormlite::query_builder::Placeholder::dollar_sign())
-                        .column(&format!("\"{}\".*", #table_name))
-                }
+            fn select<'args>() -> ::ormlite::SelectQueryBuilder<'args, #db, Self> {
+                ::ormlite::SelectQueryBuilder::new(::ormlite::query_builder::Placeholder::dollar_sign())
+                    .column(&format!("\"{}\".*", #table_name))
             }
         }
     }

@@ -236,6 +236,7 @@ pub trait OrmliteCodegen {
         let impl_Model__update_all_fields = Self::impl_Model__update_all_fields(ast, attr);
         let impl_Model__delete = Self::impl_Model__delete(ast, attr);
         let impl_Model__get_one = Self::impl_Model__get_one(ast, attr);
+        let impl_Model__select = Self::impl_Model__select(ast, attr);
 
         quote! {
             impl ::ormlite::model::Model<#db> for #model {
@@ -243,6 +244,7 @@ pub trait OrmliteCodegen {
                 #impl_Model__update_all_fields
                 #impl_Model__delete
                 #impl_Model__get_one
+                #impl_Model__select
 
                fn query(query: &str) -> ::sqlx::query::QueryAs<#db, Self, <#db as ::sqlx::database::HasArguments>::Arguments> {
                     ::sqlx::query_as::<_, Self>(query)
@@ -252,16 +254,13 @@ pub trait OrmliteCodegen {
         }
     }
 
-    fn impl_HasQueryBuilder(ast: &DeriveInput, attr: &TableMeta) -> TokenStream {
+    fn impl_Model__select(_ast: &DeriveInput, attr: &TableMeta) -> TokenStream {
         let table_name = &attr.table_name;
-        let model = &ast.ident;
         let db = Self::database();
         quote! {
-            impl ::ormlite::model::HasQueryBuilder<#db> for #model {
-                fn select<'args>() -> ::ormlite::SelectQueryBuilder<'args, #db, Self> {
-                    ::ormlite::SelectQueryBuilder::new(::ormlite::query_builder::Placeholder::question_mark())
-                        .column(&format!("\"{}\".*", #table_name))
-                }
+            fn select<'args>() -> ::ormlite::SelectQueryBuilder<'args, #db, Self> {
+                ::ormlite::SelectQueryBuilder::new(::ormlite::query_builder::Placeholder::question_mark())
+                    .column(&format!("\"{}\".*", #table_name))
             }
         }
     }

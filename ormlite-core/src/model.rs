@@ -4,7 +4,6 @@
 ///  - `ormlite::Model`, giving it direct database access, e.g. `insert`, `update_all_fields`, etc.
 ///  - `ormlite::HasModelBuilder`, letting it build partials, so you can insert or update some
 ///    fields instead of all of them at once, e.g. `model.name("John").update()`
-///  - `ormlite::HasQueryBuilder`, letting it build queries, e.g. `Model::select()`
 ///  - `ormlite::TableMeta`, which you typically don't use directly, but provides table metadata
 ///    (e.g. table name)
 ///
@@ -65,7 +64,7 @@ where
         E: 'e + sqlx::Executor<'e, Database = DB>;
 }
 
-/// The core trait. a struct that implements `Model` can also implement `HasModelBuilder`, `HasQueryBuilder` (and is required to implement `HasInsert`)
+/// The core trait. a struct that implements `Model` can also implement `HasModelBuilder`, (and is required to implement `HasInsert`)
 pub trait Model<DB>
 where
     DB: sqlx::Database,
@@ -92,15 +91,10 @@ where
     fn query(
         query: &str,
     ) -> sqlx::query::QueryAs<DB, Self, <DB as sqlx::database::HasArguments>::Arguments>;
-}
 
-pub trait HasQueryBuilder<DB>
-where
-    DB: sqlx::Database,
-    Self: Sized,
-{
     fn select<'args>() -> SelectQueryBuilder<'args, DB, Self>;
 }
+
 
 pub trait TableMeta {
     fn table_name() -> &'static str;
