@@ -823,8 +823,8 @@ name = "ormlite"
 version = "0.2.0"
 dependencies = [
  "env_logger",
- "ormlite-core 0.1.11",
- "ormlite-macro 0.1.11",
+ "ormlite-core 0.2.0",
+ "ormlite-macro",
  "sqlx",
  "tokio",
  "trybuild",
@@ -860,21 +860,6 @@ dependencies = [
  "sqlx",
  "thiserror",
  "tokio",
-]
-
-[[package]]
-name = "ormlite-macro"
-version = "0.1.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed104083dcab4fb6b164c84d4efe161d17ce0877639e65bfa57f3c9c565cd252"
-dependencies = [
- "derive_builder",
- "ormlite-core 0.1.11",
- "proc-macro2",
- "quote",
- "sqlx",
- "structmeta",
- "syn",
 ]
 
 [[package]]
