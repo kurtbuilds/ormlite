@@ -5,7 +5,7 @@ test:
 version level:
    #!/bin/bash -euo pipefail
    function show() { dye -m -- "$@"; "$@"; }
-   show git diff-index --exit-code HEAD > /dev/null || ! echo You have untracked changes. Commit your changes before bumping the version.
+   git diff-index --exit-code HEAD > /dev/null || ! echo You have untracked changes. Commit your changes before bumping the version.
 
    show echo $(dye -c INFO) Make sure that it builds first.
    show cd ormlite && cargo build --features runtime-tokio-rustls,sqlite
