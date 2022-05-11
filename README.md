@@ -2,6 +2,8 @@
 
 **`ormlite` is an ORM in Rust for developers that love SQL.**
 
+It's best to first see it in action:
+
 ```rust
 use ormlite::model::*;
 
@@ -15,7 +17,7 @@ pub struct Person {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// Start by making a database connection.
-    let mut conn = ormlite::SqliteConnection::connect_with(&sqlx::sqlite::SqliteConnectOptions::from_str("sqlite://:memory:").unwrap()).await?;
+     let mut conn = ormlite::SqliteConnection::connect(":memory:").await.unwrap();
 
     /// You can insert the model directly.
     let mut john = Person {
@@ -36,7 +38,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-**Note**: Using this syntax, there are two possible issues. First, `id` must be set client-side instead of using the database's auto-increment counter, because the field is not `Option`. Second, the struct cannot track which fields are
+This example shows the basic usage of `ormlite`. Continue reading this `README` for installation instructions, further usage examples, and more.
+
+> **Note**: Using this syntax, there are two possible issues. First, `id` must be set client-side instead of using the database's auto-increment counter, because the field is not `Option`. Second, the struct cannot track which fields are
 modified, so the update method must updates all columns. If these issues present problems for your usage, check the
 sections [Insertion Struct](#insertion-struct) or [Builder Syntax](#builder-syntax) below for alternative APIs that
 resolve these issues.
@@ -46,15 +50,14 @@ resolve these issues.
 For postgres:
 
     [dependencies]
-    ormlite = { version = "0.1.0", features = ["postgres", "runtime-tokio-rustls"]
+    ormlite = { version = "0.2.0", features = ["postgres", "runtime-tokio-rustls"]
 
 For sqlite:
 
     [dependencies]
-    ormlite = { version = "0.1.0", features = ["sqlite", "runtime-tokio-rustls"]
+    ormlite = { version = "0.2.0", features = ["sqlite", "runtime-tokio-rustls"]
 
-Other databases (mysql) and runtimes should work smoothly, but might not be 100% wired up yet. Please submit an issue if you encounter issues.
-
+Other databases (mysql) and runtimes should work smoothly, but might not be 100% wired up yet. Please submit an issue if you encounter any.
 
 # Project Goals
 
@@ -69,7 +72,7 @@ We prioritize these objectives in the project:
 
 ## Insertion Struct
 
-As noted above, all fields must be set before insertion, which is a problem for certain fields, particularly
+As noted above, all fields must be set before insertion, which might present problems for certain fields, notably
 autoincrement id fields.
 
 You can derive an struct that only contains some fields, to be used for insertion.
@@ -85,11 +88,7 @@ pub struct Person {
     pub age: i32,
 }
 
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut conn = ormlite::SqliteConnection::connect_with(&sqlx::sqlite::SqliteConnectOptions::from_str("sqlite://:memory:").unwrap()).await?;
-    
+async fn insertion_struct_example() {  
     let john: Person = InsertPerson {
         name: "John".to_string(),
         age: 99,
@@ -119,20 +118,13 @@ You can use builder syntax for insertion or to update only certain fields.
 use ormlite::model::*;
 
 #[derive(Model, FromRow, Debug)]
-#[ormlite()]
 pub struct Person {
     pub id: i32,
     pub name: String,
     pub age: i32,
 }
 
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut conn = ormlite::export::SqliteConnection::connect(":memory:")
-        .await
-        .unwrap();
-    
+async builder_syntax_example() {    
     // builder syntax for insert
     let john = Person::build()
         .name("John".to_string())
@@ -150,10 +142,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Query Builder
 
-You can use `Model::select` to build a query, freely interspersing your SQL with your own Rust logic, conditionals, loops, and so on.
+You can use `Model::select` to build a SQL query using Rust logic.
 
-Postgres's dollar substitution quickly breaks down when building queries. Instead, even with Postgres, use `?` for parameters,
-and `ormlite` will replace the `?` placeholders with `$` parameter placeholders when it constructs the final query.
+> **Note**: Postgres's approach of using numbered dollar sign placeholders quickly breaks down when building queries. Instead, even with Postgres, use `?` for parameters,
+and `ormlite` will replace the `?` placeholders with `$` placeholders when it constructs the final query.
 
 ```rust
 use ormlite::model::*;
@@ -232,14 +224,14 @@ pub struct Person {
 
 ## Uuid and DateTime columns
 
-If you want Uuid or DateTime, combined with serde, you need to depend directly on `uuid` (specifically version 0.8)
-or `chrono` crates respectively, and add the `serde` feature.
+If you want Uuid or DateTime, combined with serde, you need to depend directly on the `uuid` (specifically version 0.8)
+or `chrono` crates respectively, and add the `serde` feature to each of them.
 
 ```
 # Cargo.toml
 [dependencies]
 # Note that this version of uuid is old, as sqlx still depends on 0.8.
-# When sqlx updates, this can be updated too.
+# When sqlx updates its dependency, this can be updated too.
 uuid = { version = "0.8", features = ["serde"] } 
 chrono = { version = "0.4.19", features = ["serde"] }
 ```
@@ -289,7 +281,7 @@ You can log queries using sqlx's logger: `RUST_LOG=sqlx=info`
 
 `ormlite` builds upon [`sqlx`](https://github.com/launchbadge/sqlx). Use the [`sqlx-cli`](https://github.com/launchbadge/sqlx/blob/master/sqlx-cli/README.md#usage) tool for migrations.
 
-Currently, we don't support auto-generating migrations, like you might be used to if you come from Python's alembic, Node's Typeorm, or other ORM libraries with this functionality.
+Currently, we don't support auto-generating migrations, like you might be used to if you come from Python's Alembic, Node's Typeorm, or other ORM libraries with this functionality.
 
 # Roadmap
 - [x] Insert, update, delete directly on model instances
