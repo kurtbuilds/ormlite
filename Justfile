@@ -3,7 +3,7 @@ test:
 
 # Bump version. level=major,minor,patch
 version level:
-   #!/bin/bash -e
+   #!/bin/bash -eu
    function show() { dye -m -- "$@"; "$@"; }
    show git diff-index --exit-code HEAD > /dev/null || ! echo You have untracked changes. Commit your changes before bumping the version.
 
