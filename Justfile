@@ -3,12 +3,12 @@ test:
 
 # Bump version. level=major,minor,patch
 version level:
-   #!/bin/bash -euo pipefail
+   #!/bin/bash -euxo pipefail
    function show() { dye -m -- "$@"; "$@"; }
    git diff-index --exit-code HEAD > /dev/null || ! echo You have untracked changes. Commit your changes before bumping the version.
 
    echo $(dye -c INFO) Make sure that it builds first.
-   show cd ormlite && cargo build --features runtime-tokio-rustls,sqlite
+   cd ormlite && show cargo build --features runtime-tokio-rustls,sqlite
 
    show cargo set-version --bump {{ level }} --workspace
    export VERSION=$(cd ormlite && rg  "version = \"([0-9.]+)\"" -or '$1' Cargo.toml | head -n1)
