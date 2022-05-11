@@ -3,7 +3,7 @@ test:
 
 # Bump version. level=major,minor,patch
 version level:
-   #!/bin/bash -euxo pipefail
+   #!/bin/bash -euo pipefail
    function show() { dye -m -- "$@"; "$@"; }
    git diff-index --exit-code HEAD > /dev/null || ! echo You have untracked changes. Commit your changes before bumping the version.
 
