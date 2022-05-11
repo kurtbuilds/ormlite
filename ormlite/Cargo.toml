@@ -10,7 +10,7 @@ autotests = false
 readme = "../README.md"
 
 [package.metadata.docs.rs]
-features = ["sqlite", "postgres", "runtime-tokio-rustls"]
+features = ["postgres", "runtime-tokio-rustls"]
 
 lib = ["lib.rs"]
 

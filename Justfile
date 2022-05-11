@@ -25,3 +25,6 @@ publish:
    cd ormlite-core && cargo publish --features runtime-tokio-rustls,sqlite
    cd ormlite-macro && cargo publish --features runtime-tokio-rustls,sqlite
    cd ormlite && cargo publish --features runtime-tokio-rustls,sqlite
+
+doc:
+   cd ormlite && cargo doc --features runtime-tokio-rustls,sqlite --open -p ormlite --no-deps

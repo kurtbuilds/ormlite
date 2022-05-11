@@ -2,6 +2,7 @@ pub mod common;
 #[cfg(feature = "mysql")]
 mod mysql;
 #[cfg(feature = "postgres")]
+#[cfg_attr(docsrs, doc(cfg(feature = "postgres")))]
 mod postgres;
 #[cfg(feature = "sqlite")]
 mod sqlite;

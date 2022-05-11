@@ -6,8 +6,10 @@ pub use sqlx::sqlx_macros::FromRow;
 pub use sqlx::{query, query_as, Connection, Executor, Pool};
 
 #[cfg(feature = "postgres")]
+#[cfg_attr(docsrs, doc(cfg(feature = "postgres")))]
 pub use sqlx::postgres::{PgConnectOptions, PgConnection, PgPool, PgPoolOptions};
 #[cfg(feature = "sqlite")]
+#[cfg_attr(docsrs, doc(cfg(feature = "sqlite")))]
 pub use sqlx::sqlite::{SqliteConnectOptions, SqliteConnection, SqlitePool, SqlitePoolOptions};
 
 pub mod model;
