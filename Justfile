@@ -1,14 +1,14 @@
 
 
 test:
-    just ormlite/test --features runtime-tokio-rustls,sqlite,handwritten
+    just ormlite/test --features runtime-tokio-rustls,sqlite
 
 # Bump version. level=major,minor,patch
 version level:
    git diff-index --exit-code HEAD > /dev/null || ! echo You have untracked changes. Commit your changes before bumping the version.
 
    echo $(dye -c INFO) Make sure that it builds first.
-   cd ormlite && cargo build --features runtime-tokio-rustls,sqlite,handwritten
+   cd ormlite && cargo build --features runtime-tokio-rustls,sqlite
 
    cd ormlite-core && cargo set-version --bump {{level}}
    cd ormlite-core && cargo update # This bumps Cargo.lock
@@ -28,4 +28,4 @@ version level:
 publish:
    cd ormlite-core && cargo publish --features runtime-tokio-rustls,sqlite
    cd ormlite-macro && cargo publish --features runtime-tokio-rustls,sqlite
-   cd ormlite && cargo publish --features runtime-tokio-rustls,sqlite,handwritten
+   cd ormlite && cargo publish --features runtime-tokio-rustls,sqlite

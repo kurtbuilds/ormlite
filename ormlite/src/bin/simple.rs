@@ -11,6 +11,9 @@ pub struct Person {
     pub age: u8,
 }
 
+pub static CREATE_TABLE_SQL: &str =
+    "CREATE TABLE person (id INTEGER PRIMARY KEY, name TEXT, age INTEGER)";
+
 #[tokio::main]
 async fn main() -> core::result::Result<(), Box<dyn std::error::Error>> {
     let mut conn = ormlite::export::SqliteConnection::connect_with(
@@ -19,7 +22,7 @@ async fn main() -> core::result::Result<(), Box<dyn std::error::Error>> {
     .await?;
     env_logger::init();
 
-    ormlite::query(ormlite::handwritten::CREATE_TABLE_SQL)
+    ormlite::query(CREATE_TABLE_SQL)
         .execute(&mut conn)
         .await?;
 

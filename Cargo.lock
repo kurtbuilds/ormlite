@@ -847,18 +847,14 @@ dependencies = [
  "sqlx",
  "tokio",
  "trybuild",
+ "uuid 1.0.0",
 ]
-
-[[package]]
-name = "ormlite-bench"
-version = "0.1.0"
 
 [[package]]
 name = "ormlite-core"
 version = "0.1.11"
 dependencies = [
  "datetime",
- "env_logger",
  "futures",
  "futures-core",
  "log",
@@ -1379,6 +1375,7 @@ dependencies = [
  "thiserror",
  "tokio-stream",
  "url",
+ "uuid 0.8.2",
  "webpki",
  "webpki-roots",
  "whoami",
@@ -1653,6 +1650,18 @@ dependencies = [
  "matches",
  "percent-encoding",
 ]
+
+[[package]]
+name = "uuid"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
+
+[[package]]
+name = "uuid"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8cfcd319456c4d6ea10087ed423473267e1a071f3bc0aa89f80d60997843c6f0"
 
 [[package]]
 name = "vcpkg"

@@ -8,9 +8,6 @@ pub use sqlx::{query, query_as, Connection};
 pub mod export;
 pub mod model;
 
-#[cfg(feature = "handwritten")]
-pub mod handwritten;
-
 pub mod query_builder {
     pub use ormlite_core::query_builder::{SelectQueryBuilder, Placeholder};
 }
