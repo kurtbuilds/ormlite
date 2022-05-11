@@ -129,7 +129,9 @@ pub struct Person {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut conn = ormlite::SqliteConnection::connect_with(&sqlx::sqlite::SqliteConnectOptions::from_str("sqlite://:memory:").unwrap()).await?;
+    let mut conn = ormlite::export::SqliteConnection::connect(":memory:")
+        .await
+        .unwrap();
     
     // builder syntax for insert
     let john = Person::build()
@@ -212,6 +214,7 @@ The following attributes are available:
 On the struct:
 
 - `#[ormlite(table = "table_name")]`: Specify the table name.
+- `#[ormlite(insert = InsertStructName)]`: Specify the name of the struct used for insert.
 
 See example usage below:
 
@@ -219,7 +222,7 @@ See example usage below:
 use ormlite::model::*;
 
 #[derive(Model, FromRow, Debug)]
-#[ormlite(table = "people")]
+#[ormlite(table = "people", insert = InsertPerson)]
 pub struct Person {
     pub id: i32,
     pub name: String,

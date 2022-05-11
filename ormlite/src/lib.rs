@@ -3,11 +3,19 @@ pub use ormlite_core::{Error, Result};
 pub use ormlite_macro::Model;
 pub use sqlx::sqlx_macros::FromRow;
 
-pub use sqlx::{query, query_as, Connection};
+pub use sqlx::{query, query_as, Connection, Executor, Pool};
 
-pub mod export;
+#[cfg(feature = "postgres")]
+pub use sqlx::postgres::{PgConnectOptions, PgConnection, PgPool, PgPoolOptions};
+#[cfg(feature = "sqlite")]
+pub use sqlx::sqlite::{SqliteConnectOptions, SqliteConnection, SqlitePool, SqlitePoolOptions};
+
 pub mod model;
 
 pub mod query_builder {
     pub use ormlite_core::query_builder::{SelectQueryBuilder, Placeholder};
+}
+
+pub mod types {
+    pub use sqlx::types::*;
 }

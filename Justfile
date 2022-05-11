@@ -1,5 +1,3 @@
-
-
 test:
     just ormlite/test --features runtime-tokio-rustls,sqlite
 

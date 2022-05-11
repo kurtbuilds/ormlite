@@ -100,10 +100,10 @@ pub trait OrmliteCodegen {
         quote! {
             fn insert<'e, E>(self, db: E) -> #box_future<'e, ::ormlite::Result<Self>>
             where
-                E: 'e + ::ormlite::export::Executor<'e, Database = #db>,
+                E: 'e + ::ormlite::Executor<'e, Database = #db>,
             {
                 Box::pin(async move {
-                    let mut q = ::ormlite::export::query_as::<#db, Self>(#query);
+                    let mut q =::ormlite::query_as::<#db, Self>(#query);
                     #(#query_bindings)*
                     q.fetch_one(db)
                         .await
@@ -146,10 +146,10 @@ pub trait OrmliteCodegen {
         quote! {
             fn update_all_fields<'e, E>(self, db: E) -> #box_future<'e, ::ormlite::Result<Self>>
             where
-                E: 'e + ::ormlite::export::Executor<'e, Database = #db>,
+                E: 'e +::ormlite::Executor<'e, Database = #db>,
             {
                 Box::pin(async move {
-                    let mut q = ::ormlite::export::query_as::<_, Self>(#query);
+                    let mut q =::ormlite::query_as::<_, Self>(#query);
                     #(#query_bindings)*
                     q.bind(self.#id_field)
                         .fetch_one(db)
@@ -176,10 +176,10 @@ pub trait OrmliteCodegen {
         quote! {
             fn delete<'e, E>(self, db: E) -> #box_future<'e, ::ormlite::Result<()>>
             where
-                E: 'e + ::ormlite::export::Executor<'e, Database = #db>
+                E: 'e +::ormlite::Executor<'e, Database = #db>
             {
                 Box::pin(async move {
-                    let row = ::ormlite::export::query(#query)
+                    let row =::ormlite::query(#query)
                         .bind(self.#id_field)
                         .execute(db)
                         .await
@@ -211,7 +211,7 @@ pub trait OrmliteCodegen {
             where
                 'a: 'e,
                 Arg: 'a + Send + ::sqlx::Encode<'a, #db> + ::sqlx::Type<#db>,
-                E: 'e + ::ormlite::export::Executor<'e, Database = #db>
+                E: 'e +::ormlite::Executor<'e, Database = #db>
             {
                 Box::pin(async move {
                     ::sqlx::query_as::<#db, Self>(#query)
@@ -372,7 +372,7 @@ pub trait OrmliteCodegen {
         quote! {
             fn insert<'e: 'a, E>(self, db: E) -> #box_future<'a, ::ormlite::Result<Self::Model>>
             where
-                E: 'e + ::ormlite::export::Executor<'e, Database = #db>,
+                E: 'e +::ormlite::Executor<'e, Database = #db>,
             {
                 Box::pin(async move {
                     let mut placeholder = #placeholder;
@@ -382,7 +382,7 @@ pub trait OrmliteCodegen {
                         set_fields.join(", "),
                         set_fields.iter().map(|_| placeholder.next().unwrap()).collect::<Vec<_>>().join(", "),
                     );
-                    let mut q = ::ormlite::export::query_as::<#db, Self::Model>(&query);
+                    let mut q =::ormlite::query_as::<#db, Self::Model>(&query);
                     #(#bind_parameters)*
                     q.fetch_one(db)
                         .await
@@ -408,7 +408,7 @@ pub trait OrmliteCodegen {
         quote! {
             fn update<'e: 'a, E>(self, db: E) -> #box_future<'a, ::ormlite::Result<Self::Model>>
             where
-                E: 'e + ::ormlite::export::Executor<'e, Database = #db>,
+                E: 'e +::ormlite::Executor<'e, Database = #db>,
             {
                 Box::pin(async move {
                     let mut placeholder = #placeholder;
@@ -424,7 +424,7 @@ pub trait OrmliteCodegen {
                             `<model instance>.update_partial().update(&mut db)`.")
                             .#id
                     );
-                    let mut q = ::ormlite::export::query_as::<#db, Self::Model>(&query);
+                    let mut q =::ormlite::query_as::<#db, Self::Model>(&query);
                     #(#bind_update)*
                     q.fetch_one(db)
                         .await
@@ -519,10 +519,10 @@ pub trait OrmliteCodegen {
 
                 fn insert<'e, E>(self, db: E) -> #box_future<'e, ::ormlite::Result<Self::Model>>
                 where
-                    E: 'e + ::ormlite::export::Executor<'e, Database = #db>,
+                    E: 'e +::ormlite::Executor<'e, Database = #db>,
                 {
                     Box::pin(async move {
-                        let mut q = ::ormlite::export::query_as::<#db, Self::Model>(#query);
+                        let mut q =::ormlite::query_as::<#db, Self::Model>(#query);
                         #(#query_bindings)*
                         q.fetch_one(db)
                             .await

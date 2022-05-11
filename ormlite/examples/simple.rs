@@ -1,7 +1,6 @@
 use ormlite::model::*;
 use ormlite::{Model, FromRow};
 use ormlite::Connection;
-use std::str::FromStr;
 
 #[derive(Model, FromRow, Debug)]
 #[ormlite(insert = InsertPerson)]
@@ -16,10 +15,7 @@ pub static CREATE_TABLE_SQL: &str =
 
 #[tokio::main]
 async fn main() -> core::result::Result<(), Box<dyn std::error::Error>> {
-    let mut conn = ormlite::export::SqliteConnection::connect_with(
-        &ormlite::export::SqliteConnectOptions::from_str("sqlite://:memory:").unwrap(),
-    )
-    .await?;
+    let mut conn = ormlite::SqliteConnection::connect(":memory:").await.unwrap();
     env_logger::init();
 
     ormlite::query(CREATE_TABLE_SQL)
