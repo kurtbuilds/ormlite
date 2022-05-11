@@ -36,8 +36,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-Note that the model id must be set client-side because it is not `Option`, and it cannot track which fields are
-modified, so the update method updates all columns. If these present problems for your usage, check the
+**Note**: Using this syntax, there are two possible issues. First, `id` must be set client-side instead of using the database's auto-increment counter, because the field is not `Option`. Second, the struct cannot track which fields are
+modified, so the update method must updates all columns. If these issues present problems for your usage, check the
 sections [Insertion Struct](#insertion-struct) or [Builder Syntax](#builder-syntax) below for alternative APIs that
 resolve these issues.
 
