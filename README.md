@@ -145,7 +145,7 @@ pub struct Person {
     pub age: i32,
 }
 
-async builder_syntax_example() {    
+async fn builder_syntax_example() {    
     // builder syntax for insert
     let john = Person::build()
         .name("John".to_string())
@@ -274,11 +274,13 @@ pub struct Person {
 
 ## Json/Jsonb Columns
 
-You can use `sqlx::types::Json` for JSON or JSONB fields. The parameterized type can be unstructured, using the `serde_json::Value` type, or a
-specific serializable struct.
+You can use `ormlite::types::Json` for JSON or JSONB fields. The parameterized type can be unstructured, using the `serde_json::Value` type, or a
+specific serializable struct. Note `ormlite::types` is a re-export of `sqlx::types`.
 
 ```rust
 use ormlite::model::*;
+use ormlite::types::Json;
+use serde_json::Value;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JobData {
