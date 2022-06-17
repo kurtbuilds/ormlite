@@ -45,7 +45,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         id: 1,
         name: "John".to_string(),
         age: 99,
-    }.insert(&mut conn).await;
+    }.insert(&mut conn).await?;
     println!("{:?}", john);
 
     /// After modifying the object, you can update all its fields.
