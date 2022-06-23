@@ -27,8 +27,8 @@ uuid = ["sqlx/uuid"]
 chrono = ["sqlx/chrono"]
 
 [dependencies]
-ormlite-macro = "3"
-ormlite-core = "3"
+ormlite-macro = "0.3"
+ormlite-core = "0.3"
 sqlx = { version = "0.6.0" }
 tokio = { version = "1.15.0", features = ["full"] }
 
