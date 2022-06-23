@@ -1,5 +1,5 @@
 [workspace]
-members = ["ormlite-macro", "ormlite-core", "ormlite-core", "ormlite"]
+members = ["ormlite-macro", "ormlite-core", "ormlite"]
 
 [patch.crates-io]
 ormlite-macro = { path = "./ormlite-macro" }
