@@ -22,6 +22,6 @@ quote = "1.0.10"
 syn = { version = "1.0.82", features = ["derive", "parsing"] }
 ormlite-core = "0.2.12"
 derive_builder = "0.10.2"
-sqlx = { version = "0.5.13" }
-#sqlx-macros = { version = "0.5.13" , default-features = false }
+sqlx = { version = "0.6.0" }
+#sqlx-macros = { version = "0.6.0" , default-features = false }
 structmeta = "0.1.4"

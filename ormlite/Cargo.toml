@@ -29,7 +29,7 @@ chrono = ["sqlx/chrono"]
 [dependencies]
 ormlite-macro = "0.2.12"
 ormlite-core = "0.2.12"
-sqlx = { version = "0.5.13" }
+sqlx = { version = "0.6.0" }
 tokio = { version = "1.15.0", features = ["full"] }
 
 [dev-dependencies]
