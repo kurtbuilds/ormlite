@@ -30,7 +30,7 @@ fn get_field_name_tokens(
 }
 
 fn get_field_names(fields: &Punctuated<Field, Comma>) -> impl Iterator<Item = String> + '_ {
-    fields.iter().map(|f| f.ident.as_ref().unwrap().to_string())
+    fields.iter().map(|f| f.ident.as_ref().unwrap().to_string().replace("r#", ""))
 }
 
 /// bool whether the given type is `String`
