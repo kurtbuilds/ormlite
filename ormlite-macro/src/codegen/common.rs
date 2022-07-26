@@ -413,19 +413,21 @@ pub trait OrmliteCodegen {
                 Box::pin(async move {
                     let mut placeholder = #placeholder;
                     let set_fields = self.modified_fields();
+                    let update_id = self.updating
+                        .expect("Tried to call ModelBuilder::update(), but the ModelBuilder \
+                        has no reference to what model to update. You might have called \
+                        something like: `<Model>::build().update(&mut db)`. A partial update \
+                        looks something like \
+                        `<model instance>.update_partial().update(&mut db)`.")
+                        .#id;
                     let query = format!(
                         #query,
                         set_fields.into_iter().map(|f| format!("{} = {}", f, placeholder.next().unwrap())).collect::<Vec<_>>().join(", "),
-                        self.updating
-                            .expect("Tried to call ModelBuilder::update(), but the ModelBuilder \
-                            has no reference to what model to update. You might have called \
-                            something like: `<Model>::build().update(&mut db)`. A partial update \
-                            looks something like \
-                            `<model instance>.update_partial().update(&mut db)`.")
-                            .#id
+                        placeholder.next().unwrap()
                     );
                     let mut q =::ormlite::query_as::<#db, Self::Model>(&query);
                     #(#bind_update)*
+                    q = q.bind(update_id);
                     q.fetch_one(db)
                         .await
                         .map_err(::ormlite::Error::from)
