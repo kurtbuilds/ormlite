@@ -832,7 +832,7 @@ checksum = "18a6dbe30758c9f83eb00cbea4ac95966305f5a7772f3f42ebfc7fc7eddbd8e1"
 
 [[package]]
 name = "ormlite"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "env_logger",
  "ormlite-core",
@@ -845,7 +845,7 @@ dependencies = [
 
 [[package]]
 name = "ormlite-core"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "datetime",
  "futures",
@@ -859,7 +859,7 @@ dependencies = [
 
 [[package]]
 name = "ormlite-macro"
-version = "0.3.1"
+version = "0.3.2"
 dependencies = [
  "derive_builder",
  "ormlite-core",

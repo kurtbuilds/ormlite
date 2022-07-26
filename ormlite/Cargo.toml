@@ -1,6 +1,6 @@
 [package]
 name = "ormlite"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
 description = "An ORM for people who love SQL"
@@ -27,8 +27,8 @@ uuid = ["sqlx/uuid"]
 chrono = ["sqlx/chrono"]
 
 [dependencies]
-ormlite-macro = "0.3.1"
-ormlite-core = "0.3.1"
+ormlite-macro = "0.3.2"
+ormlite-core = "0.3.2"
 sqlx = { version = "0.6.0" }
 tokio = { version = "1.15.0", features = ["full"] }
 
