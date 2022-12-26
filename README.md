@@ -8,7 +8,7 @@
     <img src="https://img.shields.io/github/stars/kurtbuilds/ormlite.svg?style=flat-square" alt="Stars" />
 </a>
 <a href="https://github.com/kurtbuilds/ormlite/actions">
-    <img src="https://img.shields.io/github/workflow/status/kurtbuilds/ormlite/test?style=flat-square" alt="Build Status" />
+    <img src="https://img.shields.io/github/actions/workflow/status/kurtbuilds/ormlite/test.yaml?style=flat-square" alt="Build Status" />
 </a>
 <a href="https://crates.io/crates/ormlite">
     <img src="https://img.shields.io/crates/d/ormlite?style=flat-square" alt="Downloads" />
