@@ -1,0 +1,18 @@
+[package]
+name = "ormlite-cli"
+version = "0.3.2"
+edition = "2021"
+description = "An ORM for people who love SQL. Use the `ormlite` crate, not this one."
+authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
+license = "MIT"
+repository = "https://github.com/kurtbuilds/ormlite"
+
+[features]
+#mysql = ["sqlx/mysql"]
+#sqlite = ["sqlx/sqlite"]
+#postgres = ["sqlx/postgres"]
+#runtime-tokio-rustls = ["sqlx/runtime-tokio-rustls"]
+
+[dependencies]
+anyhow = "1.0.68"
+clap = { version = "4.0.32", features = ["derive"] }
