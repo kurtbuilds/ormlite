@@ -70,7 +70,6 @@ impl Migrate {
                     .await
                     .map_err(|e| anyhow::anyhow!("Failed to connect to database. Is the database running?"))
                     ?;
-                // let pool = ormlite::PgPool::connect_with(ormlite::PgConnectOptions::).await?;
                 let mut conn = pool.acquire().await?;
                 let conn = conn.acquire().await?;
                 let schema = Schema::try_from_database(conn, "public").await?;
@@ -80,19 +79,17 @@ impl Migrate {
             current.tables.retain(|t| t.name != "_sqlx_migrations");
 
             let desired = Schema::try_from_ormlite_project(Path::new("."))?;
-            println!("Current:\n{:#?}\nDesired:\n{:#?}", current, desired);
             let migration = current.migrate_to(desired, &sqldiff::Options::default())?;
-            println!("{:#?}", migration);
             if self.debug {
                 for statement in migration.statements {
-                    println!("{}", statement.prepare("public"));
+                    println!("{};", statement.prepare("public"));
                 }
                 return Ok(())
             }
             migration_body = migration.statements.into_iter()
                 .map(|s| s.prepare("public"))
                 .collect::<Vec<_>>()
-                .join("\n");
+                .join(";\n");
         }
 
         fs::create_dir_all(&folder).context("Unable to create migrations directory")?;
