@@ -1,7 +1,6 @@
 use std::env::var;
 use std::fs;
-use chrono::Utc;
-use time::
+use time::{OffsetDateTime as DateTime};
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -60,11 +59,9 @@ impl Migrate {
         if !self.empty {
 
             let url = var("DATABASE_URL").expect("DATABASE_URL must be set");
-            let conn = runtiome.block_on(sqlx::PgConnect)
-            let pool = ormlite::PgPool::connect(&database_url).await.unwrap();
+            let pool = runtime.block_on(ormlite::PgPool::connect(&url)).context("Failed to connect to database.")?;
 
-            let conn = sqlx::PgConnection::connect(&url).await?;
-            let current = Schema::try_from_database(, "public")?;
+            let current = runtime.block_on(Schema::try_from_database(pool, "public"))?;
             let desired = Schema::try_from_ormlite_project(Path::new("."))?;
         }
 

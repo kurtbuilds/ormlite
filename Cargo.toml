@@ -5,3 +5,4 @@ members = ["macro", "core", "ormlite", "cli"]
 ormlite-macro = { path = "./macro" }
 ormlite-core = { path = "./core" }
 ormlite = { path = "./ormlite" }
+sqldiff = { path = "../sqldiff" }

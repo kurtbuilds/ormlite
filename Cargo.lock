@@ -1097,6 +1097,7 @@ dependencies = [
  "sqldiff",
  "syn",
  "time",
+ "tokio",
 ]
 
 [[package]]
@@ -1613,8 +1614,6 @@ dependencies = [
 [[package]]
 name = "sqldiff"
 version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04a89f4434a7e2a8472ff5d2a918c342858814d5e02168ec1c03aa14f5689794"
 dependencies = [
  "anyhow",
  "convert_case",
