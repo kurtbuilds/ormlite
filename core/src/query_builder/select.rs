@@ -105,8 +105,13 @@ where
         self
     }
 
+    pub fn dangerous_where(mut self, clause: &str) -> Self {
+        self.wheres.push(clause.to_string());
+        self
+    }
+
     #[deprecated(note = "Please use `where_` instead")]
-    pub fn select(mut self, clause: &str) -> Self {
+    pub fn select(self, clause: &'static str) -> Self {
         self.where_(clause)
     }
 
