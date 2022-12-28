@@ -1,6 +1,6 @@
 [package]
 name = "ormlite-cli"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2021"
 description = "An ORM for people who love SQL. Use the `ormlite` crate, not this one."
 authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
@@ -23,8 +23,8 @@ anyhow = "1.0.68"
 time = { version = "0.3.5", features = ["formatting"] }
 clap = { version = "4.0.32", features = ["derive"] }
 ignore = "0.4.18"
-ormlite = { version = "0.4.0", path = "../ormlite" }
-ormlite-attr = { version = "0.4.0", path = "../attr" }
+ormlite = { version = "0.5.0", path = "../ormlite" }
+ormlite-attr = { version = "0.5.0", path = "../attr" }
 tokio = { version = "1.15.0", features = ["full"] }
 sqldiff = "0.3.0"
 syn = "1.0.107"
