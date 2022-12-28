@@ -7,6 +7,7 @@ mod schema;
 mod command;
 mod util;
 mod syndecode;
+pub(crate) mod config;
 
 use command::*;
 
@@ -21,11 +22,16 @@ struct Cli {
 #[derive(Subcommand, Debug)]
 pub enum Command {
     Migrate(Migrate),
+    Up(Up),
+    Down(Down),
 }
 
 fn main() -> Result<()> {
+    use Command::*;
     let cli = Cli::parse();
     match cli.command {
-        Command::Migrate(m) => m.run()
+        Migrate(m) => m.run(),
+        Up(up) => up.run(),
+        Down(down) => down.run(),
     }
 }

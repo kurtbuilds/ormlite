@@ -29,6 +29,8 @@ tokio = { version = "1.15.0", features = ["full"] }
 sqldiff = "0.2.4"
 syn = "1.0.107"
 proc-macro2 = "1.0.49"
+sqlx = "0.6.2"
+url = "2.3.1"
 
 [dev-dependencies]
 assert_matches = "1.5.0"

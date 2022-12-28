@@ -1,23 +1,71 @@
+use std::cmp::Ordering;
 use std::env::var;
 use std::fs;
-use time::{OffsetDateTime as DateTime};
+use time::OffsetDateTime as DateTime;
 use time::macros::format_description;
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use clap::Parser;
-use anyhow::{Context, Result};
-use sqldiff::Schema;
+use anyhow::{anyhow, Context, Error, Result};
+use sqldiff::{Migration, Schema, SchemaColumn};
+use tokio::runtime::Runtime;
 use crate::schema::TryFromOrmlite;
-use ormlite::Acquire;
+use ormlite::{Acquire, Executor, PgConnection, PgConnectOptions, PgPool};
+use crate::{config, util};
+use crate::util::{create_connection, create_runtime};
 
-const MIGRATION_FOLDER: &str = "migrations";
 
-enum MigrationType {
+const GET_MIGRATIONS_QUERY: &str = "SELECT
+version || '_' || description AS name
+, version
+, description
+FROM _sqlx_migrations
+ORDER BY version ASC
+";
+
+/// Compare migrations using version (see PartialEq).
+#[derive(ormlite::FromRow, PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub struct MigrationMetadata {
+    pub version: i64,
+    /// For fs migrations, the name will be a file stem (for reversible, it'll be `<version>_<description>.<up/down>`).
+    pub name: String,
+    pub description: String,
+}
+
+impl MigrationMetadata {
+    pub(crate) fn migration_type(&self) -> MigrationType {
+        if self.name.ends_with(".up") {
+            MigrationType::Up
+        } else if self.name.ends_with(".down") {
+            MigrationType::Down
+        } else {
+            MigrationType::Simple
+        }
+    }
+
+    pub fn version_str(&self) -> String {
+        self.version.to_string()
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub enum MigrationType {
     Simple,
     Up,
     Down,
+}
+
+impl MigrationType {
+    pub fn extension(&self) -> &'static str {
+        use MigrationType::*;
+        match self {
+            Simple => "sql",
+            Up => "up.sql",
+            Down => "down.sql",
+        }
+    }
 }
 
 #[derive(Parser, Debug)]
@@ -34,63 +82,117 @@ pub struct Migrate {
 
     /// Instead of generating a migration, print the generated statements. Mostly useful for debugging.
     #[clap(long, short)]
-    debug: bool,
+    dry: bool,
 }
 
-fn create_migration(path: &Path, mut file_name: String, migration: MigrationType, content: &str) -> Result<()> {
-    match migration {
-        MigrationType::Simple => file_name.push_str(".sql"),
-        MigrationType::Up => file_name.push_str(".up.sql"),
-        MigrationType::Down => file_name.push_str(".down.sql"),
-    }
 
-    let path = path.join(&file_name);
+fn create_migration(folder: &Path, mut file_name: String, migration: MigrationType, content: &str) -> Result<()> {
+    let file_path = folder.join(&file_name).with_extension(migration.extension());
 
-    let mut file = File::create(&path).context("Failed to create file")?;
+    let mut file = File::create(&file_path).context("Failed to create file")?;
     file.write_all(content.as_bytes())
         .context("Could not write to file")?;
-    eprintln!("{}: Created migration", path.display());
+    eprintln!("{}: Created migration", file_path.display());
     Ok(())
 }
 
-impl Migrate {
-    pub fn run(&self) -> Result<()> {
-        let runtime = crate::util::runtime();
+/// Migrations are sorted asc. Last is most recent.
+pub fn get_executed_migrations(runtime: &Runtime, conn: &mut PgConnection) -> Result<Vec<MigrationMetadata>> {
+    let migrations = runtime.block_on(sqlx::query_as::<_, MigrationMetadata>(GET_MIGRATIONS_QUERY)
+        .fetch_all(conn))?;
+    Ok(migrations)
+}
 
-        let folder = var("MIGRATION_FOLDER").unwrap_or_else(|_| MIGRATION_FOLDER.to_string());
-        let folder = PathBuf::from_str(&folder).unwrap();
+/// Migrations are sorted asc. Last is most recent.
+pub fn get_pending_migrations(folder: &Path) -> Result<Vec<MigrationMetadata>> {
+    let mut migrations = fs::read_dir(folder)?
+        .filter_map(|e| e.ok())
+        .map(|f| f.path())
+        .filter(|f| f.is_file() && f.extension().map(|e| e == "sql").unwrap_or(false))
+        .map(|f| {
+            let name = f.file_stem().unwrap().to_str().unwrap().to_string();
+            let (version, description) = name.split_once('_').unwrap();
+            let version = version.parse()?;
+            let description = description.to_string();
+            Ok::<_, Error>(MigrationMetadata {
+                name,
+                version,
+                description,
+            })
+        }).collect::<Result<Vec<_>, _>>()?;
+    migrations.sort();
+    Ok(migrations)
+}
+
+// Returns the type of migration environment, either None (any), Simple, or Up (it doesn't return Down)
+fn check_for_pending_migrations(folder: &Path, runtime: &Runtime, conn: &mut PgConnection) -> Result<Option<MigrationType>> {
+    let executed = get_executed_migrations(&runtime, conn)?;
+    let pending = get_pending_migrations(&folder)?;
+
+    if executed.len() <= pending.len() {
+        return Err(anyhow!("Pending migrations are not in sync with the database. Please run `ormlite up` first."));
+    }
+    for (executed, pending) in executed.iter().zip(pending.iter()) {
+        if executed != pending {
+            eprintln!("WARNING: Your file system migrations do not match the database. Have {} on the file system but {} in the database.", pending.name, executed.name);
+        }
+    }
+
+    Ok(pending.first().map(|m| m.migration_type()))
+}
+
+fn check_reversible_compatibility(reversible: bool, migration_environment: Option<MigrationType>) -> Result<()> {
+    if let Some(migration_environment) = migration_environment {
+        if reversible && migration_environment == MigrationType::Simple {
+            return Err(anyhow!("You cannot mix reversible and non-reversible migrations"));
+        } else if !reversible && migration_environment != MigrationType::Simple {
+            return Err(anyhow!("You cannot mix reversible and non-reversible migrations"));
+        }
+    }
+    Ok(())
+}
+
+fn autogenerate_migration(codebase_path: &Path, runtime: &Runtime, conn: &mut PgConnection, ) -> Result<Migration> {
+    let mut current = runtime.block_on(Schema::try_from_database(conn, "public"))?;
+    current.tables.retain(|t| t.name != "_sqlx_migrations");
+
+    let desired = Schema::try_from_ormlite_project(codebase_path)?;
+
+    let migration = current.migrate_to(desired, &sqldiff::Options::default())?;
+    Ok(migration)
+}
+
+
+impl Migrate {
+    pub fn run(self) -> Result<()> {
+        let runtime = create_runtime();
+
+        let folder = config::get_var_migration_folder();
+        let url = config::get_var_database_url();
+
+        let mut conn = create_connection(&url, &runtime)?;
+        let conn = runtime.block_on(conn.acquire())?;
+
+        let migration_environment = check_for_pending_migrations(&folder, &runtime, conn)?;
+        check_reversible_compatibility(self.reversible, migration_environment)?;
 
         let mut migration_body = String::new();
-        if !self.empty {
-            let url = var("DATABASE_URL").expect("DATABASE_URL must be set");
-            let mut current: Schema = runtime.block_on(async {
-                let pool = ormlite::PgPoolOptions::new()
-                    .acquire_timeout(std::time::Duration::from_secs(1))
-                    .connect(&url)
-                    .await
-                    .map_err(|e| anyhow::anyhow!("Failed to connect to database. Is the database running?"))
-                    ?;
-                let mut conn = pool.acquire().await?;
-                let conn = conn.acquire().await?;
-                let schema = Schema::try_from_database(conn, "public").await?;
-                Ok::<_, anyhow::Error>(schema)
-            }).context("Failed to connect to database.")?;
+        let migration_body = if self.empty {
+            String::new()
+        } else {
+            let migration = autogenerate_migration(Path::new("."), &runtime, conn)?;
 
-            current.tables.retain(|t| t.name != "_sqlx_migrations");
-
-            let desired = Schema::try_from_ormlite_project(Path::new("."))?;
-            let migration = current.migrate_to(desired, &sqldiff::Options::default())?;
-            if self.debug {
+            if self.dry {
                 for statement in migration.statements {
                     println!("{};", statement.prepare("public"));
                 }
-                return Ok(())
+                return Ok(());
             }
-            migration_body = migration.statements.into_iter()
+            migration.statements.into_iter()
                 .map(|s| s.prepare("public"))
                 .collect::<Vec<_>>()
-                .join(";\n");
-        }
+                .join(";\n")
+        };
 
         fs::create_dir_all(&folder).context("Unable to create migrations directory")?;
 
