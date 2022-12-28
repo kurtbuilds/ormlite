@@ -80,7 +80,6 @@ impl std::fmt::Display for TypeTranslationError {
 impl SqlType {
     fn from_type(ty: &Type) -> Result<Self, TypeTranslationError> {
         use sqldiff::Type::*;
-        println!("from_type: {:?}", ty);
         match ty {
             Type::Paren(t) => {
                 Self::from_type(&t.elem)

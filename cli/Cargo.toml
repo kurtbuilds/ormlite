@@ -7,6 +7,10 @@ authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
 license = "MIT"
 repository = "https://github.com/kurtbuilds/ormlite"
 
+[[bin]]
+name = "ormlite"
+path = "src/main.rs"
+
 [features]
 #mysql = ["sqlx/mysql"]
 #sqlite = ["sqlx/sqlite"]
