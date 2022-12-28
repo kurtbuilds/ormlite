@@ -98,9 +98,6 @@ You can even use both tools in the same project.
 
     cargo install --git https://github.com/kurtbuilds/ormlite
 
-
-`ormlite` builds upon [`sqlx`](https://github.com/launchbadge/sqlx). Use the tool for migrations.
-
 # Project Goals
 
 We prioritize these objectives in the project:
