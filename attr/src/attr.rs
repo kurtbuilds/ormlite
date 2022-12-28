@@ -5,7 +5,6 @@ use syn::{Ident, LitStr};
 #[derive(StructMeta, Debug)]
 pub struct ModelAttributes {
     pub table: Option<LitStr>,
-    #[allow(non_snake_case)]
     pub Insertable: Option<Ident>,
 }
 

@@ -54,21 +54,28 @@ impl Migrate {
         let folder = var("MIGRATION_FOLDER").unwrap_or_else(|_| MIGRATION_FOLDER.to_string());
         let folder = PathBuf::from_str(&folder).unwrap();
 
-        println!("migrate: {:?}", self);
-
         if !self.empty {
             let url = var("DATABASE_URL").expect("DATABASE_URL must be set");
             let mut current: Schema = runtime.block_on(async {
-                let pool = ormlite::PgPool::connect(&url).await?;
+                let pool = ormlite::PgPoolOptions::new()
+                    .acquire_timeout(std::time::Duration::from_secs(1))
+                    .connect(&url)
+                    .await
+                    .map_err(|e| anyhow::anyhow!("Failed to connect to database. Is the database running?"))
+                    ?;
+                // let pool = ormlite::PgPool::connect_with(ormlite::PgConnectOptions::).await?;
                 let mut conn = pool.acquire().await?;
                 let conn = conn.acquire().await?;
                 let schema = Schema::try_from_database(conn, "public").await?;
                 Ok::<_, anyhow::Error>(schema)
             }).context("Failed to connect to database.")?;
-            let desired = Schema::try_from_ormlite_project(Path::new("."))?;
 
             current.tables.retain(|t| t.name != "_sqlx_migrations");
-            // println!("Current:\n{:#?}\nDesired:\n{:#?}", current, desired);
+
+            let desired = Schema::try_from_ormlite_project(Path::new("."))?;
+            println!("Current:\n{:#?}\nDesired:\n{:#?}", current, desired);
+            let migration = current.migrate_to(desired, &sqldiff::Options::default())?;
+            println!("{:#?}", migration);
         }
 
         // fs::create_dir_all(&folder).context("Unable to create migrations directory")?;

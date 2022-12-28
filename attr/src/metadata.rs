@@ -18,11 +18,12 @@ impl TableMetadata {
         TableMetadataBuilder::default()
     }
 
-    pub fn builder_from_struct_attributes(ast: &DeriveInput) -> TableMetadataBuilder {
+    pub fn builder_from_struct_attributes(ast: &DeriveInput) -> Result<TableMetadataBuilder, SyndecodeError> {
         let mut builder = TableMetadata::builder();
         builder.insert_struct(None);
         for attr in ast.attrs.iter().filter(|a| a.path.is_ident("ormlite")) {
-            let args: ModelAttributes = attr.parse_args().unwrap();
+            let args: ModelAttributes = attr.parse_args()
+                .map_err(|e| SyndecodeError(e.to_string()))?;
             if let Some(value) = args.table {
                 builder.table_name(value.value());
             }
@@ -30,7 +31,7 @@ impl TableMetadata {
                 builder.insert_struct(Some(value.to_string()));
             }
         }
-        builder
+        Ok(builder)
     }
 }
 
@@ -80,7 +81,7 @@ impl TryFrom<&DeriveInput> for TableMetadata {
     type Error = SyndecodeError;
 
     fn try_from(ast: &DeriveInput) -> Result<Self, Self::Error> {
-        TableMetadata::builder_from_struct_attributes(&ast)
+        TableMetadata::builder_from_struct_attributes(&ast)?
             .complete_with_struct_body(&ast)
     }
 }

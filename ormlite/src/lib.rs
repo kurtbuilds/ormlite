@@ -3,11 +3,12 @@ pub use ormlite_core::{Error, Result};
 pub use ormlite_macro::Model;
 pub use sqlx::sqlx_macros::FromRow;
 
-pub use sqlx::{query, query_as, Connection, Executor, Pool, Acquire};
+pub use sqlx::{query, query_as, Connection, Executor, Pool, Acquire, ConnectOptions};
+pub use sqlx::pool::PoolOptions;
 
 #[cfg(feature = "postgres")]
 #[cfg_attr(docsrs, doc(cfg(feature = "postgres")))]
-pub use sqlx::postgres::{PgConnectOptions, PgConnection, PgPool, PgPoolOptions};
+pub use sqlx::postgres::{PgConnectOptions, PgConnection, PgPool, PgPoolOptions, Postgres};
 #[cfg(feature = "sqlite")]
 #[cfg_attr(docsrs, doc(cfg(feature = "sqlite")))]
 pub use sqlx::sqlite::{SqliteConnectOptions, SqliteConnection, SqlitePool, SqlitePoolOptions};

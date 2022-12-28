@@ -2,7 +2,7 @@ use ormlite::model::*;
 use ormlite::Connection;
 
 #[derive(Model, FromRow, Debug)]
-#[ormlite(insert = InsertPerson)]
+#[ormlite(Insertable = InsertPerson)]
 pub struct Person {
     pub id: u32,
     pub name: String,

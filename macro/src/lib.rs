@@ -5,7 +5,7 @@ use crate::codegen::common::OrmliteCodegen;
 use proc_macro::TokenStream;
 
 use quote::quote;
-use syn::{DeriveInput, parse_macro_input};
+use syn::{Data, DeriveInput, Item, ItemStruct, parse_macro_input};
 use ormlite_attr::DeriveInputExt;
 
 mod codegen;
@@ -16,6 +16,7 @@ mod util;
 pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
     let input2 = input.clone();
     let ast = parse_macro_input!(input2 as DeriveInput);
+    let Data::Struct(data) = &ast.data else { panic!("Only structs can derive Model"); };
 
     let table_meta = TableMetadata::try_from(&ast).unwrap();
 

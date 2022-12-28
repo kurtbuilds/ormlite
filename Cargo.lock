@@ -38,6 +38,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2cb2f989d18dd141ab8ae82f64d1a8cdd37e0840f73a406896cf5e99502fab61"
 
 [[package]]
+name = "assert_matches"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b34d609dfbaf33d6889b2b7106d3ca345eacad44200913df5ba02bfd31d2ba9"
+
+[[package]]
 name = "atoi"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1102,6 +1108,7 @@ name = "ormlite-cli"
 version = "0.3.2"
 dependencies = [
  "anyhow",
+ "assert_matches",
  "clap",
  "ignore",
  "ormlite",
@@ -1626,6 +1633,8 @@ dependencies = [
 [[package]]
 name = "sqldiff"
 version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04a89f4434a7e2a8472ff5d2a918c342858814d5e02168ec1c03aa14f5689794"
 dependencies = [
  "anyhow",
  "convert_case",
@@ -2266,3 +2275,7 @@ name = "zeroize"
 version = "1.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c394b5bd0c6f669e7275d9c20aa90ae064cb22e75a1cad54e1b34088034b149f"
+
+[[patch.unused]]
+name = "sqldiff"
+version = "0.2.4"
