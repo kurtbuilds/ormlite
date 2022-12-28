@@ -16,13 +16,13 @@ default = [
     "ormlite/postgres",
     "ormlite/sqlite",
     "ormlite/uuid",
-    "ormlite/chrono",
+    "ormlite/time",
     "ormlite/json",
 ]
 
 [dependencies]
 anyhow = "1.0.68"
-chrono = "0.4.23"
+time = { version = "0.3.5", features = ["formatting"] }
 clap = { version = "4.0.32", features = ["derive"] }
 ignore = "0.4.18"
 ormlite = { version = "0.3.2", path = "../ormlite" }

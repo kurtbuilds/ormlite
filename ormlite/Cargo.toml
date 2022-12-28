@@ -25,6 +25,7 @@ postgres = ["sqlx/postgres", "ormlite-macro/postgres", "ormlite-core/postgres"]
 runtime-tokio-rustls = ["ormlite-macro/runtime-tokio-rustls", "sqlx/runtime-tokio-rustls", "ormlite-core/runtime-tokio-rustls"]
 uuid = ["sqlx/uuid"]
 chrono = ["sqlx/chrono"]
+time = ["sqlx/time"]
 json = ["sqlx/json"]
 
 [dependencies]
