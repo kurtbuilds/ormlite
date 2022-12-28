@@ -9,6 +9,7 @@ use clap::Parser;
 use anyhow::{Context, Result};
 use sqldiff::Schema;
 use crate::schema::TryFromOrmlite;
+use ormlite::Acquire;
 
 const MIGRATION_FOLDER: &str = "migrations";
 
@@ -57,15 +58,19 @@ impl Migrate {
         println!("migrate: {:?}", self);
 
         if !self.empty {
-
             let url = var("DATABASE_URL").expect("DATABASE_URL must be set");
-            let pool = runtime.block_on(ormlite::PgPool::connect(&url)).context("Failed to connect to database.")?;
-
-            let current = runtime.block_on(Schema::try_from_database(pool, "public"))?;
+            let mut current: Schema = runtime.block_on(async {
+                let pool = ormlite::PgPool::connect(&url).await?;
+                let mut conn = pool.acquire().await?;
+                let conn = conn.acquire().await?;
+                let schema = Schema::try_from_database(conn, "public").await?;
+                Ok::<_, anyhow::Error>(schema)
+            }).context("Failed to connect to database.")?;
             let desired = Schema::try_from_ormlite_project(Path::new("."))?;
+
+            current.tables.retain(|t| t.name != "_sqlx_migrations");
+            // println!("Current:\n{:#?}\nDesired:\n{:#?}", current, desired);
         }
-
-
 
         // fs::create_dir_all(&folder).context("Unable to create migrations directory")?;
         //

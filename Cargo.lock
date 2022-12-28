@@ -1094,6 +1094,7 @@ dependencies = [
  "clap",
  "ignore",
  "ormlite",
+ "proc-macro2",
  "sqldiff",
  "syn",
  "time",
