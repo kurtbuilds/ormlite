@@ -91,8 +91,8 @@ where
     /// Do not use format! to add parameters. Instead, use `?` as the placeholder, and add
     /// parameters with [`bind`](Self::bind).
     ///
-    /// Postgres users: You can (and should) use `?` as the placeholder. You might not have defined
-    /// numerical ordinals for your parameters, preventing $<N> syntax. Upon execution, the query
+    /// Postgres users: You can (and should) use `?` as the placeholder. You might not have a defined
+    /// numerical order for your parameters, preventing $<N> syntax. Upon execution, the query
     /// builder replaces `?` with `$<N>`. If you need the same parameter multiple times, you should
     /// bind it multiple times. Arguments aren't moved, so this doesn't incur a memory cost. If you
     /// still want to re-use parameters, you can use $<N> placeholders. However, don't mix `?` and
@@ -100,9 +100,14 @@ where
     ///
     /// # Arguments
     /// * `clause` - The clause to add. Examples: "id = ?", "name = ?", "person.id = ?"
-    pub fn filter(mut self, clause: &str) -> Self {
+    pub fn where_(mut self, clause: &'static str) -> Self {
         self.wheres.push(clause.to_string());
         self
+    }
+
+    #[deprecated(note = "Please use `where_` instead")]
+    pub fn select(mut self, clause: &str) -> Self {
+        self.where_(clause)
     }
 
     /// Add a JOIN clause to the query.

@@ -53,7 +53,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     john.update_all_fields(&mut conn).await?;
 
     let people = Person::select()
-        .filter("age > ?").bind(50)
+        .where_("age > ?").bind(50)
         .fetch_all(&mut conn).await?;
     println!("{:?}", people);
 }
@@ -201,7 +201,7 @@ pub struct Person {
 
 async fn query_builder_example() {
     let people = Person::select()
-        .filter("age > ?")
+        .where_("age > ?")
         .bind(50i32)
         .fetch_all(&mut conn)
         .await?;

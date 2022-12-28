@@ -34,7 +34,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{:?}", john);
 
     let people = Person::select()
-        .filter("age > ?")
+        .where_("age > ?")
         .bind(50u32)
         .fetch_all(&mut conn)
         .await?;
@@ -87,7 +87,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("built {:?}", kurt);
     // // You can create a query builder.
     let people = Person::select()
-        .filter("age > ?")
+        .where_("age > ?")
         .bind(50u32)
         .fetch_all(&mut conn)
         .await?;
