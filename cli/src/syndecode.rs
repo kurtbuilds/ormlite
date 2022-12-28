@@ -6,7 +6,6 @@ use self::properties::PropertiesAttribute;
 mod args;
 mod derive;
 mod properties;
-mod error;
 
 #[derive(Debug)]
 pub enum Attribute {

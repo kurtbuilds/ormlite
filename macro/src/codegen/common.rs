@@ -5,7 +5,7 @@ use quote::{quote, ToTokens};
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
 use syn::{DeriveInput, Field};
-use crate::util::{DeriveInputExt, FieldExt};
+use ormlite_attr::{DeriveInputExt, FieldExt};
 
 /// Given the fields of a ModelBuilder struct, return the quoted code.
 fn generate_query_binding_code_for_partial_model(

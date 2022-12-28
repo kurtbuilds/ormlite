@@ -1,6 +1,6 @@
 use syn::__private::quote::__private::ext::RepToTokensExt;
 use syn::__private::quote::__private::TokenTree;
-use crate::syndecode::error::SyndecodeError;
+use ormlite_attr::SyndecodeError;
 
 #[derive(Debug)]
 pub struct ArgsAttribute {
