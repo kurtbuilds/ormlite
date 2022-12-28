@@ -7,10 +7,10 @@ version level:
    git diff-index --exit-code HEAD > /dev/null || ! echo You have untracked changes. Commit your changes before bumping the version. || exit 1
 
    echo $(dye -c INFO) Make sure that it builds first.
-   (cd ormlite && show cargo build --features runtime-tokio-rustls,sqlite)
+   (cd ormlite && cargo build --features runtime-tokio-rustls,sqlite)
 
    cargo set-version --bump {{ level }} --workspace
-   VERSION=$(toml get Cargo.toml package.version)
+   VERSION=$(toml get ormlite/Cargo.toml package.version)
 
    toml set macro/Cargo.toml dependencies.ormlite-core.version $VERSION
    (cd macro && cargo update)

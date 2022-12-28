@@ -1081,11 +1081,11 @@ checksum = "86f0b0d4bf799edbc74508c1e8bf170ff5f41238e5f8225603ca7caaae2b7860"
 
 [[package]]
 name = "ormlite"
-version = "0.3.3"
+version = "0.4.0"
 dependencies = [
  "env_logger",
- "ormlite-core",
- "ormlite-macro",
+ "ormlite-core 0.3.2",
+ "ormlite-macro 0.3.2",
  "sqlx",
  "tokio",
  "trybuild",
@@ -1094,7 +1094,7 @@ dependencies = [
 
 [[package]]
 name = "ormlite-attr"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "derive_builder",
  "proc-macro2",
@@ -1105,7 +1105,7 @@ dependencies = [
 
 [[package]]
 name = "ormlite-cli"
-version = "0.3.2"
+version = "0.4.0"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -1126,12 +1126,28 @@ dependencies = [
 [[package]]
 name = "ormlite-core"
 version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "81e3ac69368749c987c1766a6ad61e198ca555be30fb2ee4d2e1df49e6978dc2"
 dependencies = [
  "datetime",
  "futures",
  "futures-core",
  "log",
- "sqlparser",
+ "sqlparser 0.13.0",
+ "sqlx",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "ormlite-core"
+version = "0.4.0"
+dependencies = [
+ "datetime",
+ "futures",
+ "futures-core",
+ "log",
+ "sqlparser 0.28.0",
  "sqlx",
  "thiserror",
  "tokio",
@@ -1140,9 +1156,24 @@ dependencies = [
 [[package]]
 name = "ormlite-macro"
 version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3173f43708bf256173f9d715b0c5e87c95cdd6002ee5382e2d8a9b188415837a"
+dependencies = [
+ "derive_builder",
+ "ormlite-core 0.3.2",
+ "proc-macro2",
+ "quote",
+ "sqlx",
+ "structmeta",
+ "syn",
+]
+
+[[package]]
+name = "ormlite-macro"
+version = "0.4.0"
 dependencies = [
  "ormlite-attr",
- "ormlite-core",
+ "ormlite-core 0.4.0",
  "proc-macro2",
  "quote",
  "sqlx",
@@ -1635,7 +1666,9 @@ dependencies = [
 
 [[package]]
 name = "sqldiff"
-version = "0.2.4"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "550b49e3ae973277ee530bc3b66fde6305c05764a8292e945c1ec2349a7339e0"
 dependencies = [
  "anyhow",
  "convert_case",
@@ -1653,6 +1686,15 @@ dependencies = [
  "itertools",
  "nom 7.1.1",
  "unicode_categories",
+]
+
+[[package]]
+name = "sqlparser"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9907f54bd0f7b6ce72c2be1e570a614819ee08e3deb66d90480df341d8a12a8"
+dependencies = [
+ "log",
 ]
 
 [[package]]
