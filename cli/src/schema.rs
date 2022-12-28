@@ -1,3 +1,4 @@
+/// Decode a sqldiff::Schema from the current code base.
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
@@ -5,6 +6,7 @@ use anyhow::Result;
 use ignore::Walk;
 use sqldiff::Schema;
 use syn::Item;
+use crate::syndecode::Attributes;
 
 pub trait TryFromOrmlite: Sized {
     fn try_from_ormlite_project(path: &Path) -> Result<Self>;
@@ -16,37 +18,28 @@ impl TryFromOrmlite for Schema {
             .filter_map(|e| e.ok())
             .filter(|e| e.path().extension().map(|e| e == "rs")
                 .unwrap_or(false));
-        let mut schema = Schema::new();
+
+        let mut schema = Self::new();
+
         for entry in walk {
             let contents = fs::read_to_string(&entry.path())?;
             if !contents.contains("Model") {
                 continue;
             }
             let mut ast = syn::parse_file(&contents)?;
-            let Some(first) = ast.items.into_iter().filter(|item| matches!(item, Item::Struct(_))).next() else {
-                continue;
-            };
-            let Item::Struct(s) = first else { panic!() };
-            let attributes = crate::syndecode::Attributes::from(&s.attrs);
-            println!("struct: {:?}", s.ident);
-            println!("attributes: {:?}", attributes);
-            break
-            // ast.items.retain(|item| {
-            //     match item {
-            //         Item::Struct(item) => {
-            //             println!("{}", entry.path().display());
-            //             println!("struct: {:?}", item.ident);
-            //             println!("struct: {:#?}", item.attrs);
-            //             let attributes = Attributes::from(&item.attrs);
-            //             println!("attributes: {:?}", attributes);
-            //             false
-            //         }
-            //         _ => false
-            //     }
-            // });
+            let structs = ast.items.into_iter().filter_map(|item| match item {
+                Item::Struct(s) => Some(s),
+                _ => None,
+            })
+                .map(|s| {
+                    let attrs = Attributes::from(&s.attrs);
+                    (s, attrs)
+                })
+                .filter(|(_, attrs)| !attrs.derives("Model"))
+                .collect::<Vec<_>>();
+            for (item, attrs) in structs {
+            }
         }
-        Ok(Self {
-            tables: vec![],
-        })
+        Ok(schema)
     }
 }

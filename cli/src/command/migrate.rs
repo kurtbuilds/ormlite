@@ -13,7 +13,6 @@ use ormlite::Acquire;
 
 const MIGRATION_FOLDER: &str = "migrations";
 
-
 enum MigrationType {
     Simple,
     Up,

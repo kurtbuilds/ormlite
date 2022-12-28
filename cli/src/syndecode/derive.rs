@@ -17,7 +17,7 @@ impl DeriveAttribute {
     /// Get only the trait name
     pub(crate) fn trait_name(&self) -> &str {
         if self.0.contains("::") {
-            self.0.rsplitn(2, "::").last().unwrap()
+            self.0.rsplitn(2, "::").next().unwrap()
         } else {
             &self.0
         }

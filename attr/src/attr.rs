@@ -1,12 +1,12 @@
-use derive_builder::Builder;
 use structmeta::StructMeta;
-use syn::{Ident, LitStr, Type};
+use syn::{Ident, LitStr};
 
 /// Available attributes on a struct
 #[derive(StructMeta, Debug)]
 pub struct ModelAttributes {
     pub table: Option<LitStr>,
-    pub insert: Option<Ident>,
+    #[allow(non_snake_case)]
+    pub Insertable: Option<Ident>,
 }
 
 /// Available attributes on a column (struct field)

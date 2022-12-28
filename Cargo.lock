@@ -1087,6 +1087,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ormlite-attr"
+version = "0.3.2"
+dependencies = [
+ "derive_builder",
+ "proc-macro2",
+ "quote",
+ "structmeta",
+ "syn",
+]
+
+[[package]]
 name = "ormlite-cli"
 version = "0.3.2"
 dependencies = [
@@ -1119,12 +1130,11 @@ dependencies = [
 name = "ormlite-macro"
 version = "0.3.2"
 dependencies = [
- "derive_builder",
+ "ormlite-attr",
  "ormlite-core",
  "proc-macro2",
  "quote",
  "sqlx",
- "structmeta",
  "syn",
 ]
 

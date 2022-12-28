@@ -1,21 +1,15 @@
 #![allow(unused)]
 #![allow(non_snake_case)]
-use crate::attr::{
-    ColumnAttributes, ModelAttributes,
-};
+use ormlite_attr::{ColumnAttributes, ColumnMetadata, TableMetadata, TableMetadataBuilder, ColumnMetadataBuilder, ModelAttributes};
 use crate::codegen::common::OrmliteCodegen;
 use proc_macro::TokenStream;
 
 use quote::quote;
 use syn::{DeriveInput, parse_macro_input};
-use metadata::{ColumnMetadata, TableMetadata};
-use crate::metadata::{ColumnMetadataBuilder, TableMetadataBuilder};
 use crate::util::DeriveInputExt;
 
-pub(crate) mod attr;
-pub(crate) mod codegen;
-pub(crate) mod util;
-mod metadata;
+mod codegen;
+mod util;
 
 fn finish_table_meta(ast: &DeriveInput, mut builder: TableMetadataBuilder) -> TableMetadata {
     let model = &ast.ident;
@@ -63,7 +57,7 @@ fn partial_build_table_meta(ast: &DeriveInput) -> TableMetadataBuilder {
         if let Some(value) = args.table {
             builder.table_name(value.value());
         }
-        if let Some(value) = args.insert {
+        if let Some(value) = args.Insertable {
             builder.insert_struct(Some(value.to_string()));
         }
     }

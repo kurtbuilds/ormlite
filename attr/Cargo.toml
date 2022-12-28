@@ -1,0 +1,19 @@
+[package]
+name = "ormlite-attr"
+version = "0.3.2"
+edition = "2021"
+description = "See `ormlite`."
+authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
+license = "MIT"
+repository = "https://github.com/kurtbuilds/ormlite"
+homepage = "https://github.com/kurtbuilds/ormlite"
+documentation = "https://docs.rs/ormlite"
+
+[features]
+
+[dependencies]
+proc-macro2 = "1.0.34"
+quote = "1.0.10"
+syn = { version = "1.0.82", features = ["derive", "parsing"] }
+derive_builder = "0.10.2"
+structmeta = "0.1.4"

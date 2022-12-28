@@ -30,6 +30,14 @@ impl Attribute {
 #[derive(Debug)]
 pub struct Attributes(Vec<Attribute>);
 
+impl Attributes {
+    pub fn derives(&self, trait_name: &str) -> bool {
+        self.0.iter().any(|attr| {
+            matches!(attr, Attribute::Derive(a) if a.trait_name() == trait_name)
+        })
+    }
+}
+
 impl From<&Vec<syn::Attribute>> for Attributes {
     fn from(attrs: &Vec<syn::Attribute>) -> Self {
         let mut attributes = Vec::new();
@@ -52,7 +60,20 @@ impl From<&Vec<syn::Attribute>> for Attributes {
                 attributes.push(attr);
             }
         }
-        println!("attr: {:#?}", attributes);
         Attributes(attributes)
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_derives() {
+        let attrs = Attributes(vec![
+            Attribute::Derive(DeriveAttribute::new("ormlite::Model")),
+        ]);
+        assert!(attrs.derives("Model"));
     }
 }
