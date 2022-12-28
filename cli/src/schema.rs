@@ -26,7 +26,9 @@ impl SqlDiffTableExt for Table {
         Ok(Self {
             name: metadata.table_name.clone(),
             columns: metadata.columns.iter().map(|c| {
-                sqldiff::Column::from_metadata(c)
+                let mut col = sqldiff::Column::from_metadata(c)?;
+                col.primary_key = metadata.primary_key == col.name;
+                Ok(col)
             }).collect::<Result<Vec<_>,_>>()?,
             indexes: vec![],
         })
@@ -44,7 +46,8 @@ impl SqlDiffColumnExt for sqldiff::Column {
             name: metadata.column_name.clone(),
             typ: ty.ty,
             default: None,
-            null: ty.nullable,
+            nullable: ty.nullable,
+            primary_key: metadata.marked_primary_key,
         })
     }
 }

@@ -1,6 +1,7 @@
 use std::env::var;
 use std::fs;
 use time::{OffsetDateTime as DateTime};
+use time::macros::format_description;
 use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -30,9 +31,13 @@ pub struct Migrate {
     /// Create an empty migration, don't attempt to infer changes
     #[clap(long, short)]
     reversible: bool,
+
+    /// Instead of generating a migration, print the generated statements. Mostly useful for debugging.
+    #[clap(long, short)]
+    debug: bool,
 }
 
-fn create_migration(path: &Path, mut file_name: String, migration: MigrationType) -> Result<()> {
+fn create_migration(path: &Path, mut file_name: String, migration: MigrationType, content: &str) -> Result<()> {
     match migration {
         MigrationType::Simple => file_name.push_str(".sql"),
         MigrationType::Up => file_name.push_str(".up.sql"),
@@ -41,9 +46,10 @@ fn create_migration(path: &Path, mut file_name: String, migration: MigrationType
 
     let path = path.join(&file_name);
 
-    let mut file = File::create(path).context("Failed to create file")?;
-    file.write_all(b"-- Add migration script here")
+    let mut file = File::create(&path).context("Failed to create file")?;
+    file.write_all(content.as_bytes())
         .context("Could not write to file")?;
+    eprintln!("{}: Created migration", path.display());
     Ok(())
 }
 
@@ -54,6 +60,7 @@ impl Migrate {
         let folder = var("MIGRATION_FOLDER").unwrap_or_else(|_| MIGRATION_FOLDER.to_string());
         let folder = PathBuf::from_str(&folder).unwrap();
 
+        let mut migration_body = String::new();
         if !self.empty {
             let url = var("DATABASE_URL").expect("DATABASE_URL must be set");
             let mut current: Schema = runtime.block_on(async {
@@ -76,21 +83,30 @@ impl Migrate {
             println!("Current:\n{:#?}\nDesired:\n{:#?}", current, desired);
             let migration = current.migrate_to(desired, &sqldiff::Options::default())?;
             println!("{:#?}", migration);
+            if self.debug {
+                for statement in migration.statements {
+                    println!("{}", statement.prepare("public"));
+                }
+                return Ok(())
+            }
+            migration_body = migration.statements.into_iter()
+                .map(|s| s.prepare("public"))
+                .collect::<Vec<_>>()
+                .join("\n");
         }
 
-        // fs::create_dir_all(&folder).context("Unable to create migrations directory")?;
-        //
-        // let dt = Utc::now();
-        // let mut file_name = dt.format("%Y%m%d%H%M%S").to_string();
-        // file_name.push_str("_");
-        // file_name.push_str(&self.name);
-        // if self.reversible {
-        //     create_migration(&folder, file_name.clone(), MigrationType::Up)?;
-        //     create_migration(&folder, file_name.clone(), MigrationType::Down)?;
-        // } else {
-        //     create_migration(&folder, file_name.clone(), MigrationType::Simple)?;
-        // }
-        // println!("{}: Generated migration.", file_name);
+        fs::create_dir_all(&folder).context("Unable to create migrations directory")?;
+
+        let dt = DateTime::now_utc();
+        let mut file_name = dt.format(format_description!("[year][month][day][hour][minute][second]"))?;
+        file_name.push_str("_");
+        file_name.push_str(&self.name);
+        if self.reversible {
+            create_migration(&folder, file_name.clone(), MigrationType::Up, &migration_body)?;
+            create_migration(&folder, file_name.clone(), MigrationType::Down, "")?;
+        } else {
+            create_migration(&folder, file_name.clone(), MigrationType::Simple, &migration_body)?;
+        }
         Ok(())
     }
 }
