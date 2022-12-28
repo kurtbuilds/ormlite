@@ -80,6 +80,27 @@ For sqlite:
 
 Other databases (mysql) and runtimes should work smoothly, but might not be 100% wired up yet. Please submit an issue if you encounter any.
 
+# Migrations
+
+`ormlite` has a CLI tool to generate migrations. To our knowledge, it is the first, and currently only, Rust ORM that 
+auto-generates migrations based on Rust code.
+
+**NOTE**: The CLI tool is under development. It works for simple cases, but it may not support all features yet. Please 
+submit an issue if you encounter any. Importantly, it currently only works for Postgres.
+
+It additionally has built-in functionality for database snapshots, meaning that you can rollback in development without needing to write (or generate) down migrations.
+
+The `ormlite` CLI tool is 100% compatible with [`sqlx-cli`](https://github.com/launchbadge/sqlx/blob/master/sqlx-cli/README.md#usage). 
+The latter does not support auto-generation or snapshots, but supports other database types, and is less bleeding edge.
+You can even use both tools in the same project.
+
+##### Installation
+
+    cargo install --git https://github.com/kurtbuilds/ormlite
+
+
+`ormlite` builds upon [`sqlx`](https://github.com/launchbadge/sqlx). Use the tool for migrations.
+
 # Project Goals
 
 We prioritize these objectives in the project:
@@ -102,7 +123,7 @@ You can derive an struct that only contains some fields, to be used for insertio
 use ormlite::model::*;
 
 #[derive(Model, FromRow, Debug)]
-#[ormlite(insert = InsertPerson)]
+#[ormlite(Insertable = InsertPerson)]
 pub struct Person {
     pub id: i32,
     pub name: String,
@@ -299,12 +320,6 @@ pub struct Job {
 ## Logging
 
 You can log queries using sqlx's logger: `RUST_LOG=sqlx=info`
-
-## Migrations
-
-`ormlite` builds upon [`sqlx`](https://github.com/launchbadge/sqlx). Use the [`sqlx-cli`](https://github.com/launchbadge/sqlx/blob/master/sqlx-cli/README.md#usage) tool for migrations.
-
-Currently, we don't support auto-generating migrations, like you might be used to if you come from Python's Alembic, Node's Typeorm, or other ORM libraries with this functionality.
 
 # Roadmap
 - [x] Insert, update, delete directly on model instances
