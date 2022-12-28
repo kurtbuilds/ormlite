@@ -1,6 +1,6 @@
 [package]
 name = "ormlite"
-version = "0.5.0"
+version = "0.5.1"
 edition = "2021"
 authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
 description = "An ORM for people who love SQL"
@@ -31,8 +31,8 @@ json = ["sqlx/json"]
 [dependencies]
 sqlx = { version = "0.6.0" }
 tokio = { version = "1.15.0", features = ["full"] }
-ormlite-macro = { path = "../macro" }
-ormlite-core = { path = "../core" }
+ormlite-macro = { path = "../macro" ,version = "0.5.1"}
+ormlite-core = { path = "../core" ,version = "0.5.1"}
 
 [dev-dependencies]
 trybuild = { version = "1.0.49", features = ["diff"] }
