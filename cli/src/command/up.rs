@@ -1,12 +1,17 @@
 use std::fs;
 use std::fs::File;
+use std::time::Instant;
 use anyhow::Result;
 use clap::Parser;
 use sqlx::Acquire;
+use sqlx::Arguments;
+use sqlx::postgres::PgArguments;
 use ormlite::Executor;
 use crate::command::{get_executed_migrations, get_pending_migrations, MigrationType};
 use crate::config::{get_var_backup_folder, get_var_database_url, get_var_migration_folder};
 use crate::util::{CommandSuccess, create_connection, create_runtime};
+use sha2::{Digest, Sha384};
+
 
 #[derive(Parser, Debug)]
 pub struct Up {
@@ -28,8 +33,8 @@ impl Up {
         let folder = get_var_migration_folder();
         let runtime = create_runtime();
         let url = get_var_database_url();
-        let mut conn = create_connection(&url, &runtime)?;
-        let conn = runtime.block_on(conn.acquire())?;
+        let mut conn_owned = create_connection(&url, &runtime)?;
+        let conn = runtime.block_on(conn_owned.acquire())?;
 
         let executed = get_executed_migrations(&runtime, conn)?;
         let pending = get_pending_migrations(&folder)?
@@ -61,9 +66,23 @@ impl Up {
 
         let iter = pending.iter().skip(executed.len()).take(if self.all { pending.len() } else { 1 });
         for migration in iter {
+            let conn = runtime.block_on(conn_owned.acquire())?;
             let file_path = folder.join(&migration.name).with_extension(migration.migration_type().extension());
-            let migration = std::fs::read_to_string(&file_path)?;
-            runtime.block_on(conn.execute(&*migration))?;
+            let body = std::fs::read_to_string(&file_path)?;
+
+            let checksum = Sha384::digest(body.as_bytes()).to_vec();
+
+            let start = Instant::now();
+            runtime.block_on(conn.execute(&*body))?;
+            let elapsed = start.elapsed();
+
+            let mut args = PgArguments::default();
+            args.add(migration.version);
+            args.add(&migration.description);
+            args.add(checksum);
+            args.add(elapsed.as_nanos() as i64);
+            let q = sqlx::query_with("INSERT INTO _sqlx_migrations (version, description, installed_on, success, checksum, execution_time) VALUES ($1, $2, NOW(), true, $3, $4)", args);
+            runtime.block_on(q.execute(conn))?;
             eprintln!("{}: Executed migration", file_path.display());
         }
         Ok(())

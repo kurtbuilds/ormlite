@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use clap::Parser;
 use anyhow::{anyhow, Context, Error, Result};
-use sqldiff::{Migration, Schema, SchemaColumn};
+use sqldiff::{Migration, Schema, SchemaColumn, Statement};
 use tokio::runtime::Runtime;
 use crate::schema::TryFromOrmlite;
 use ormlite::{Acquire, Executor, PgConnection, PgConnectOptions, PgPool};
@@ -129,7 +129,7 @@ fn check_for_pending_migrations(folder: &Path, runtime: &Runtime, conn: &mut PgC
     let executed = get_executed_migrations(&runtime, conn)?;
     let pending = get_pending_migrations(&folder)?;
 
-    if executed.len() <= pending.len() {
+    if executed.len() < pending.len() {
         return Err(anyhow!("Pending migrations are not in sync with the database. Please run `ormlite up` first."));
     }
     for (executed, pending) in executed.iter().zip(pending.iter()) {
@@ -173,12 +173,12 @@ impl Migrate {
         let mut conn = create_connection(&url, &runtime)?;
         let conn = runtime.block_on(conn.acquire())?;
 
+        fs::create_dir_all(&folder)?;
         let migration_environment = check_for_pending_migrations(&folder, &runtime, conn)?;
         check_reversible_compatibility(self.reversible, migration_environment)?;
 
-        let mut migration_body = String::new();
-        let migration_body = if self.empty {
-            String::new()
+        let migration = if self.empty {
+            None
         } else {
             let migration = autogenerate_migration(Path::new("."), &runtime, conn)?;
 
@@ -188,10 +188,7 @@ impl Migrate {
                 }
                 return Ok(());
             }
-            migration.statements.into_iter()
-                .map(|s| s.prepare("public"))
-                .collect::<Vec<_>>()
-                .join(";\n")
+            Some(migration)
         };
 
         fs::create_dir_all(&folder).context("Unable to create migrations directory")?;
@@ -200,12 +197,30 @@ impl Migrate {
         let mut file_name = dt.format(format_description!("[year][month][day][hour][minute][second]"))?;
         file_name.push_str("_");
         file_name.push_str(&self.name);
+        let migration_body = migration.as_ref().map(|m| {
+            m.statements.iter()
+                .map(|s| s.prepare("public"))
+                .collect::<Vec<_>>()
+                .join(";\n")
+        }).unwrap_or_default();
         if self.reversible {
             create_migration(&folder, file_name.clone(), MigrationType::Up, &migration_body)?;
             create_migration(&folder, file_name.clone(), MigrationType::Down, "")?;
         } else {
             create_migration(&folder, file_name.clone(), MigrationType::Simple, &migration_body)?;
         }
+        if let Some(migration) = migration {
+            println!("It auto-generated the following actions:");
+            for statement in &migration.statements {
+                match statement {
+                    Statement::CreateTable(t) => println!("Create table {} with columns: {}", &t.name, t.columns.iter().map(|c| c.name.to_string()).collect::<Vec<_>>().join(", ")),
+                    Statement::CreateIndex(s) => println!("Create index {} on {}", &s.name, &s.table_name),
+                    Statement::AlterTable(s) => println!("Alter table {}", &s.name),
+                }
+            }
+        }
+
+
         Ok(())
     }
 }

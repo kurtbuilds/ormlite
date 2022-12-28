@@ -1114,6 +1114,7 @@ dependencies = [
  "ormlite",
  "ormlite-attr",
  "proc-macro2",
+ "sha2",
  "sqldiff",
  "sqlx",
  "syn",
