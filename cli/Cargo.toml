@@ -12,7 +12,19 @@ repository = "https://github.com/kurtbuilds/ormlite"
 #sqlite = ["sqlx/sqlite"]
 #postgres = ["sqlx/postgres"]
 #runtime-tokio-rustls = ["sqlx/runtime-tokio-rustls"]
+default = [
+    "ormlite/postgres",
+    "ormlite/sqlite",
+    "ormlite/uuid",
+    "ormlite/chrono",
+    "ormlite/json",
+]
 
 [dependencies]
 anyhow = "1.0.68"
+chrono = "0.4.23"
 clap = { version = "4.0.32", features = ["derive"] }
+ignore = "0.4.18"
+ormlite = { version = "0.3.2", path = "../ormlite" }
+sqldiff = "0.2.3"
+syn = "1.0.107"

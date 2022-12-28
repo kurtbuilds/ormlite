@@ -1,28 +1,30 @@
+#![allow(unused)]
 #![allow(non_snake_case)]
 use crate::attr::{
-    ColumnAttributes, ColumnMeta, ColumnMetaBuilder, ModelAttributes, TableMeta, TableMetaBuilder,
+    ColumnAttributes, ModelAttributes,
 };
 use crate::codegen::common::OrmliteCodegen;
 use proc_macro::TokenStream;
 
-use crate::util::get_fields;
 use quote::quote;
-use syn::{parse_macro_input, DeriveInput};
+use syn::{DeriveInput, parse_macro_input};
+use metadata::{ColumnMetadata, TableMetadata};
+use crate::metadata::{ColumnMetadataBuilder, TableMetadataBuilder};
+use crate::util::DeriveInputExt;
 
 pub(crate) mod attr;
 pub(crate) mod codegen;
 pub(crate) mod util;
+mod metadata;
 
-fn finish_table_meta(ast: &DeriveInput, mut builder: TableMetaBuilder) -> TableMeta {
+fn finish_table_meta(ast: &DeriveInput, mut builder: TableMetadataBuilder) -> TableMetadata {
     let model = &ast.ident;
     let model_lowercased = model.to_string().to_lowercase();
     builder.table_name = builder.table_name.or(Some(model_lowercased.clone()));
-    let fields = get_fields(&ast);
 
-    let mut cols = fields
-        .into_iter()
+    let mut cols = ast.fields()
         .map(|f| build_column_meta(f))
-        .collect::<Vec<ColumnMeta>>();
+        .collect::<Vec<ColumnMetadata>>();
     let mut primary_key = cols
         .iter()
         .filter(|c| c.marked_primary_key)
@@ -53,8 +55,8 @@ fn finish_table_meta(ast: &DeriveInput, mut builder: TableMetaBuilder) -> TableM
     builder.build().unwrap()
 }
 
-fn partial_build_table_meta(ast: &DeriveInput) -> TableMetaBuilder {
-    let mut builder = TableMetaBuilder::default();
+fn partial_build_table_meta(ast: &DeriveInput) -> TableMetadataBuilder {
+    let mut builder = TableMetadata::builder();
     builder.insert_struct(None);
     for attr in ast.attrs.iter().filter(|a| a.path.is_ident("ormlite")) {
         let args: ModelAttributes = attr.parse_args().unwrap();
@@ -68,8 +70,8 @@ fn partial_build_table_meta(ast: &DeriveInput) -> TableMetaBuilder {
     builder
 }
 
-fn build_column_meta(f: &syn::Field) -> ColumnMeta {
-    let mut builder = ColumnMetaBuilder::default();
+fn build_column_meta(f: &syn::Field) -> ColumnMetadata {
+    let mut builder = ColumnMetadataBuilder::default();
     builder.column_name(f.ident.as_ref().unwrap().to_string());
     builder.column_type(f.ty.clone());
     builder.marked_primary_key(false);

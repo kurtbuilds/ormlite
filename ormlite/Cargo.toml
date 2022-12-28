@@ -1,18 +1,18 @@
 [package]
 name = "ormlite"
-version = "0.3.2"
+version = "0.3.3"
 edition = "2021"
 authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
 description = "An ORM for people who love SQL"
 license = "MIT"
 repository = "https://github.com/kurtbuilds/ormlite"
+homepage = "https://github.com/kurtbuilds/ormlite"
+documentation = "https://docs.rs/ormlite"
 autotests = false
 readme = "../README.md"
 
 [package.metadata.docs.rs]
 features = ["postgres", "runtime-tokio-rustls"]
-
-lib = ["lib.rs"]
 
 [[test]]
 name = "tests"
@@ -25,6 +25,7 @@ postgres = ["sqlx/postgres", "ormlite-macro/postgres", "ormlite-core/postgres"]
 runtime-tokio-rustls = ["ormlite-macro/runtime-tokio-rustls", "sqlx/runtime-tokio-rustls", "ormlite-core/runtime-tokio-rustls"]
 uuid = ["sqlx/uuid"]
 chrono = ["sqlx/chrono"]
+json = ["sqlx/json"]
 
 [dependencies]
 ormlite-macro = "0.3.2"

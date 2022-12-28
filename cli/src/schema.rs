@@ -1,15 +1,19 @@
 use std::path::Path;
-use crate::Schema;
 use anyhow::Result;
 use ignore::Walk;
+use sqldiff::Schema;
 
-impl Schema {
-    pub fn try_from_ormlite_project(path: &Path) -> Result<Self> {
-        for entry in Walk(path).filter_map(|e| e.ok()) {
+pub trait TryFromOrmlite: Sized {
+    fn try_from_ormlite_project(path: &Path) -> Result<Self>;
+}
+
+impl TryFromOrmlite for Schema {
+    fn try_from_ormlite_project(path: &Path) -> Result<Self> {
+        for entry in Walk::new(path).filter_map(|e| e.ok()) {
             println!("{}", entry.path().display());
         }
-        Self {
+        Ok(Self {
             tables: vec![],
-        }
+        })
     }
 }

@@ -1,4 +1,10 @@
 use clap::{Parser, Subcommand};
+use anyhow::Result;
+mod schema;
+mod command;
+mod util;
+
+use command::*;
 
 
 #[derive(Parser, Debug)]
@@ -10,17 +16,12 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
-    Migrate {
-        name: String,
-
-        /// Create an empty migration, don't attempt to infer changes
-        #[clap(long)]
-        empty: bool,
-    }
+    Migrate(Migrate),
 }
 
-fn main() -> anyhow::Result<()> {
+fn main() -> Result<()> {
     let cli = Cli::parse();
-    println!("{:?}", cli);
-    Ok(())
+    match cli.command {
+        Command::Migrate(m) => m.run()
+    }
 }

@@ -3,22 +3,23 @@ test:
 
 # Bump version. level=major,minor,patch
 version level:
-   #!/bin/bash -euo pipefail
-   function show() { dye -m -- "$@"; "$@"; }
-   git diff-index --exit-code HEAD > /dev/null || ! echo You have untracked changes. Commit your changes before bumping the version.
+   #!/bin/bash -euxo pipefail
+   git diff-index --exit-code HEAD > /dev/null || ! echo You have untracked changes. Commit your changes before bumping the version. || exit 1
 
    echo $(dye -c INFO) Make sure that it builds first.
    (cd ormlite && show cargo build --features runtime-tokio-rustls,sqlite)
 
-   show cargo set-version --bump {{ level }} --workspace
-   export VERSION=$(cd ormlite && rg "version = \"([0-9.]+)\"" -or '$1' Cargo.toml | head -n1)
+   cargo set-version --bump {{ level }} --workspace
+   VERSION=$(toml get Cargo.toml package.version)
 
-   (cd ormlite-macro && cargo add ormlite-core@$VERSION && cargo update)
-   (cd ormlite && cargo add ormlite-core@$VERSION ormlite-macro@$VERSION && cargo update)
+   toml set macro/Cargo.toml dependencies.ormlite-core.version $VERSION
+   (cd macro && cargo update)
+   toml set ormlite/Cargo.toml dependencies.ormlite-core.version $VERSION
+   toml set ormlite/Cargo.toml dependencies.ormlite-macro.version $VERSION
+   (cd ormlite && cargo update)
 
-   show git commit -am "Bump version {{level}} to $VERSION"
-   show git tag v$VERSION
-   show git push origin v$VERSION
+   git commit -am "Bump version {{level}} to $VERSION"
+   git tag v$VERSION
    git push
 
 publish:

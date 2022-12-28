@@ -21,3 +21,11 @@ pub mod query_builder {
 pub mod types {
     pub use sqlx::types::*;
 }
+
+// #[deprecated(note = "Most objects in ormlite::export:: are directly in ormlite::* now.")]
+pub mod export {
+    #[cfg(feature = "postgres")]
+    pub use sqlx::postgres::{PgConnectOptions, PgConnection, PgPool, PgPoolOptions};
+}
+
+pub struct Foo;
