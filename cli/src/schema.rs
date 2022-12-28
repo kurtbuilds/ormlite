@@ -178,16 +178,17 @@ mod tests {
     use assert_matches::assert_matches;
 
     #[test]
-    fn test_convert_type() {
+    fn test_convert_type() -> Result<()> {
         use sqldiff::Type;
 
         let s = parse_str::<syn::Type>("String").unwrap();
-        assert_matches!(SqlType::from_type(&s).ty, Type::Text);
+        assert_matches!(SqlType::from_type(&s)?.ty, Type::Text);
         let s = parse_str::<syn::Type>("u32").unwrap();
-        assert_matches!(SqlType::from_type(&s).ty, Type::Integer);
+        assert_matches!(SqlType::from_type(&s)?.ty, Type::Integer);
         let s = parse_str::<syn::Type>("Option<String>").unwrap();
-        let s = SqlType::from_type(&s);
+        let s = SqlType::from_type(&s)?;
         assert_matches!(s.ty, Type::Text);
         assert!(s.nullable);
+        Ok(())
     }
 }
