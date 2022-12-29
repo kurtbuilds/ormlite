@@ -1,7 +1,7 @@
 use crate::query_builder::args::QueryBuilderArgs;
 use crate::{Error, Result};
 use sqlparser::dialect::GenericDialect;
-use sqlparser::tokenizer::Tokenizer;
+use sqlparser::tokenizer::{Tokenizer, Token};
 use sqlx::query::QueryAs;
 
 pub fn replace_placeholders<T: Iterator<Item = String>>(
@@ -18,7 +18,11 @@ pub fn replace_placeholders<T: Iterator<Item = String>>(
     let mut it = tokens.iter();
     while let Some(tok) = it.next() {
         match tok {
-            sqlparser::tokenizer::Token::Char(c) => match c {
+            Token::Placeholder(_) => {
+                buf.push_str(&placeholder_generator.next().unwrap());
+                placeholder_count += 1;
+            }
+            Token::Char(c) => match c {
                 '?' => {
                     buf.push_str(&*placeholder_generator.next().unwrap());
                     placeholder_count += 1;
@@ -26,9 +30,8 @@ pub fn replace_placeholders<T: Iterator<Item = String>>(
                 '$' => {
                     let next_tok = it.next();
                     if let Some(next_tok) = next_tok {
-                        println!("{:?}", next_tok);
                         match next_tok {
-                            sqlparser::tokenizer::Token::Number(text, _) => {
+                            Token::Number(text, _) => {
                                 let n = text.parse::<usize>().map_err(|_| Error::OrmliteError(
                                     format!("Failed to parse number after a $ during query tokenization. Value was: {}",
                                         text

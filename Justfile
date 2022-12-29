@@ -1,3 +1,5 @@
+set dotenv-load := true
+
 test:
     just ormlite/test --features runtime-tokio-rustls,sqlite
 

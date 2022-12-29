@@ -263,7 +263,7 @@ pub trait OrmliteCodegen {
 
     fn impl_HasModelBuilder(ast: &DeriveInput, _attr: &attr::TableMetadata) -> TokenStream {
         let model = &ast.ident;
-        let partial_model = quote::format_ident!("Partial{}", model.to_string());
+        let partial_model = quote::format_ident!("{}Builder", model.to_string());
         quote! {
             impl<'a> ormlite::model::HasModelBuilder<'a, #partial_model<'a>> for #model {
                 fn build() -> #partial_model<'a> {
@@ -281,7 +281,7 @@ pub trait OrmliteCodegen {
 
     fn struct_ModelBuilder(ast: &DeriveInput, _attr: &attr::TableMetadata) -> TokenStream {
         let model = &ast.ident;
-        let model_builder = quote::format_ident!("Partial{}", model.to_string());
+        let model_builder = quote::format_ident!("{}Builder", model.to_string());
         let pub_marker = &ast.vis;
 
         let settable = ast.fields().map(|f| {
@@ -434,7 +434,7 @@ pub trait OrmliteCodegen {
     fn impl_ModelBuilder(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
         let model = &ast.ident;
         let db = Self::database();
-        let partial_model = quote::format_ident!("Partial{}", model.to_string());
+        let partial_model = quote::format_ident!("{}Builder", model.to_string());
 
         let impl_ModelBuilder__insert = Self::impl_ModelBuilder__insert(ast, attr);
         let impl_ModelBuilder__update = Self::impl_ModelBuilder__update(ast, attr);

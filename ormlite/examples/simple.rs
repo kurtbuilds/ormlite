@@ -14,8 +14,6 @@ pub static CREATE_TABLE_SQL: &str =
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    env_logger::init();
-
     let mut conn = ormlite::SqliteConnection::connect(":memory:").await.unwrap();
     env_logger::init();
 
@@ -33,6 +31,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .await?;
     println!("{:?}", john);
 
+    println!("select");
     let people = Person::select()
         .where_("age > ?")
         .bind(50u32)
@@ -40,8 +39,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
     println!("select query builder {:?}", people);
 
-    // TODO i want this to fail.
     let r = sqlx::query_as::<_, Person>("select * from person where age > ?")
+        .bind(50u32)
         .fetch_all(&mut conn)
         .await?;
     println!("sqlx {:?}", r);
