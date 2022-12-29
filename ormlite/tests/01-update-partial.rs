@@ -1,11 +1,8 @@
-use ormlite::{FromRow};
-use ormlite::model::HasModelBuilder;
-use ormlite::model::ModelBuilder;
-use ormlite::model::Model;
+use ormlite::model::*;
 use ormlite::Connection;
 use uuid::Uuid;
 
-#[derive(Model, FromRow)]
+#[derive(Model)]
 pub struct Person {
     id: Uuid,
     name: String,
