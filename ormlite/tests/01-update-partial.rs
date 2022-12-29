@@ -15,7 +15,7 @@ pub static CREATE_TABLE_SQL: &str =
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
-    let mut db = ormlite::SqliteConnection::connect(":memory:").await.unwrap();
+    let mut db = ormlite::sqlite::SqliteConnection::connect(":memory:").await.unwrap();
     ormlite::query(CREATE_TABLE_SQL)
         .execute(&mut db)
         .await?;
