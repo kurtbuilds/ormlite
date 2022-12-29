@@ -1,5 +1,5 @@
 pub use ormlite_core::model::{
-    HasModelBuilder, HasInsert, ModelBuilder,
+    HasModelBuilder, Insertable, ModelBuilder,
 };
 pub use ormlite_core::SelectQueryBuilder;
 pub use sqlx::sqlx_macros::FromRow;
