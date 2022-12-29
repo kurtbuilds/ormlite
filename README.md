@@ -85,8 +85,8 @@ Other databases (mysql) and runtimes should work smoothly, but might not be 100%
 `ormlite` has a CLI tool to generate migrations. To our knowledge, it is the first, and currently only, Rust ORM that 
 auto-generates migrations based on Rust code.
 
-**NOTE**: The CLI tool is under development. It works for simple cases, but it may not support all features yet. Please 
-submit an issue if you encounter any. Importantly, it currently only works for Postgres.
+> **NOTE**: The CLI tool is under development. It works for simple cases, but it may not support all features yet. Please 
+> submit an issue if you encounter any. Importantly, it currently only works for Postgres.
 
 It additionally has built-in functionality for database snapshots, meaning that you can rollback in development without needing to write (or generate) down migrations.
 
@@ -111,7 +111,7 @@ We prioritize these objectives in the project:
 
 ## Insertion Struct
 
-As noted above, all fields must be set before insertion, which might present problems for certain fields, notably
+As noted above, on full database models, all fields must be set before insertion, which might present problems for certain fields, notably
 autoincrement id fields.
 
 You can derive an struct that only contains some fields, to be used for insertion.
@@ -136,7 +136,7 @@ async fn insertion_struct_example() {
 }
 ```
 
-If the derived struct doesn't meet your needs for some reason, you can of course manually define a struct that only contains the fields you want.
+If the derived struct doesn't meet your needs, you can manually define a struct that only contains the fields you want.
 
 ```rust
 use ormlite::model::*;
@@ -245,7 +245,7 @@ The following attributes are available:
 On the struct:
 
 - `#[ormlite(table = "table_name")]`: Specify the table name.
-- `#[ormlite(insert = InsertStructName)]`: Specify the name of the struct used for insert.
+- `#[ormlite(Insertable = InsertStructName)]`: Specify the name of the struct used for insert.
 
 See example usage below:
 
@@ -253,7 +253,7 @@ See example usage below:
 use ormlite::model::*;
 
 #[derive(Model, FromRow, Debug)]
-#[ormlite(table = "people", insert = InsertPerson)]
+#[ormlite(table = "people", Insertable = InsertPerson)]
 pub struct Person {
     pub id: i32,
     pub name: String,
@@ -263,23 +263,21 @@ pub struct Person {
 
 ## Uuid and DateTime columns
 
-If you want Uuid or DateTime, combined with serde, you need to depend directly on the `uuid` (specifically version 0.8)
-or `chrono` crates respectively, and add the `serde` feature to each of them.
+If you want Uuid or DateTime, combined with serde, you need to depend directly on `uuid`
+or `chrono`, and add the `serde` feature to each of them.
 
 ```
 # Cargo.toml
 [dependencies]
-# Note that this version of uuid is old, as sqlx still depends on 0.8.
-# When sqlx updates its dependency, this can be updated too.
-uuid = { version = "0.8", features = ["serde"] } 
+uuid = { version = "1", features = ["serde"] } 
 chrono = { version = "0.4.19", features = ["serde"] }
 ```
 
 ```rust
 use ormlite::model::*;
 use serde::{Serialize, Deserialize};
-use sqlx::types::Uuid;
-use sqlx::types::chrono::{DateTime, Utc};
+use ormlite::types::Uuid;
+use ormlite::types::chrono::{DateTime, Utc};
 
 
 #[derive(Model, FromRow, Debug, Serialize, Deserialize)]
@@ -327,7 +325,7 @@ You can log queries using sqlx's logger: `RUST_LOG=sqlx=info`
 - [x] Get() function for fetching a single entity.
 - [x] Ability to specify the name of a table and name of primary column
 - [x] Automatically generate insert models
-- [ ] Automatically generate migrations
+- [x] Automatically generate migrations
 - [ ] Make sure features are wired up correctly to support mysql and different runtimes & SSL libraries.
 - [ ] Macro option to auto adjust columns like updated_at
 - [ ] Upsert functionality
