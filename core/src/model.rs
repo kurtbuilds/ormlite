@@ -11,6 +11,8 @@ use crate::Result;
 use crate::SelectQueryBuilder;
 use futures_core::future::BoxFuture;
 
+#[deprecated(note = "This trait is part of ormlite::Model now.")]
+pub trait HasModelBuilder<'a, ModelBuilder> {}
 /// A struct that is `Insertable` is expected to have same fields as the model, excluding fields
 /// that have sane defaults at the database level. Concretely, if you have a Person struct:
 /// #[derive(ormlite::Model)]
