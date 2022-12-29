@@ -65,11 +65,13 @@ where
 }
 
 /// The core trait. a struct that implements `Model` can also implement `HasModelBuilder`, (and is required to implement `Insertable`)
-pub trait Model<DB>
+pub trait Model<'slf, DB>
 where
     DB: sqlx::Database,
     Self: Sized,
 {
+    type ModelBuilder: Sized + Send + 'slf;
+
     fn table_name() -> &'static str;
     fn fields() -> &'static [&'static str];
     fn num_fields() -> usize;

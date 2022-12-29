@@ -29,7 +29,7 @@ where
 
 impl<'args, DB, M> SelectQueryBuilder<'args, DB, M>
 where
-    M: Sized + Send + Sync + Unpin + for<'r> sqlx::FromRow<'r, DB::Row> + 'static + Model<DB>,
+    M: Sized + Send + Sync + Unpin + for<'r> sqlx::FromRow<'r, DB::Row> + 'static + Model<'static, DB>,
     DB: sqlx::Database,
     <DB as HasArguments<'args>>::Arguments: IntoArguments<'args, DB>,
 {

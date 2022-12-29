@@ -226,6 +226,7 @@ pub trait OrmliteCodegen {
     fn impl_Model(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
         let db = Self::database();
         let model = &ast.ident;
+        let partial_model = quote::format_ident!("{}Builder", model.to_string());
 
         let impl_Model__table_meta = Self::impl_Model__table_meta(ast, attr);
         let impl_Model__insert = Self::impl_Model__insert(ast, attr);
@@ -235,7 +236,9 @@ pub trait OrmliteCodegen {
         let impl_Model__select = Self::impl_Model__select(ast, attr);
 
         quote! {
-            impl ::ormlite::model::Model<#db> for #model {
+            impl<'slf> ::ormlite::model::Model<'slf, #db> for #model {
+                type ModelBuilder = #partial_model<'slf>;
+
                 #impl_Model__table_meta
                 #impl_Model__insert
                 #impl_Model__update_all_fields
