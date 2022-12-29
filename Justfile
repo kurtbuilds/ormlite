@@ -25,6 +25,7 @@ version level:
    git push
 
 publish:
+   cd attr && cargo publish --features runtime-tokio-rustls,sqlite
    cd core && cargo publish --features runtime-tokio-rustls,sqlite
    cd macro && cargo publish --features runtime-tokio-rustls,sqlite
    cd ormlite && cargo publish --features runtime-tokio-rustls,sqlite
