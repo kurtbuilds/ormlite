@@ -1,6 +1,6 @@
 pub use ormlite_core::BoxFuture;
 pub use ormlite_core::{Error, Result};
-pub use ormlite_macro::Model;
+pub use model::{Model, FromRow};
 pub use ::sqlx::{Row, ColumnIndex, Decode};
 
 pub use ::sqlx::{query, query_as, Connection, Executor, Pool, Acquire, ConnectOptions, Encode};
@@ -19,9 +19,6 @@ pub mod model;
 pub mod query_builder {
     pub use ormlite_core::query_builder::{SelectQueryBuilder, Placeholder};
 }
-
-// #[deprecated(note = "You no longer need #[derive(FromRow)], only #[derive(ormlite::Model)].")]
-// pub use ::sqlx::sqlx_macros::FromRow;
 
 pub mod types {
     pub use sqlx::types::*;
