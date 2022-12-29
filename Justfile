@@ -25,12 +25,8 @@ version level:
    git push
 
 publish:
-   cd ormlite-core && cargo publish --features runtime-tokio-rustls,sqlite
-   @echo $(dye -c INFO) Need to sleep so that crates.io has time to update.
-   sleep 5
-   cd ormlite-macro && cargo publish --features runtime-tokio-rustls,sqlite
-   @echo $(dye -c INFO) Need to sleep so that crates.io has time to update.
-   sleep 5
+   cd core && cargo publish --features runtime-tokio-rustls,sqlite
+   cd macro && cargo publish --features runtime-tokio-rustls,sqlite
    cd ormlite && cargo publish --features runtime-tokio-rustls,sqlite
 
 doc:
