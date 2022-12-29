@@ -6,7 +6,6 @@ use convert_case::{Case, Casing};
 
 /// All the metadata we can capture about a table
 #[derive(Builder, Debug)]
-#[builder(field(public))]
 pub struct TableMetadata {
     pub table_name: String,
     pub primary_key: Option<String>,
@@ -67,10 +66,7 @@ impl TableMetadataBuilder {
                 }
             }
         }
-        if let Some(primary_key) = primary_key {
-            self.primary_key(Some(primary_key));
-        }
-
+        self.primary_key(primary_key);
         self.columns(cols);
         self.build().map_err(|e| SyndecodeError(e.to_string()))
     }
