@@ -337,6 +337,7 @@ You can log queries using sqlx's logger: `RUST_LOG=sqlx=info`
 - [x] Automatically generate insert models
 - [x] Automatically generate migrations
 - [x] Eliminate need for FromRow macro
+- [ ] Autogenerate indexes for migrations
 - [ ] Joins
 - [ ] Make sure features are wired up correctly to support mysql and different runtimes & SSL libraries.
 - [ ] Macro option to auto adjust columns like updated_at
