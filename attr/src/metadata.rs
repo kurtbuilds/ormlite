@@ -2,13 +2,14 @@ use derive_builder::Builder;
 use syn::{DeriveInput, Field, Type};
 use crate::{ColumnAttributes, ModelAttributes, SyndecodeError};
 use crate::DeriveInputExt;
+use convert_case::{Case, Casing};
 
 /// All the metadata we can capture about a table
 #[derive(Builder, Debug)]
 #[builder(field(public))]
 pub struct TableMetadata {
     pub table_name: String,
-    pub primary_key: String,
+    pub primary_key: Option<String>,
     pub columns: Vec<ColumnMetadata>,
     pub insert_struct: Option<String>,
 }
@@ -39,7 +40,7 @@ impl TableMetadata {
 impl TableMetadataBuilder {
     pub fn complete_with_struct_body(&mut self, ast: &DeriveInput) -> Result<TableMetadata, SyndecodeError> {
         let model = &ast.ident;
-        let model_lowercased = model.to_string().to_lowercase();
+        let model_lowercased = model.to_string().to_case(Case::Snake);
         self.table_name.get_or_insert(model_lowercased.clone());
 
         let mut cols = ast.fields()
@@ -66,11 +67,10 @@ impl TableMetadataBuilder {
                 }
             }
         }
-        if primary_key.is_none() {
-            panic!("No column marked with #[ormlite(primary_key)], and no column named id, uuid, {0}_id, or {0}_uuid", model_lowercased);
-        } else {
-            self.primary_key(primary_key.unwrap());
+        if let Some(primary_key) = primary_key {
+            self.primary_key(Some(primary_key));
         }
+
         self.columns(cols);
         self.build().map_err(|e| SyndecodeError(e.to_string()))
     }

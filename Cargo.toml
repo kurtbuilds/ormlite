@@ -1,8 +1,9 @@
 [workspace]
 members = ["macro", "core", "ormlite", "cli"]
 
-#[patch.crates-io]
-#ormlite-macro = { path = "./macro" }
-#ormlite-core = { path = "./core" }
+[patch.crates-io]
+ormlite-macro = { path = "./macro" }
+ormlite-attr = { path = "./attr" }
+ormlite-core = { path = "./core" }
 #ormlite = { path = "./ormlite" }
 #sqldiff = { path = "../sqldiff" }

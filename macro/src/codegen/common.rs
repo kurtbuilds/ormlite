@@ -185,12 +185,13 @@ pub trait OrmliteCodegen {
     }
 
     fn impl_Model__update_all_fields(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
+        let span = ast.span();
         let box_future = crate::util::box_future();
         let db = Self::database();
         let mut placeholder = Self::raw_placeholder();
         let update_clause = ast.fields()
             .map(|f| f.name())
-            .filter(|f| f != &attr.primary_key)
+            .filter(|f| f != attr.primary_key.as_ref().unwrap().as_str())
             .map(|f| format!("{} = {}", f, placeholder.next().unwrap()))
             .collect::<Vec<_>>()
             .join(", ");
@@ -199,13 +200,13 @@ pub trait OrmliteCodegen {
             "UPDATE \"{}\" SET {} WHERE {} = {} RETURNING *",
             attr.table_name,
             update_clause,
-            attr.primary_key,
+            attr.primary_key.as_ref().unwrap(),
             placeholder.next().unwrap()
         );
 
-        let id_field = quote::format_ident!("{}", attr.primary_key);
+        let id_field = syn::Ident::new(attr.primary_key.as_ref().unwrap().as_str(), span);
         let query_bindings = ast.fields()
-            .filter(|f| &f.ident.as_ref().unwrap().to_string() != &attr.primary_key)
+            .filter(|f| f.ident.as_ref().unwrap().to_string().as_str() != attr.primary_key.as_ref().unwrap().as_str())
             .map(|f| {
                 let name = &f.ident;
                 quote! {
@@ -230,19 +231,20 @@ pub trait OrmliteCodegen {
         }
     }
 
-    fn impl_Model__delete(_ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
+    fn impl_Model__delete(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
         let mut placeholder = Self::raw_placeholder();
+        let span = ast.span();
 
         let query = format!(
             "DELETE FROM \"{}\" WHERE {} = {}",
             attr.table_name,
-            attr.primary_key,
+            attr.primary_key.as_ref().unwrap(),
             placeholder.next().unwrap()
         );
 
         let box_future = crate::util::box_future();
         let db = Self::database();
-        let id_field = quote::format_ident!("{}", attr.primary_key);
+        let id_field = syn::Ident::new(attr.primary_key.as_ref().unwrap().as_str(), span);
         quote! {
             fn delete<'e, E>(self, db: E) -> #box_future<'e, ::ormlite::Result<()>>
             where
@@ -270,7 +272,7 @@ pub trait OrmliteCodegen {
         let query = format!(
             "SELECT * FROM \"{}\" WHERE {} = {}",
             attr.table_name,
-            attr.primary_key,
+            attr.primary_key.as_ref().unwrap(),
             placeholder.next().unwrap()
         );
 
@@ -438,18 +440,19 @@ pub trait OrmliteCodegen {
     }
 
     fn impl_ModelBuilder__update(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
+        let span = ast.span();
         let fields = ast.fields();
 
         let query = format!(
             "UPDATE \"{}\" SET {{}} WHERE {} = {{}} RETURNING *",
-            attr.table_name, attr.primary_key,
+            attr.table_name, attr.primary_key.as_ref().unwrap(),
         );
 
         let db = Self::database();
         let box_future = crate::util::box_future();
         let placeholder = Self::placeholder();
         let bind_update = generate_query_binding_code_for_partial_model(fields);
-        let id = quote::format_ident!("{}", attr.primary_key);
+        let id = syn::Ident::new(attr.primary_key.as_ref().unwrap().as_str(), span);
         quote! {
             fn update<'e: 'a, E>(self, db: E) -> #box_future<'a, ::ormlite::Result<Self::Model>>
             where

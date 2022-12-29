@@ -3,12 +3,10 @@ use std::fs::File;
 use std::time::Instant;
 use anyhow::Result;
 use clap::Parser;
-use sqlx::Acquire;
-use sqlx::Arguments;
-use sqlx::postgres::PgArguments;
-use ormlite::Executor;
+use ormlite::{Executor, Arguments, Acquire};
+use ormlite::postgres::PgArguments;
 use crate::command::{get_executed_migrations, get_pending_migrations, MigrationType};
-use crate::config::{get_var_backup_folder, get_var_database_url, get_var_migration_folder};
+use crate::config::{get_var_snapshot_folder, get_var_database_url, get_var_migration_folder};
 use crate::util::{CommandSuccess, create_connection, create_runtime};
 use sha2::{Digest, Sha384};
 
@@ -21,11 +19,11 @@ pub struct Up {
 
     #[clap(long, short)]
     /// Only affects `up` command when using simple (up-only) migrations. Causes command to skip creating the backup.
-    no_backup: bool,
+    no_snapshot: bool,
 
     #[clap(long, short)]
     /// Only affects `up` command when using up/down migrations. Causes command to create a backup.
-    backup: bool,
+    snapshot: bool,
 }
 
 impl Up {
@@ -48,13 +46,14 @@ impl Up {
             return Ok(());
         }
 
-        if (pending.last().as_ref().unwrap().migration_type() == MigrationType::Simple && !self.no_backup) ||
-            (pending.last().as_ref().unwrap().migration_type() != MigrationType::Simple && self.backup)
+        if (pending.last().as_ref().unwrap().migration_type() == MigrationType::Simple && !self.no_snapshot) ||
+            (pending.last().as_ref().unwrap().migration_type() != MigrationType::Simple && self.snapshot)
         {
-            let backup_folder = get_var_backup_folder();
-            fs::create_dir_all(&backup_folder)?;
+            eprintln!("Creating snapshot...");
+            let snapshot_folder = get_var_snapshot_folder();
+            fs::create_dir_all(&snapshot_folder)?;
             let file_stem = executed.last().map(|m| m.name.clone()).unwrap_or("0_empty".to_string());
-            let file_path = backup_folder.join(format!("{}.sql.bak", file_stem));
+            let file_path = snapshot_folder.join(format!("{}.sql.bak", file_stem));
             let backup_file = File::create(&file_path)?;
             std::process::Command::new("pg_dump")
                 .arg(&url)
@@ -81,7 +80,7 @@ impl Up {
             args.add(&migration.description);
             args.add(checksum);
             args.add(elapsed.as_nanos() as i64);
-            let q = sqlx::query_with("INSERT INTO _sqlx_migrations (version, description, installed_on, success, checksum, execution_time) VALUES ($1, $2, NOW(), true, $3, $4)", args);
+            let q = ormlite::query_with("INSERT INTO _sqlx_migrations (version, description, installed_on, success, checksum, execution_time) VALUES ($1, $2, NOW(), true, $3, $4)", args);
             runtime.block_on(q.execute(conn))?;
             eprintln!("{}: Executed migration", file_path.display());
         }

@@ -72,7 +72,7 @@ migration instructions.
 
 `ormlite` is built on the wonderful foundation of [`sqlx`](https://github.com/launchbadge/sqlx)
 
-# Migrations
+# Quickstart with Migrations
 
 `ormlite` has a CLI tool to generate migrations. To our knowledge, `ormlite` is the first, and currently only, Rust ORM
 that auto-generates migrations based on changes to Rust code.
@@ -82,6 +82,8 @@ that auto-generates migrations based on changes to Rust code.
 
 The CLI also has built-in functionality for database snapshots, letting you roll back locally without needing to write
 (or generate) down migrations.
+
+See the [quickstart](#cli-quickstart) section for documentation.
 
 The `ormlite` CLI tool is 100% compatible with
 [`sqlx-cli`](https://github.com/launchbadge/sqlx/blob/master/sqlx-cli/README.md#usage). The latter does not support
@@ -100,10 +102,6 @@ For sqlite:
     ormlite = { version = "...", features = ["sqlite", "runtime-tokio-rustls"]
 
 Other databases (mysql) and runtimes should work smoothly, but might not be 100% wired up yet. Please submit an issue if you encounter any.
-
-##### Installation
-
-    cargo install --git https://github.com/kurtbuilds/ormlite
 
 # Project Goals
 
@@ -325,6 +323,72 @@ pub struct Job {
 ## Logging
 
 You can log queries using sqlx's logger: `RUST_LOG=sqlx=info`
+
+## CLI Quickstart
+
+First, install it:
+
+```bash
+cargo install --git https://github.com/kurtbuilds/ormlite
+```
+
+Ensure that you have DATABASE_URL set in your environment. Here, we do it with an extremely simple `.env` setup.
+In general, we recommend a tool like `https://github.com/casey/just` to run commands with `.env` files. This guide
+just sources the .env to bash environment to keep it simple.
+
+```bash
+# .env
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres
+```
+
+```bash
+# /bin/bash
+export $(cat .env)
+```
+
+Now, you can setup the database:
+
+```bash
+ormlite init
+```
+
+This will create a `_sqlx_migrations` table that tracks your migrations.
+
+Next, let's create a Rust struct with `#[derive(Model)]`, which the tool will next read to auto-generate SQL:
+
+```
+# src/models.rs
+
+use ormlite::model::*;
+
+#[derive(Model, Debug)]
+pub struct Person {
+    pub id: i32,
+    pub name: String,
+    pub age: i32,
+}
+```
+
+Now, we can generate the SQL:
+
+```bash
+ormlite migrate initial
+```
+
+This creates a plain SQL file in `migrations/`. Let's review it before we execute it:
+
+```bash
+# /bin/bash
+cat migrations/*.sql
+```
+
+Once you're happy with the SQL, you can execute it:
+
+```bash
+ormlite up
+```
+
+And now, our database is ready to go!
 
 # Roadmap
 - [x] Insert, update, delete directly on model instances

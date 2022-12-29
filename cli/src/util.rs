@@ -1,6 +1,7 @@
 use anyhow::Error;
 use tokio::runtime::Runtime;
-use ormlite::{Acquire, Connection, PgConnection, PgPool};
+use ormlite::{Acquire, Connection};
+use ormlite::postgres::{PgConnection, PgPool};
 use crate::Command;
 
 pub(crate) fn create_runtime() -> tokio::runtime::Runtime {
@@ -12,7 +13,7 @@ pub(crate) fn create_runtime() -> tokio::runtime::Runtime {
 }
 
 pub fn create_connection(url: &str, runtime: &Runtime) -> anyhow::Result<PgConnection> {
-    let conn = runtime.block_on(ormlite::PgConnection::connect(url))?;
+    let conn = runtime.block_on(ormlite::postgres::PgConnection::connect(url))?;
     Ok(conn)
 }
 

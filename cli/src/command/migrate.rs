@@ -10,12 +10,14 @@ use std::str::FromStr;
 use clap::Parser;
 use anyhow::{anyhow, Context, Error, Result};
 use sqldiff::{Migration, Schema, SchemaColumn, Statement};
+use ormlite::FromRow;
 use tokio::runtime::Runtime;
 use crate::schema::TryFromOrmlite;
-use ormlite::{Acquire, Executor, PgConnection, PgConnectOptions, PgPool};
+use ormlite::{Acquire, Executor};
+use ormlite::postgres::{PgConnection, PgConnectOptions, PgPool};
 use crate::{config, util};
+use crate::command::MigrationType::{Down, Simple, Up};
 use crate::util::{create_connection, create_runtime};
-
 
 const GET_MIGRATIONS_QUERY: &str = "SELECT
 version || '_' || description AS name
@@ -26,7 +28,7 @@ ORDER BY version ASC
 ";
 
 /// Compare migrations using version (see PartialEq).
-#[derive(ormlite::FromRow, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(FromRow, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct MigrationMetadata {
     pub version: i64,
     /// For fs migrations, the name will be a file stem (for reversible, it'll be `<version>_<description>.<up/down>`).
@@ -98,7 +100,7 @@ fn create_migration(folder: &Path, mut file_name: String, migration: MigrationTy
 
 /// Migrations are sorted asc. Last is most recent.
 pub fn get_executed_migrations(runtime: &Runtime, conn: &mut PgConnection) -> Result<Vec<MigrationMetadata>> {
-    let migrations = runtime.block_on(sqlx::query_as::<_, MigrationMetadata>(GET_MIGRATIONS_QUERY)
+    let migrations = runtime.block_on(ormlite::query_as::<_, MigrationMetadata>(GET_MIGRATIONS_QUERY)
         .fetch_all(conn))?;
     Ok(migrations)
 }

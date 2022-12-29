@@ -4,12 +4,12 @@ use std::io::Read;
 use std::path::Path;
 use anyhow::{Error, Result};
 use clap::Parser;
-use sqlx::postgres::PgArguments;
+use ormlite::postgres::PgArguments;
 use ormlite::{Acquire, Executor};
 use crate::command::{get_executed_migrations, get_pending_migrations, MigrationType};
-use crate::config::{get_var_backup_folder, get_var_database_url, get_var_migration_folder};
+use crate::config::{get_var_snapshot_folder, get_var_database_url, get_var_migration_folder};
 use crate::util::{CommandSuccess, create_connection, create_runtime};
-use sqlx::Arguments;
+use ormlite::Arguments;
 use url::Url;
 
 #[derive(Parser, Debug)]
@@ -72,8 +72,8 @@ impl Down {
                 return Err(Error::msg("No target migration was specified and there are no migrations to rollback to."));
             };
 
-            let backup_folder = get_var_backup_folder();
-            let backups = get_backups(&backup_folder)?;
+            let snapshot_folder = get_var_snapshot_folder();
+            let backups = get_backups(&snapshot_folder)?;
             let Some(backup) = backups.iter().find(|b| {
                 if target.contains('_') {
                     **b == target
@@ -81,11 +81,11 @@ impl Down {
                     b.starts_with(&format!("{}_", target))
                 }
             }) else {
-                return Err(Error::msg(format!("Looked for snapshot `{}` in {}, but could not find it.", target, backup_folder.display())));
+                return Err(Error::msg(format!("Looked for snapshot `{}` in {}, but could not find it.", target, snapshot_folder.display())));
             };
 
             if !self.force {
-                println!("Re-run with -f to execute rollback. This command will restore the following snapshot:\n{}", backup_folder.join(&backup).display());
+                println!("Re-run with -f to execute rollback. This command will restore the following snapshot:\n{}", snapshot_folder.join(&backup).display());
                 return Ok(())
             }
 
@@ -95,7 +95,7 @@ impl Down {
             }
 
             runtime.block_on(conn.execute(&*CLEAR_DATABASE_QUERY.replace("$USER", &user)))?;
-            let restore_file = fs::File::open(backup_folder.join(&backup))?;
+            let restore_file = fs::File::open(snapshot_folder.join(&backup))?;
             std::process::Command::new("psql")
                 .arg(url)
                 .arg("-q")
@@ -131,7 +131,7 @@ impl Down {
                     runtime.block_on(conn.execute(&*body))?;
                     let mut args = PgArguments::default();
                     args.add(migration.version);
-                    let q = sqlx::query_with("DELETE FROM _sqlx_migrations WHERE version = $1", args);
+                    let q = ormlite::query_with("DELETE FROM _sqlx_migrations WHERE version = $1", args);
                     runtime.block_on(q.execute(conn))?;
                 }
             }

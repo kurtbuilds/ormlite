@@ -1,6 +1,6 @@
 [package]
 name = "ormlite-attr"
-version = "0.6.1"
+version = "0.6.2"
 edition = "2021"
 description = "See `ormlite`."
 authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
@@ -15,5 +15,6 @@ documentation = "https://docs.rs/ormlite"
 proc-macro2 = "1.0.34"
 quote = "1.0.10"
 syn = { version = "1.0.82", features = ["derive", "parsing"] }
-derive_builder = "0.10.2"
+derive_builder = "0.12.0"
 structmeta = "0.1.4"
+convert_case = "0.6.0"

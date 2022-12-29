@@ -32,3 +32,6 @@ publish:
 
 doc:
    cd ormlite && cargo doc --features runtime-tokio-rustls,sqlite --open -p ormlite --no-deps
+
+install:
+    @just cli/install

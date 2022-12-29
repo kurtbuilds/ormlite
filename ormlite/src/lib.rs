@@ -3,19 +3,13 @@ pub use ormlite_core::{Error, Result};
 pub use model::{Model, FromRow};
 pub use ::sqlx::{Row, ColumnIndex, Decode};
 
-pub use ::sqlx::{query, query_as, Connection, Executor, Pool, Acquire, ConnectOptions, Encode};
+pub use ::sqlx::{query, query_as, Connection, Executor, Pool, Acquire, ConnectOptions, Encode, Arguments, query_with};
 pub use ::sqlx::pool::PoolOptions;
-
-#[cfg(feature = "postgres")]
-#[cfg_attr(docsrs, doc(cfg(feature = "postgres")))]
-pub use ::sqlx::postgres::{PgConnectOptions, PgConnection, PgPool, PgPoolOptions, Postgres};
-#[cfg(feature = "sqlite")]
-#[cfg_attr(docsrs, doc(cfg(feature = "sqlite")))]
-pub use ::sqlx::sqlite::{SqliteConnectOptions, SqliteConnection, SqlitePool, SqlitePoolOptions};
 
 pub mod model;
 
 #[deprecated(note = "Most objects in ormlite::export:: are directly in ormlite::* now.")]
+#[doc(hidden)]
 pub mod query_builder {
     pub use ormlite_core::query_builder::{SelectQueryBuilder, Placeholder};
 }
@@ -37,5 +31,18 @@ pub mod database {
 #[deprecated(note = "Most objects in ormlite::export:: are directly in ormlite::* now.")]
 pub mod export {
     #[cfg(feature = "postgres")]
+    #[doc(hidden)]
     pub use sqlx::postgres::{PgConnectOptions, PgConnection, PgPool, PgPoolOptions};
+}
+
+#[cfg(feature = "postgres")]
+#[cfg_attr(docsrs, doc(cfg(feature = "postgres")))]
+pub mod postgres {
+    pub use sqlx::postgres::*;
+}
+
+#[cfg(feature = "sqlite")]
+#[cfg_attr(docsrs, doc(cfg(feature = "sqlite")))]
+pub mod sqlite {
+    pub use sqlx::sqlite::*;
 }
