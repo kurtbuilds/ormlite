@@ -21,14 +21,12 @@
 
 # `ormlite`
 
-**`ormlite` is an ORM in Rust for developers that love SQL.**
-
-It's best to first see it in action:
+**`ormlite` is an ORM in Rust for developers that love SQL.** Let's see it in action:
 
 ```rust
 use ormlite::model::*;
 
-#[derive(Model, FromRow, Debug)]
+#[derive(Model, Debug)]
 pub struct Person {
     pub id: i32,
     pub name: String,
@@ -52,6 +50,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     john.age += 1;
     john.update_all_fields(&mut conn).await?;
 
+    /// Query building syntax is basically SQL translated into chained function calls.
     let people = Person::select()
         .where_("age > ?").bind(50)
         .fetch_all(&mut conn).await?;
@@ -59,40 +58,48 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-This example shows the basic usage of `ormlite`. Continue reading this `README` for installation instructions, further usage examples, and more.
+> **Note**: Using this syntax, there are two possible issues. First, `id` must be set client-side instead of using the
+> database's auto-increment counter, because the field is not `Option`. Second, the struct cannot track which fields are
+> modified, so the update method must updates all columns. If these issues present problems for your usage, check the
+> sections [Insertion Struct](#insertion-struct) or [Builder Syntax](#builder-syntax) below for alternative APIs that
+> resolve these issues.
 
-> **Note**: Using this syntax, there are two possible issues. First, `id` must be set client-side instead of using the database's auto-increment counter, because the field is not `Option`. Second, the struct cannot track which fields are
-modified, so the update method must updates all columns. If these issues present problems for your usage, check the
-sections [Insertion Struct](#insertion-struct) or [Builder Syntax](#builder-syntax) below for alternative APIs that
-resolve these issues.
+Continue reading this `README` for installation instructions, advanced examples, and more.
+
+While the software is still 0.x, we hold a high standard for stability. Breaking changes will only be made for good
+reason, with migration instructions provided. We mark affected changes with `#[deprecated]`, and provide inline
+migration instructions.
+
+`ormlite` is built on the wonderful foundation of [`sqlx`](https://github.com/launchbadge/sqlx)
+
+# Migrations
+
+`ormlite` has a CLI tool to generate migrations. To our knowledge, `ormlite` is the first, and currently only, Rust ORM
+that auto-generates migrations based on changes to Rust code.
+
+> **NOTE**: The CLI tool is under development. It works for simple cases, but it may not support all features yet. Please 
+> submit an issue if you encounter any. It also only works for Postgres currently.
+
+The CLI also has built-in functionality for database snapshots, letting you roll back locally without needing to write
+(or generate) down migrations.
+
+The `ormlite` CLI tool is 100% compatible with
+[`sqlx-cli`](https://github.com/launchbadge/sqlx/blob/master/sqlx-cli/README.md#usage). The latter does not support
+auto-generation or snapshots, but does support other database types, and is less bleeding edge.
 
 # Installation
 
 For postgres:
 
     [dependencies]
-    ormlite = { version = "0.2.0", features = ["postgres", "runtime-tokio-rustls"]
+    ormlite = { version = "...", features = ["postgres", "runtime-tokio-rustls"]
 
 For sqlite:
 
     [dependencies]
-    ormlite = { version = "0.2.0", features = ["sqlite", "runtime-tokio-rustls"]
+    ormlite = { version = "...", features = ["sqlite", "runtime-tokio-rustls"]
 
 Other databases (mysql) and runtimes should work smoothly, but might not be 100% wired up yet. Please submit an issue if you encounter any.
-
-# Migrations
-
-`ormlite` has a CLI tool to generate migrations. To our knowledge, it is the first, and currently only, Rust ORM that 
-auto-generates migrations based on Rust code.
-
-> **NOTE**: The CLI tool is under development. It works for simple cases, but it may not support all features yet. Please 
-> submit an issue if you encounter any. Importantly, it currently only works for Postgres.
-
-It additionally has built-in functionality for database snapshots, meaning that you can rollback in development without needing to write (or generate) down migrations.
-
-The `ormlite` CLI tool is 100% compatible with [`sqlx-cli`](https://github.com/launchbadge/sqlx/blob/master/sqlx-cli/README.md#usage). 
-The latter does not support auto-generation or snapshots, but supports other database types, and is less bleeding edge.
-You can even use both tools in the same project.
 
 ##### Installation
 
@@ -111,15 +118,15 @@ We prioritize these objectives in the project:
 
 ## Insertion Struct
 
-As noted above, on full database models, all fields must be set before insertion, which might present problems for certain fields, notably
-autoincrement id fields.
+As noted above, on full database models, all fields must be set before insertion, which might present problems for
+certain fields, notably autoincrement id fields.
 
-You can derive an struct that only contains some fields, to be used for insertion.
+You can add an attribute to generate a struct used only for insertion.
 
 ```rust
 use ormlite::model::*;
 
-#[derive(Model, FromRow, Debug)]
+#[derive(Model, Debug)]
 #[ormlite(Insertable = InsertPerson)]
 pub struct Person {
     pub id: i32,
@@ -136,12 +143,13 @@ async fn insertion_struct_example() {
 }
 ```
 
-If the derived struct doesn't meet your needs, you can manually define a struct that only contains the fields you want.
+If the derived struct doesn't meet your needs, you can manually define a struct that only contains the fields you want,
+specifying `table = "<table>"` to route the struct to the same database table.
 
 ```rust
 use ormlite::model::*;
 
-#[derive(Model, FromRow, Debug)]
+#[derive(Model, Debug)]
 #[ormlite(table = "person")]
 pub struct InsertPerson {
     pub name: String,
@@ -151,12 +159,12 @@ pub struct InsertPerson {
 
 ## Builder Syntax
 
-You can use builder syntax for insertion or to update only certain fields.
+You can also use builder syntax for insertion or to update only certain fields.
 
 ```rust
 use ormlite::model::*;
 
-#[derive(Model, FromRow, Debug)]
+#[derive(Model, Debug)]
 pub struct Person {
     pub id: i32,
     pub name: String,
@@ -184,12 +192,12 @@ async fn builder_syntax_example() {
 You can use `Model::select` to build a SQL query using Rust logic.
 
 > **Note**: Postgres's approach of using numbered dollar sign placeholders quickly breaks down when building queries. Instead, even with Postgres, use `?` for parameters,
-and `ormlite` will replace the `?` placeholders with `$` placeholders when it constructs the final query.
+> and `ormlite` will replace the `?` placeholders with `$` placeholders when it constructs the final query.
 
 ```rust
 use ormlite::model::*;
 
-#[derive(Model, FromRow, Debug)]
+#[derive(Model, Debug)]
 pub struct Person {
     pub id: i32,
     pub name: String,
@@ -202,7 +210,7 @@ async fn query_builder_example() {
         .bind(50i32)
         .fetch_all(&mut conn)
         .await?;
-    println!("all people over 50: {:?}", people); 
+    println!("All people over 50: {:?}", people); 
 }
 ```
 
@@ -213,7 +221,7 @@ You can always fallback to raw queries if none of the ORM methods work for you.
 ```rust
 use ormlite::model::*;
 
-#[derive(Model, FromRow, Debug)]
+#[derive(Model, Debug)]
 pub struct Person {
     pub id: i32,
     pub name: String,
@@ -221,6 +229,7 @@ pub struct Person {
 }
 
 async fn model_query_example() {
+    // Query using the Model to still deserialize results into the struct
     let _person = Person::query("SELECT * FROM person WHERE id = ?")
         .bind(1)
         .fetch_one(&mut conn)
@@ -228,6 +237,7 @@ async fn model_query_example() {
 }
 
 async fn raw_query_example() {
+    // You can also use the raw query API, which will return tuples to decode as you like
     let _used_ids: Vec<i32> = ormlite::query("SELECT id FROM person")
         .fetch_all(pool)
         .await
@@ -244,7 +254,7 @@ The following attributes are available:
 
 On the struct:
 
-- `#[ormlite(table = "table_name")]`: Specify the table name.
+- `#[ormlite(table = "<table_name>")]`: Specify the table name.
 - `#[ormlite(Insertable = InsertStructName)]`: Specify the name of the struct used for insert.
 
 See example usage below:
@@ -252,7 +262,7 @@ See example usage below:
 ```rust
 use ormlite::model::*;
 
-#[derive(Model, FromRow, Debug)]
+#[derive(Model, Debug)]
 #[ormlite(table = "people", Insertable = InsertPerson)]
 pub struct Person {
     pub id: i32,
@@ -263,14 +273,15 @@ pub struct Person {
 
 ## Uuid and DateTime columns
 
-If you want Uuid or DateTime, combined with serde, you need to depend directly on `uuid`
-or `chrono`, and add the `serde` feature to each of them.
+If you want Uuid or DateTime, combined with serde, you need to depend directly on `uuid`, `time` or `chrono`, 
+and add the `serde` feature to each of them.
 
 ```
 # Cargo.toml
 [dependencies]
-uuid = { version = "1", features = ["serde"] } 
-chrono = { version = "0.4.19", features = ["serde"] }
+uuid = { version = "...", features = ["serde"] } 
+chrono = { version = "...", features = ["serde"] }
+time = { version = "...", features = ["serde"] }
 ```
 
 ```rust
@@ -280,9 +291,9 @@ use ormlite::types::Uuid;
 use ormlite::types::chrono::{DateTime, Utc};
 
 
-#[derive(Model, FromRow, Debug, Serialize, Deserialize)]
+#[derive(Model, Debug, Serialize, Deserialize)]
 pub struct Person {
-    pub id: Uuid,
+    pub uuid: Uuid,
     pub created_at: DateTime<Utc>,
     pub name: String,
 }
@@ -290,8 +301,8 @@ pub struct Person {
 
 ## Json/Jsonb Columns
 
-You can use `ormlite::types::Json` for JSON or JSONB fields. The parameterized type can be unstructured, using the `serde_json::Value` type, or a
-specific serializable struct. Note `ormlite::types` is a re-export of `sqlx::types`.
+You can use `ormlite::types::Json` for JSON or JSONB fields. For unstructured data, use `serde_json::Value` for the 
+generic. Use a struct with `Deserialize + Serialize` as the generic for structured data.
 
 ```rust
 use ormlite::model::*;
@@ -301,10 +312,9 @@ use serde_json::Value;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct JobData {
     pub name: String,
-    
 }
 
-#[derive(Model, FromRow, Serialize, Deserialize)]
+#[derive(Model, Serialize, Deserialize)]
 pub struct Job {
     pub id: i32,
     pub structured_data: Json<JobData>,
@@ -326,10 +336,11 @@ You can log queries using sqlx's logger: `RUST_LOG=sqlx=info`
 - [x] Ability to specify the name of a table and name of primary column
 - [x] Automatically generate insert models
 - [x] Automatically generate migrations
+- [x] Eliminate need for FromRow macro
+- [ ] Joins
 - [ ] Make sure features are wired up correctly to support mysql and different runtimes & SSL libraries.
 - [ ] Macro option to auto adjust columns like updated_at
 - [ ] Upsert functionality
-- [ ] Joins
 - [ ] Bulk insertions
 - [ ] Query builder for bulk update
 - [ ] Handle on conflict clauses for bulk update
