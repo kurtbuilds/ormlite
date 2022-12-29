@@ -1081,7 +1081,7 @@ checksum = "86f0b0d4bf799edbc74508c1e8bf170ff5f41238e5f8225603ca7caaae2b7860"
 
 [[package]]
 name = "ormlite"
-version = "0.6.1"
+version = "0.7.0"
 dependencies = [
  "env_logger",
  "ormlite-core",
@@ -1095,7 +1095,7 @@ dependencies = [
 
 [[package]]
 name = "ormlite-attr"
-version = "0.6.2"
+version = "0.7.0"
 dependencies = [
  "convert_case",
  "derive_builder",
@@ -1107,7 +1107,7 @@ dependencies = [
 
 [[package]]
 name = "ormlite-cli"
-version = "0.6.1"
+version = "0.7.0"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -1126,7 +1126,7 @@ dependencies = [
 
 [[package]]
 name = "ormlite-core"
-version = "0.6.1"
+version = "0.7.0"
 dependencies = [
  "datetime",
  "futures",
@@ -1140,7 +1140,7 @@ dependencies = [
 
 [[package]]
 name = "ormlite-macro"
-version = "0.6.1"
+version = "0.7.0"
 dependencies = [
  "ormlite-attr",
  "ormlite-core",
