@@ -105,13 +105,16 @@ where
         self
     }
 
+    /// Dangerous because it takes a string that could be user crafted. You should prefer .where_ which
+    /// takes a &'static str, and pass arguments with `.bind()`.
     pub fn dangerous_where(mut self, clause: &str) -> Self {
         self.wheres.push(clause.to_string());
         self
     }
 
+    #[doc(hidden)]
     #[deprecated(note = "Please use `where_` instead")]
-    pub fn select(self, clause: &'static str) -> Self {
+    pub fn filter(self, clause: &'static str) -> Self {
         self.where_(clause)
     }
 

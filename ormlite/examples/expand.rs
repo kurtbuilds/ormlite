@@ -3,13 +3,10 @@
 #![feature(fmt_helpers_for_derive)]
 #![feature(print_internals)]
 #![feature(prelude_import)]
-
 #[prelude_import]
 use std::prelude::rust_2021::*;
-
 #[macro_use]
 extern crate std;
-
 use ormlite::model::*;
 use ormlite::Connection;
 
@@ -18,11 +15,8 @@ pub struct Person {
     pub name: String,
     pub age: u8,
 }
-
 impl<'slf> ::ormlite::model::Model<'slf, ::sqlx::Sqlite> for Person {
     type ModelBuilder = PersonBuilder<'slf>;
-
-
     fn table_name() -> &'static str {
         "person"
     }
@@ -36,8 +30,8 @@ impl<'slf> ::ormlite::model::Model<'slf, ::sqlx::Sqlite> for Person {
         "id"
     }
     fn insert<'e, E>(self, db: E) -> ::ormlite::BoxFuture<'e, ::ormlite::Result<Self>>
-        where
-            E: 'e + ::ormlite::Executor<'e, Database=::sqlx::Sqlite>,
+    where
+        E: 'e + ::ormlite::Executor<'e, Database = ::sqlx::Sqlite>,
     {
         Box::pin(async move {
             let mut q = ::ormlite::query_as::<::sqlx::Sqlite, Self>(
@@ -50,8 +44,8 @@ impl<'slf> ::ormlite::model::Model<'slf, ::sqlx::Sqlite> for Person {
         })
     }
     fn update_all_fields<'e, E>(self, db: E) -> ::ormlite::BoxFuture<'e, ::ormlite::Result<Self>>
-        where
-            E: 'e + ::ormlite::Executor<'e, Database=::sqlx::Sqlite>,
+    where
+        E: 'e + ::ormlite::Executor<'e, Database = ::sqlx::Sqlite>,
     {
         Box::pin(async move {
             let mut q = ::ormlite::query_as::<_, Self>(
@@ -66,8 +60,8 @@ impl<'slf> ::ormlite::model::Model<'slf, ::sqlx::Sqlite> for Person {
         })
     }
     fn delete<'e, E>(self, db: E) -> ::ormlite::BoxFuture<'e, ::ormlite::Result<()>>
-        where
-            E: 'e + ::ormlite::Executor<'e, Database=::sqlx::Sqlite>,
+    where
+        E: 'e + ::ormlite::Executor<'e, Database = ::sqlx::Sqlite>,
     {
         Box::pin(async move {
             let row = ::ormlite::query("DELETE FROM \"person\" WHERE id = ?")
@@ -76,17 +70,20 @@ impl<'slf> ::ormlite::model::Model<'slf, ::sqlx::Sqlite> for Person {
                 .await
                 .map_err(::ormlite::Error::from)?;
             if row.rows_affected() == 0 {
-                Err(::ormlite::Error::from(::sqlx::Error::RowNotFound))
+                Err(::ormlite::Error::from(::ormlite::SqlxError::RowNotFound))
             } else {
                 Ok(())
             }
         })
     }
     fn get_one<'e, 'a, Arg, E>(id: Arg, db: E) -> ::ormlite::BoxFuture<'e, ::ormlite::Result<Self>>
-        where
-            'a: 'e,
-            Arg: 'a + Send + ::sqlx::Encode<'a, ::sqlx::Sqlite> + ::sqlx::Type<::sqlx::Sqlite>,
-            E: 'e + ::ormlite::Executor<'e, Database=::sqlx::Sqlite>,
+    where
+        'a: 'e,
+        Arg: 'a
+            + Send
+            + ::ormlite::Encode<'a, ::sqlx::Sqlite>
+            + ::ormlite::types::Type<::sqlx::Sqlite>,
+        E: 'e + ::ormlite::Executor<'e, Database = ::sqlx::Sqlite>,
     {
         Box::pin(async move {
             ::sqlx::query_as::<::sqlx::Sqlite, Self>("SELECT * FROM \"person\" WHERE id = ?")
@@ -101,42 +98,55 @@ impl<'slf> ::ormlite::model::Model<'slf, ::sqlx::Sqlite> for Person {
         ::ormlite::query_builder::SelectQueryBuilder::new(
             ::ormlite::query_builder::Placeholder::question_mark(),
         )
-            .column(&{
-                let res = ::std::fmt::format(::core::fmt::Arguments::new_v1(
-                    &["\"", "\".*"],
-                    &[::core::fmt::ArgumentV1::new_display(&"person")],
-                ));
-                res
-            })
+        .column(&{
+            let res = ::std::fmt::format(::core::fmt::Arguments::new_v1(
+                &["\"", "\".*"],
+                &[::core::fmt::ArgumentV1::new_display(&"person")],
+            ));
+            res
+        })
     }
     fn build() -> PersonBuilder<'static> {
         PersonBuilder::default()
     }
-
     fn update_partial(&'slf self) -> PersonBuilder<'slf> {
         let mut partial = PersonBuilder::default();
         partial.updating = Some(&self);
         partial
     }
-
     fn query(
         query: &str,
-    ) -> ::sqlx::query::QueryAs<
+    ) -> ::ormlite::query::QueryAs<
         ::sqlx::Sqlite,
         Self,
-        <::sqlx::Sqlite as ::sqlx::database::HasArguments>::Arguments,
+        <::sqlx::Sqlite as ::ormlite::database::HasArguments>::Arguments,
     > {
-        ::sqlx::query_as::<_, Self>(query)
+        ::ormlite::query_as::<_, Self>(query)
     }
 }
-
+impl<'a, R: ::ormlite::Row> ::ormlite::model::FromRow<'a, R> for Person
+where
+    &'a str: ::ormlite::ColumnIndex<R>,
+    u32: ::ormlite::decode::Decode<'a, R::Database>,
+    u32: ::ormlite::types::Type<R::Database>,
+    String: ::ormlite::decode::Decode<'a, R::Database>,
+    String: ::ormlite::types::Type<R::Database>,
+    u8: ::ormlite::decode::Decode<'a, R::Database>,
+    u8: ::ormlite::types::Type<R::Database>,
+{
+    fn from_row(row: &'a R) -> ::std::result::Result<Self, ::ormlite::SqlxError> {
+        let id: u32 = row.try_get("id")?;
+        let name: String = row.try_get("name")?;
+        let age: u8 = row.try_get("age")?;
+        Ok(Self { id, name, age })
+    }
+}
 pub struct PersonBuilder<'a> {
     id: std::option::Option<u32>,
     name: std::option::Option<String>,
     age: std::option::Option<u8>,
     updating: Option<&'a Person>,
 }
-
 impl<'a> std::default::Default for PersonBuilder<'a> {
     fn default() -> Self {
         Self {
@@ -147,7 +157,6 @@ impl<'a> std::default::Default for PersonBuilder<'a> {
         }
     }
 }
-
 impl<'a> PersonBuilder<'a> {
     pub fn id(mut self, id: u32) -> Self {
         self.id = Some(id);
@@ -175,12 +184,11 @@ impl<'a> PersonBuilder<'a> {
         ret
     }
 }
-
 impl<'a> ::ormlite::model::ModelBuilder<'a, ::sqlx::Sqlite> for PersonBuilder<'a> {
     type Model = Person;
     fn insert<'e: 'a, E>(self, db: E) -> ::ormlite::BoxFuture<'a, ::ormlite::Result<Self::Model>>
-        where
-            E: 'e + ::ormlite::Executor<'e, Database=::sqlx::Sqlite>,
+    where
+        E: 'e + ::ormlite::Executor<'e, Database = ::sqlx::Sqlite>,
     {
         Box::pin(async move {
             let mut placeholder = ::ormlite::query_builder::Placeholder::question_mark();
@@ -215,8 +223,8 @@ impl<'a> ::ormlite::model::ModelBuilder<'a, ::sqlx::Sqlite> for PersonBuilder<'a
         })
     }
     fn update<'e: 'a, E>(self, db: E) -> ::ormlite::BoxFuture<'a, ::ormlite::Result<Self::Model>>
-        where
-            E: 'e + ::ormlite::Executor<'e, Database=::sqlx::Sqlite>,
+    where
+        E: 'e + ::ormlite::Executor<'e, Database = ::sqlx::Sqlite>,
     {
         Box::pin(async move {
             let mut placeholder = ::ormlite::query_builder::Placeholder::question_mark();
@@ -273,17 +281,15 @@ impl<'a> ::ormlite::model::ModelBuilder<'a, ::sqlx::Sqlite> for PersonBuilder<'a
         })
     }
 }
-
 pub struct InsertPerson {
     pub name: String,
     pub age: u8,
 }
-
 impl ::ormlite::model::Insertable<::sqlx::Sqlite> for InsertPerson {
     type Model = Person;
     fn insert<'e, E>(self, db: E) -> ::ormlite::BoxFuture<'e, ::ormlite::Result<Self::Model>>
-        where
-            E: 'e + ::ormlite::Executor<'e, Database=::sqlx::Sqlite>,
+    where
+        E: 'e + ::ormlite::Executor<'e, Database = ::sqlx::Sqlite>,
     {
         Box::pin(async move {
             let mut q = ::ormlite::query_as::<::sqlx::Sqlite, Self::Model>(
@@ -295,26 +301,6 @@ impl ::ormlite::model::Insertable<::sqlx::Sqlite> for InsertPerson {
         })
     }
 }
-
-#[automatically_derived]
-impl<'a, R: ::sqlx::Row> ::sqlx::FromRow<'a, R> for Person
-    where
-        &'a ::std::primitive::str: ::sqlx::ColumnIndex<R>,
-        u32: ::sqlx::decode::Decode<'a, R::Database>,
-        u32: ::sqlx::types::Type<R::Database>,
-        String: ::sqlx::decode::Decode<'a, R::Database>,
-        String: ::sqlx::types::Type<R::Database>,
-        u8: ::sqlx::decode::Decode<'a, R::Database>,
-        u8: ::sqlx::types::Type<R::Database>,
-{
-    fn from_row(row: &'a R) -> ::sqlx::Result<Self> {
-        let id: u32 = row.try_get("id")?;
-        let name: String = row.try_get("name")?;
-        let age: u8 = row.try_get("age")?;
-        ::std::result::Result::Ok(Person { id, name, age })
-    }
-}
-
 #[automatically_derived]
 impl ::core::fmt::Debug for Person {
     fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
@@ -330,10 +316,8 @@ impl ::core::fmt::Debug for Person {
         )
     }
 }
-
 pub static CREATE_TABLE_SQL: &str =
     "CREATE TABLE person (id INTEGER PRIMARY KEY, name TEXT, age INTEGER)";
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let body = async {
         let mut conn = ormlite::SqliteConnection::connect(":memory:")
@@ -346,8 +330,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             name: "John".to_string(),
             age: 99,
         }
-            .insert(&mut conn)
-            .await?;
+        .insert(&mut conn)
+        .await?;
         {
             ::std::io::_print(::core::fmt::Arguments::new_v1(
                 &["", "\n"],
@@ -395,8 +379,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             name: "Dan".to_string(),
             age: 28,
         }
-            .insert(&mut conn)
-            .await?;
+        .insert(&mut conn)
+        .await?;
         let dan = Person::get_one(1u32, &mut conn).await?;
         {
             ::std::io::_print(::core::fmt::Arguments::new_v1(
@@ -409,8 +393,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             name: "Albert Einstein".to_string(),
             age: 60,
         }
-            .insert(&mut conn)
-            .await?;
+        .insert(&mut conn)
+        .await?;
         {
             ::std::io::_print(::core::fmt::Arguments::new_v1(
                 &["build ", "\n"],

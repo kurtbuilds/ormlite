@@ -11,6 +11,11 @@ use crate::Result;
 use crate::SelectQueryBuilder;
 use futures_core::future::BoxFuture;
 
+#[doc(hidden)]
+#[deprecated(note = "This trait is part of ormlite::Model now.")]
+pub trait HasQueryBuilder<DB> {}
+
+#[doc(hidden)]
 #[deprecated(note = "This trait is part of ormlite::Model now.")]
 pub trait HasModelBuilder<'a, ModelBuilder> {}
 /// A struct that is `Insertable` is expected to have same fields as the model, excluding fields

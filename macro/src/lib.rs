@@ -21,6 +21,7 @@ pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
     let table_meta = TableMetadata::try_from(&ast).unwrap();
 
     let impl_Model = codegen::DB::impl_Model(&ast, &table_meta);
+    let impl_FromRow = codegen::DB::impl_FromRow(&ast, &table_meta);
 
     let struct_ModelBuilder = codegen::DB::struct_ModelBuilder(&ast, &table_meta);
     let impl_ModelBuilder = codegen::DB::impl_ModelBuilder(&ast, &table_meta);
@@ -30,6 +31,7 @@ pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         #impl_Model
+        #impl_FromRow
 
         #struct_ModelBuilder
         #impl_ModelBuilder
@@ -39,4 +41,14 @@ pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
     };
 
     TokenStream::from(expanded)
+}
+
+#[proc_macro_derive(FromRow)]
+pub fn expand_derive_fromrow(input: TokenStream) -> TokenStream {
+    panic!("#[derive(FromRow)] is no longer needed. You only need `#[derive(Model)]` now.");
+}
+
+#[proc_macro_attribute]
+pub fn index(attr: TokenStream, item: TokenStream) -> TokenStream {
+    item
 }

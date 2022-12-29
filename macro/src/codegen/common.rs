@@ -5,6 +5,7 @@ use quote::{quote, ToTokens};
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
 use syn::{DeriveInput, Field};
+use syn::spanned::Spanned;
 use ormlite_attr::{DeriveInputExt, FieldExt};
 
 /// Given the fields of a ModelBuilder struct, return the quoted code.
@@ -47,6 +48,76 @@ pub trait OrmliteCodegen {
     fn placeholder() -> TokenStream;
     fn raw_placeholder() -> Placeholder;
 
+    fn impl_FromRow(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
+        let span = ast.span();
+        let model = &ast.ident;
+        let fields = attr.columns.iter().map(|c| syn::Ident::new(&c.column_name, span));
+        let columns = attr.columns.iter().map(|c| {
+            let name_str = &c.column_name;
+            let name = syn::Ident::new(&c.column_name, span);
+            let ty = &c.column_type;
+            quote! {
+                let #name: #ty = row.try_get(#name_str)?;
+            }
+        });
+        let bounds = attr.columns.iter().map(|c| {
+            let ty = &c.column_type;
+            quote! {
+                #ty: ::ormlite::decode::Decode<'a, R::Database>,
+                #ty: ::ormlite::types::Type<R::Database>,
+            }
+        });
+        quote! {
+            impl<'a, R: ::ormlite::Row> ::ormlite::model::FromRow<'a, R> for #model
+                where
+                    &'a str: ::ormlite::ColumnIndex<R>,
+                    #(
+                        #bounds
+                    )*
+            {
+                fn from_row(row: &'a R) -> ::std::result::Result<Self, ::ormlite::SqlxError> {
+                    #(
+                        #columns
+                    )*
+                    Ok(Self { #(#fields,)* })
+                }
+            }
+        }
+    }
+
+    fn impl_Model(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
+        let db = Self::database();
+        let model = &ast.ident;
+        let partial_model = quote::format_ident!("{}Builder", model.to_string());
+
+        let impl_Model__table_meta = Self::impl_Model__table_meta(ast, attr);
+        let impl_Model__insert = Self::impl_Model__insert(ast, attr);
+        let impl_Model__update_all_fields = Self::impl_Model__update_all_fields(ast, attr);
+        let impl_Model__delete = Self::impl_Model__delete(ast, attr);
+        let impl_Model__get_one = Self::impl_Model__get_one(ast, attr);
+        let impl_Model__select = Self::impl_Model__select(ast, attr);
+        let impl_Model__build = Self::impl_Model__build(ast, attr);
+        let impl_Model__update_partial = Self::impl_Model__update_partial(ast, attr);
+
+        quote! {
+            impl<'slf> ::ormlite::model::Model<'slf, #db> for #model {
+                type ModelBuilder = #partial_model<'slf>;
+
+                #impl_Model__table_meta
+                #impl_Model__insert
+                #impl_Model__update_all_fields
+                #impl_Model__delete
+                #impl_Model__get_one
+                #impl_Model__select
+                #impl_Model__build
+                #impl_Model__update_partial
+
+               fn query(query: &str) -> ::ormlite::query::QueryAs<#db, Self, <#db as ::ormlite::database::HasArguments>::Arguments> {
+                    ::ormlite::query_as::<_, Self>(query)
+                }
+            }
+        }
+    }
     fn impl_Model__table_meta(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
         let table_name = &attr.table_name;
         let id = &attr.primary_key;
@@ -184,7 +255,7 @@ pub trait OrmliteCodegen {
                         .await
                         .map_err(::ormlite::Error::from)?;
                     if row.rows_affected() == 0 {
-                        Err(::ormlite::Error::from(::sqlx::Error::RowNotFound))
+                        Err(::ormlite::Error::from(::ormlite::SqlxError::RowNotFound))
                     } else {
                         Ok(())
                     }
@@ -209,7 +280,7 @@ pub trait OrmliteCodegen {
             fn get_one<'e, 'a, Arg, E>(id: Arg, db: E) -> #box_future<'e, ::ormlite::Result<Self>>
             where
                 'a: 'e,
-                Arg: 'a + Send + ::sqlx::Encode<'a, #db> + ::sqlx::Type<#db>,
+                Arg: 'a + Send + ::ormlite::Encode<'a, #db> + ::ormlite::types::Type<#db>,
                 E: 'e +::ormlite::Executor<'e, Database = #db>
             {
                 Box::pin(async move {
@@ -223,39 +294,6 @@ pub trait OrmliteCodegen {
         }
     }
 
-    fn impl_Model(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
-        let db = Self::database();
-        let model = &ast.ident;
-        let partial_model = quote::format_ident!("{}Builder", model.to_string());
-
-        let impl_Model__table_meta = Self::impl_Model__table_meta(ast, attr);
-        let impl_Model__insert = Self::impl_Model__insert(ast, attr);
-        let impl_Model__update_all_fields = Self::impl_Model__update_all_fields(ast, attr);
-        let impl_Model__delete = Self::impl_Model__delete(ast, attr);
-        let impl_Model__get_one = Self::impl_Model__get_one(ast, attr);
-        let impl_Model__select = Self::impl_Model__select(ast, attr);
-        let impl_Model__build = Self::impl_Model__build(ast, attr);
-        let impl_Model__update_partial = Self::impl_Model__update_partial(ast, attr);
-
-        quote! {
-            impl<'slf> ::ormlite::model::Model<'slf, #db> for #model {
-                type ModelBuilder = #partial_model<'slf>;
-
-                #impl_Model__table_meta
-                #impl_Model__insert
-                #impl_Model__update_all_fields
-                #impl_Model__delete
-                #impl_Model__get_one
-                #impl_Model__select
-                #impl_Model__build
-                #impl_Model__update_partial
-
-               fn query(query: &str) -> ::sqlx::query::QueryAs<#db, Self, <#db as ::sqlx::database::HasArguments>::Arguments> {
-                    ::sqlx::query_as::<_, Self>(query)
-                }
-            }
-        }
-    }
 
     fn impl_Model__select(_ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
         let table_name = &attr.table_name;
@@ -276,7 +314,7 @@ pub trait OrmliteCodegen {
                     #partial_model::default()
                 }
             }
-        }
+    }
 
     fn impl_Model__update_partial(ast: &DeriveInput, _attr: &attr::TableMetadata) -> TokenStream {
         let model = &ast.ident;
@@ -288,7 +326,7 @@ pub trait OrmliteCodegen {
                     partial
                 }
             }
-        }
+    }
 
     fn struct_ModelBuilder(ast: &DeriveInput, _attr: &attr::TableMetadata) -> TokenStream {
         let model = &ast.ident;
