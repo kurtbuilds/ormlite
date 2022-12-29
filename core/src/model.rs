@@ -11,17 +11,6 @@ use crate::Result;
 use crate::SelectQueryBuilder;
 use futures_core::future::BoxFuture;
 
-/// `HasModelBuilder` structs are ones that can create `ModelBuilder`s.
-/// The base model structs typically implement this.
-pub trait HasModelBuilder<'a, ModelBuilder>
-where
-    ModelBuilder: Sized + Send,
-    Self: Sized + Send,
-{
-    fn build() -> ModelBuilder;
-    fn update_partial(&'a self) -> ModelBuilder;
-}
-
 /// A struct that is `Insertable` is expected to have same fields as the model, excluding fields
 /// that have sane defaults at the database level. Concretely, if you have a Person struct:
 /// #[derive(ormlite::Model)]
@@ -71,6 +60,7 @@ where
     Self: Sized,
 {
     type ModelBuilder: Sized + Send + 'slf;
+    fn update_partial(&'slf self) -> Self::ModelBuilder;
 
     fn table_name() -> &'static str;
     fn fields() -> &'static [&'static str];
@@ -100,4 +90,7 @@ where
     ) -> sqlx::query::QueryAs<DB, Self, <DB as sqlx::database::HasArguments>::Arguments>;
 
     fn select<'args>() -> SelectQueryBuilder<'args, DB, Self>;
+
+    fn build() -> Self::ModelBuilder;
+
 }

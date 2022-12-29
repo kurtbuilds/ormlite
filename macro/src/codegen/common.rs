@@ -234,6 +234,8 @@ pub trait OrmliteCodegen {
         let impl_Model__delete = Self::impl_Model__delete(ast, attr);
         let impl_Model__get_one = Self::impl_Model__get_one(ast, attr);
         let impl_Model__select = Self::impl_Model__select(ast, attr);
+        let impl_Model__build = Self::impl_Model__build(ast, attr);
+        let impl_Model__update_partial = Self::impl_Model__update_partial(ast, attr);
 
         quote! {
             impl<'slf> ::ormlite::model::Model<'slf, #db> for #model {
@@ -245,6 +247,8 @@ pub trait OrmliteCodegen {
                 #impl_Model__delete
                 #impl_Model__get_one
                 #impl_Model__select
+                #impl_Model__build
+                #impl_Model__update_partial
 
                fn query(query: &str) -> ::sqlx::query::QueryAs<#db, Self, <#db as ::sqlx::database::HasArguments>::Arguments> {
                     ::sqlx::query_as::<_, Self>(query)
@@ -264,23 +268,27 @@ pub trait OrmliteCodegen {
         }
     }
 
-    fn impl_HasModelBuilder(ast: &DeriveInput, _attr: &attr::TableMetadata) -> TokenStream {
+    fn impl_Model__build(ast: &DeriveInput, _attr: &attr::TableMetadata) -> TokenStream {
         let model = &ast.ident;
         let partial_model = quote::format_ident!("{}Builder", model.to_string());
         quote! {
-            impl<'a> ormlite::model::HasModelBuilder<'a, #partial_model<'a>> for #model {
-                fn build() -> #partial_model<'a> {
+                fn build() -> #partial_model<'static> {
                     #partial_model::default()
                 }
+            }
+        }
 
-                fn update_partial(&'a self) -> #partial_model<'a> {
+    fn impl_Model__update_partial(ast: &DeriveInput, _attr: &attr::TableMetadata) -> TokenStream {
+        let model = &ast.ident;
+        let partial_model = quote::format_ident!("{}Builder", model.to_string());
+        quote! {
+                fn update_partial(&'slf self) -> #partial_model<'slf> {
                     let mut partial = #partial_model::default();
                     partial.updating = Some(&self);
                     partial
                 }
             }
         }
-    }
 
     fn struct_ModelBuilder(ast: &DeriveInput, _attr: &attr::TableMetadata) -> TokenStream {
         let model = &ast.ident;

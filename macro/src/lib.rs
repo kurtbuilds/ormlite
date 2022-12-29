@@ -21,7 +21,6 @@ pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
     let table_meta = TableMetadata::try_from(&ast).unwrap();
 
     let impl_Model = codegen::DB::impl_Model(&ast, &table_meta);
-    let impl_HasModelBuilder = codegen::DB::impl_HasModelBuilder(&ast, &table_meta);
 
     let struct_ModelBuilder = codegen::DB::struct_ModelBuilder(&ast, &table_meta);
     let impl_ModelBuilder = codegen::DB::impl_ModelBuilder(&ast, &table_meta);
@@ -31,7 +30,6 @@ pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
 
     let expanded = quote! {
         #impl_Model
-        #impl_HasModelBuilder
 
         #struct_ModelBuilder
         #impl_ModelBuilder

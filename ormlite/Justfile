@@ -10,9 +10,6 @@ build:
     cargo build
 alias b := build
 
-run *args:
-    cargo run --bin plain --features sqlite,runtime-tokio-rustls
-alias r := run
 
 
 release:
@@ -54,3 +51,29 @@ publish:
 patch: test
     just version patch
     just publish
+
+run *args:
+    cargo run --example simple --features sqlite,runtime-tokio-rustls
+alias r := run
+
+# Development workflow for macros
+# 1. Write an example for what you want to run
+# 2. Run `just run` to run it. Encounter compile errors.
+# 3. Run `just expand-run` to expand, then compile it. This compilation step shows actual line numbers on expanded output.
+# 4. Fix the errors, and run `just rerun` to confirm the manual edits to the expanded code have fixed the issue.
+# 5. Edit the macro code, so that it achieves the same output as your manual edits to the expanded code.
+# 6. Dance a jig because you're now a macro wizard and developing macros with 1/100th the guesswork of before.
+expand-run:
+    printf '#![allow(unused)]\n' > examples/expand.rs
+    printf '#![feature(fmt_internals)]\n' >> examples/expand.rs
+    printf '#![feature(fmt_helpers_for_derive)]\n' >> examples/expand.rs
+    printf '#![feature(print_internals)]\n' >> examples/expand.rs
+    cargo expand --example simple --features sqlite,runtime-tokio-rustls >> examples/expand.rs
+    sd '::alloc::' '::std::' examples/expand.rs
+    sd '# \[ormlite.*' '' examples/expand.rs
+    cargo run --example expand --features sqlite,runtime-tokio-rustls
+alias er := expand-run
+
+rerun:
+    cargo run --example expand --features sqlite,runtime-tokio-rustls
+alias rr := expand-run
