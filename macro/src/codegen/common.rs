@@ -286,7 +286,7 @@ pub trait OrmliteCodegen {
                 E: 'e +::ormlite::Executor<'e, Database = #db>
             {
                 Box::pin(async move {
-                    ::sqlx::query_as::<#db, Self>(#query)
+                    ::ormlite::query_as::<#db, Self>(#query)
                         .bind(id)
                         .fetch_one(db)
                         .await

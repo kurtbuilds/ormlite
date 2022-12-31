@@ -8,7 +8,7 @@ pub struct SqliteBackend {}
 
 impl OrmliteCodegen for SqliteBackend {
     fn database() -> TokenStream {
-        quote! { ::sqlx::Sqlite }
+        quote! { ::ormlite::sqlite::Sqlite }
     }
 
     fn placeholder() -> TokenStream {

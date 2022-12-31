@@ -9,7 +9,7 @@ pub struct PostgresBackend {}
 
 impl OrmliteCodegen for PostgresBackend {
     fn database() -> TokenStream {
-        quote! { sqlx::Postgres }
+        quote! { ::ormlite::postgres::Postgres }
     }
 
     fn placeholder() -> TokenStream {
