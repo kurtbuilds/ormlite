@@ -61,6 +61,7 @@ impl Down {
             return Err(Error::msg("No migrations were found in the migrations folder."));
         };
 
+        executed.reverse();
         if last_pending.migration_type() == MigrationType::Simple {
             let target = if let Some(target) = self.target {
                 target
@@ -102,7 +103,6 @@ impl Down {
                 .stdin(restore_file)
                 .ok_or("Failed to restore database.")?;
         } else {
-            executed.reverse();
             if let Some(target) = self.target {
                 executed = executed.into_iter().take_while(|m| {
                     let matches = if target.chars().all(|c| c.is_numeric()) {
