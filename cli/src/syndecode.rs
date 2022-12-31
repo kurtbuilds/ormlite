@@ -30,10 +30,17 @@ impl Attribute {
 pub struct Attributes(Vec<Attribute>);
 
 impl Attributes {
-    pub fn derives(&self, trait_name: &str) -> bool {
+    pub fn has_derive(&self, trait_name: &str) -> bool {
         self.0.iter().any(|attr| {
             matches!(attr, Attribute::Derive(a) if a.trait_name() == trait_name)
         })
+    }
+
+    pub fn derives(&self) -> Vec<&str> {
+        self.0.iter().filter_map(|attr| match attr {
+            Attribute::Derive(a) => Some(a.trait_name()),
+            _ => None
+        }).collect::<Vec<_>>()
     }
 }
 
@@ -73,6 +80,6 @@ mod tests {
         let attrs = Attributes(vec![
             Attribute::Derive(DeriveAttribute::new("ormlite::Model")),
         ]);
-        assert!(attrs.derives("Model"));
+        assert!(attrs.has_derive("Model"));
     }
 }

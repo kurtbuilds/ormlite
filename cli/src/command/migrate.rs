@@ -85,6 +85,9 @@ pub struct Migrate {
     /// Instead of generating a migration, print the generated statements. Mostly useful for debugging.
     #[clap(long, short)]
     dry: bool,
+
+    #[clap(long, short)]
+    pub(crate) verbose: bool,
 }
 
 
@@ -154,11 +157,11 @@ fn check_reversible_compatibility(reversible: bool, migration_environment: Optio
     Ok(())
 }
 
-fn autogenerate_migration(codebase_path: &Path, runtime: &Runtime, conn: &mut PgConnection, ) -> Result<Migration> {
+fn autogenerate_migration(codebase_path: &Path, runtime: &Runtime, conn: &mut PgConnection, opts: &Migrate) -> Result<Migration> {
     let mut current = runtime.block_on(Schema::try_from_database(conn, "public"))?;
     current.tables.retain(|t| t.name != "_sqlx_migrations");
 
-    let desired = Schema::try_from_ormlite_project(codebase_path)?;
+    let desired = Schema::try_from_ormlite_project(codebase_path, opts)?;
 
     let migration = current.migrate_to(desired, &sqldiff::Options::default())?;
     Ok(migration)
@@ -182,7 +185,7 @@ impl Migrate {
         let migration = if self.empty {
             None
         } else {
-            let migration = autogenerate_migration(Path::new("."), &runtime, conn)?;
+            let migration = autogenerate_migration(Path::new("."), &runtime, conn, &self)?;
 
             if self.dry {
                 for statement in migration.statements {

@@ -10,11 +10,12 @@ use syn::{AngleBracketedGenericArguments, DeriveInput, GenericArgument, Item, Pa
 use ormlite_attr::{ColumnMetadata, SyndecodeError, TableMetadata};
 use sqldiff::Table;
 use syn::__private::ToTokens;
+use crate::command::Migrate;
 
 use crate::syndecode::Attributes;
 
 pub trait TryFromOrmlite: Sized {
-    fn try_from_ormlite_project(path: &Path) -> Result<Self>;
+    fn try_from_ormlite_project(path: &Path, opts: &Migrate) -> Result<Self>;
 }
 
 trait SqlDiffTableExt {
@@ -130,7 +131,7 @@ impl SqlType {
 }
 
 impl TryFromOrmlite for Schema {
-    fn try_from_ormlite_project(path: &Path) -> Result<Self> {
+    fn try_from_ormlite_project(path: &Path, opts: &Migrate) -> Result<Self> {
         let walk = Walk::new(path)
             .filter_map(|e| e.ok())
             .filter(|e| e.path().extension().map(|e| e == "rs")
@@ -143,6 +144,9 @@ impl TryFromOrmlite for Schema {
             if !contents.contains("Model") {
                 continue;
             }
+            if opts.verbose {
+                eprintln!("{}: Checking for #[derive(Model)]", entry.path().display());
+            }
             let mut ast = syn::parse_file(&contents)?;
             let structs = ast.items.into_iter().filter_map(|item| match item {
                 Item::Struct(s) => Some(s),
@@ -152,7 +156,12 @@ impl TryFromOrmlite for Schema {
                     let attrs = Attributes::from(&s.attrs);
                     (s, attrs)
                 })
-                .filter(|(_, attrs)| attrs.derives("Model"))
+                .inspect(|(s, attrs)| {
+                    if opts.verbose {
+                        eprintln!("{}: Found struct {}. Detected derives: {:?}", entry.path().display(), s.ident, attrs.derives());
+                    }
+                })
+                .filter(|(_, attrs)| attrs.has_derive("Model"))
                 .collect::<Vec<_>>();
             for (item, attrs) in structs {
                 let derive: DeriveInput = item.into();
