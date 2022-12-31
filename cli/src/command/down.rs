@@ -4,6 +4,7 @@ use std::io::Read;
 use std::path::Path;
 use anyhow::{Error, Result};
 use clap::Parser;
+use regex::Regex;
 use ormlite::postgres::PgArguments;
 use ormlite::{Acquire, Executor};
 use crate::command::{get_executed_migrations, get_pending_migrations, MigrationType};
@@ -76,10 +77,12 @@ impl Down {
             let snapshot_folder = get_var_snapshot_folder();
             let backups = get_backups(&snapshot_folder)?;
             let Some(backup) = backups.iter().find(|b| {
-                if target.contains('_') {
-                    **b == target
+                if target.chars().all(|c| c.is_numeric()) {
+                    b.split_once('_').map(|(version, _)| version == target).unwrap_or(false)
+                } else if target.chars().next().map(|c| c.is_numeric()).unwrap_or(false) && target.contains("_") { // my_description
+                    **b == format!("{}.sql.bak", target)
                 } else {
-                    b.starts_with(&format!("{}_", target))
+                    b.split_once('_').map(|(_, desc)| desc == target).unwrap_or(false)
                 }
             }) else {
                 return Err(Error::msg(format!("Looked for snapshot `{}` in {}, but could not find it.", target, snapshot_folder.display())));
@@ -107,7 +110,7 @@ impl Down {
                 executed = executed.into_iter().take_while(|m| {
                     let matches = if target.chars().all(|c| c.is_numeric()) {
                         m.version_str() == target
-                    } else if target.contains('_') {
+                    } else if target.chars().next().map(|c| c.is_numeric()).unwrap_or(false) && target.contains("_") { // my_description
                         m.name == target
                     } else {
                         m.description == target
