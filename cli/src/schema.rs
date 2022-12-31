@@ -15,7 +15,7 @@ use crate::command::Migrate;
 use crate::syndecode::Attributes;
 
 pub trait TryFromOrmlite: Sized {
-    fn try_from_ormlite_project(path: &Path, opts: &Migrate) -> Result<Self>;
+    fn try_from_ormlite_project(path: &[&Path], opts: &Migrate) -> Result<Self>;
 }
 
 trait SqlDiffTableExt {
@@ -131,9 +131,9 @@ impl SqlType {
 }
 
 impl TryFromOrmlite for Schema {
-    fn try_from_ormlite_project(path: &Path, opts: &Migrate) -> Result<Self> {
-        let walk = Walk::new(path)
-            .filter_map(|e| e.ok())
+    fn try_from_ormlite_project(paths: &[&Path], opts: &Migrate) -> Result<Self> {
+        let walk = paths.iter().map(|p| Walk::new(p)).flatten();
+        let walk = walk.filter_map(|e| e.ok())
             .filter(|e| e.path().extension().map(|e| e == "rs")
                 .unwrap_or(false));
 

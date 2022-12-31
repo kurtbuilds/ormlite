@@ -17,6 +17,7 @@ use ormlite::{Acquire, Executor};
 use ormlite::postgres::{PgConnection, PgConnectOptions, PgPool};
 use crate::{config, util};
 use crate::command::MigrationType::{Down, Simple, Up};
+use crate::config::get_var_model_folders;
 use crate::util::{create_connection, create_runtime};
 
 const GET_MIGRATIONS_QUERY: &str = "SELECT
@@ -157,13 +158,15 @@ fn check_reversible_compatibility(reversible: bool, migration_environment: Optio
     Ok(())
 }
 
-fn autogenerate_migration(codebase_path: &Path, runtime: &Runtime, conn: &mut PgConnection, opts: &Migrate) -> Result<Migration> {
+fn autogenerate_migration(codebase_path: &[&Path], runtime: &Runtime, conn: &mut PgConnection, opts: &Migrate) -> Result<Migration> {
     let mut current = runtime.block_on(Schema::try_from_database(conn, "public"))?;
     current.tables.retain(|t| t.name != "_sqlx_migrations");
 
     let desired = Schema::try_from_ormlite_project(codebase_path, opts)?;
 
-    let migration = current.migrate_to(desired, &sqldiff::Options::default())?;
+    let migration = current.migrate_to(desired, &sqldiff::Options {
+        debug: opts.verbose,
+    })?;
     Ok(migration)
 }
 
@@ -185,7 +188,16 @@ impl Migrate {
         let migration = if self.empty {
             None
         } else {
-            let migration = autogenerate_migration(Path::new("."), &runtime, conn, &self)?;
+            let folder_paths = get_var_model_folders();
+            let folder_paths = folder_paths.iter().map(|p| p.as_path()).collect::<Vec<_>>();
+            let migration = autogenerate_migration(&folder_paths, &runtime, conn, &self)?;
+
+            if self.verbose {
+                eprintln!("Debug calculations for migration:");
+                for debug in &migration.debug_results {
+                    eprintln!("{:?}", debug);
+                }
+            }
 
             if self.dry {
                 for statement in migration.statements {
