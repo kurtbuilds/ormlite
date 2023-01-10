@@ -333,8 +333,8 @@ cargo install --git https://github.com/kurtbuilds/ormlite
 ```
 
 Ensure that you have DATABASE_URL set in your environment. Here, we do it with an extremely simple `.env` setup.
-In general, we recommend a tool like `https://github.com/casey/just` to run commands with `.env` files. This guide
-just sources the .env to bash environment to keep it simple.
+In general, we recommend a tool like [`just`](https://github.com/casey/just) to run commands with `.env` files. However,
+this guide sources the .env to bash environment to keep it simple.
 
 ```bash
 # .env
