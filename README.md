@@ -354,7 +354,7 @@ ormlite init
 
 This will create a `_sqlx_migrations` table that tracks your migrations.
 
-Next, let's create a Rust struct with `#[derive(Model)]`, which the tool will next read to auto-generate SQL:
+Next, let's create a Rust struct with `#[derive(Model)]`, which the tool will be able to read to auto-generate SQL:
 
 ```
 # src/models.rs
