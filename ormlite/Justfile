@@ -1,3 +1,4 @@
+set positional-arguments
 set dotenv-load := false
 
 help:
@@ -53,7 +54,7 @@ patch: test
     just publish
 
 run *args:
-    cargo run --example simple --features sqlite,runtime-tokio-rustls
+    cargo run --features sqlite,runtime-tokio-rustls,uuid "$@"
 alias r := run
 
 # Development workflow for macros
@@ -68,12 +69,13 @@ expand-run:
     printf '#![feature(fmt_internals)]\n' >> examples/expand.rs
     printf '#![feature(fmt_helpers_for_derive)]\n' >> examples/expand.rs
     printf '#![feature(print_internals)]\n' >> examples/expand.rs
-    cargo expand --example simple --features sqlite,runtime-tokio-rustls >> examples/expand.rs
-    sd '::alloc::' '::std::' examples/expand.rs
-    sd '# \[ormlite.*' '' examples/expand.rs
-    cargo run --example expand --features sqlite,runtime-tokio-rustls
+    printf '#![feature(core_panic)]\n' >> examples/expand.rs
+    cargo expand --example many-to-one --features sqlite,runtime-tokio-rustls,uuid >> examples/expand.rs
+    sd '::alloc::' '::std::' examples/expand.rs -f
+    sd '# \[ormlite.*' '' examples/expand.rs -f
+    cargo run --example expand --features sqlite,runtime-tokio-rustls,uuid
 alias er := expand-run
 
 rerun:
-    cargo run --example expand --features sqlite,runtime-tokio-rustls
+    cargo run --example expand --features sqlite,runtime-tokio-rustls,uuid
 alias rr := expand-run

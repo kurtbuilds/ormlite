@@ -69,7 +69,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let dan = Person::get_one(1u32, &mut conn).await?;
     println!("get_one {:?}", dan);
 
-    dan.update_partial().age(29).update(&mut conn).await?;
+    let dan2 = dan.update_partial().age(29).update(&mut conn).await?;
+    println!("dan1 {:?}", dan);
+    println!("dan2 {:?}", dan2);
 
     InsertPerson {
         name: "Albert Einstein".to_string(),
@@ -78,7 +80,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .insert(&mut conn)
     .await?;
 
-    println!("build {:?}", dan);
     let kurt = Person::build()
         .name("Kurt".to_string())
         .age(29)

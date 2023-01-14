@@ -1143,6 +1143,7 @@ dependencies = [
 name = "ormlite-macro"
 version = "0.7.1"
 dependencies = [
+ "lazy_static",
  "ormlite-attr",
  "ormlite-core",
  "proc-macro2",

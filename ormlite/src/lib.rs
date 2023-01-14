@@ -8,8 +8,6 @@ pub use ::sqlx::pool::PoolOptions;
 
 pub mod model;
 
-#[deprecated(note = "Most objects in ormlite::export:: are directly in ormlite::* now.")]
-#[doc(hidden)]
 pub mod query_builder {
     pub use ormlite_core::query_builder::{SelectQueryBuilder, Placeholder};
 }

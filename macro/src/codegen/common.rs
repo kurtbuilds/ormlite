@@ -1,25 +1,29 @@
+use std::collections::HashMap;
 use ormlite_attr as attr;
 use ormlite_core::query_builder::Placeholder;
-use proc_macro2::TokenStream;
+use proc_macro2::{TokenStream, Span};
 use quote::{quote, ToTokens};
 use syn::punctuated::Punctuated;
 use syn::token::Comma;
 use syn::{DeriveInput, Field};
 use syn::spanned::Spanned;
 use ormlite_attr::{DeriveInputExt, FieldExt};
+use crate::MetadataLookup;
 
 /// Given the fields of a ModelBuilder struct, return the quoted code.
 fn generate_query_binding_code_for_partial_model(
-    fields: syn::punctuated::Iter<Field>,
+    attr: &attr::TableMetadata,
 ) -> impl Iterator<Item=TokenStream> + '_ {
-    fields.map(|f| {
-        let name = &f.ident;
-        quote! {
-            if let Some(value) = self.#name {
-                q = q.bind(value);
+    attr.columns.iter()
+        .filter(|c| !c.is_join())
+        .map(|c| {
+            let name = &c.identifier;
+            quote! {
+                if let Some(value) = self.#name {
+                    q = q.bind(value);
+                }
             }
-        }
-    })
+        })
 }
 
 /// Give the fields as a TokenStream of Strings (becomes string literals when used in quote!)
@@ -40,7 +44,7 @@ fn ty_is_string(ty: &syn::Type) -> bool {
         syn::Type::Path(p) => p,
         _ => return false,
     };
-    p.path.segments.len() == 1 && p.path.segments[0].ident == "String"
+    p.path.segments.last().map(|s| s.ident == "String").unwrap_or(false)
 }
 
 pub trait OrmliteCodegen {
@@ -51,22 +55,42 @@ pub trait OrmliteCodegen {
     fn impl_FromRow(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
         let span = ast.span();
         let model = &ast.ident;
-        let fields = attr.columns.iter().map(|c| syn::Ident::new(&c.column_name, span));
-        let columns = attr.columns.iter().map(|c| {
-            let name_str = &c.column_name;
-            let name = syn::Ident::new(&c.column_name, span);
-            let ty = &c.column_type;
-            quote! {
-                let #name: #ty = row.try_get(#name_str)?;
+
+        let fields = attr.columns.iter()
+            .map(|c| syn::Ident::new(&c.column_name, span));
+
+        let mut columns = attr.columns.iter()
+            .filter(|c| !c.is_join())
+            .map(|c| {
+                let name_str = &c.column_name;
+                let name = syn::Ident::new(&c.column_name, span);
+                let ty = &c.column_type;
+                quote! {
+                    let #name: #ty = row.try_get(#name_str)?;
+                }
+            }).collect::<Vec<_>>();
+
+        for join in attr.columns.iter().filter(|c| c.is_join()) {
+            let name = &join.identifier;
+            let ty = &join.column_type;
+            let join_model = match ty {
+                syn::Type::Path(p) => p.path.segments.last().unwrap().ident.clone(),
+                _ => panic!("Join type must be a path"),
+            };
+            columns.push(quote! {
+                let #name = ::ormlite::model::Join::default();
+            });
+        }
+
+        let bounds = attr.columns.iter()
+            .filter(|c| !c.is_join())
+            .map(|c| {
+                let ty = &c.column_type;
+                quote! {
+                    #ty: ::ormlite::decode::Decode<'a, R::Database>,
+                    #ty: ::ormlite::types::Type<R::Database>,
             }
-        });
-        let bounds = attr.columns.iter().map(|c| {
-            let ty = &c.column_type;
-            quote! {
-                #ty: ::ormlite::decode::Decode<'a, R::Database>,
-                #ty: ::ormlite::types::Type<R::Database>,
-            }
-        });
+            });
         quote! {
             impl<'a, R: ::ormlite::Row> ::ormlite::model::FromRow<'a, R> for #model
                 where
@@ -85,13 +109,13 @@ pub trait OrmliteCodegen {
         }
     }
 
-    fn impl_Model(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
+    fn impl_Model(ast: &DeriveInput, attr: &attr::TableMetadata, model_lookup: &MetadataLookup) -> TokenStream {
         let db = Self::database();
         let model = &ast.ident;
         let partial_model = quote::format_ident!("{}Builder", model.to_string());
 
         let impl_Model__table_meta = Self::impl_Model__table_meta(ast, attr);
-        let impl_Model__insert = Self::impl_Model__insert(ast, attr);
+        let impl_Model__insert = Self::impl_Model__insert(attr, model_lookup);
         let impl_Model__update_all_fields = Self::impl_Model__update_all_fields(ast, attr);
         let impl_Model__delete = Self::impl_Model__delete(ast, attr);
         let impl_Model__get_one = Self::impl_Model__get_one(ast, attr);
@@ -144,14 +168,14 @@ pub trait OrmliteCodegen {
         }
     }
 
-    fn impl_Model__insert(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
+    fn impl_Model__insert(attr: &attr::TableMetadata, model_lookup: &MetadataLookup) -> TokenStream {
         let box_future = crate::util::box_future();
         let db = Self::database();
-        let field_names = ast.fields()
-            .map(|f| f.name())
+        let field_names = attr.columns.iter().filter(|c| !c.is_join())
+            .map(|f| f.column_name.clone())
             .collect::<Vec<_>>().join(", ");
         let mut placeholder = Self::raw_placeholder();
-        let params = ast.fields()
+        let params = attr.columns.iter().filter(|c| !c.is_join())
             .map(|_| placeholder.next().unwrap())
             .collect::<Vec<_>>()
             .join(", ");
@@ -161,19 +185,34 @@ pub trait OrmliteCodegen {
             attr.table_name, field_names, params
         );
 
-        let query_bindings = ast.fields().map(|f| {
-            let name = &f.ident;
+        let query_bindings = attr.columns.iter().filter(|c| !c.is_join()).map(|c| {
+            let name = &c.identifier;
             quote! {
                 q = q.bind(self.#name);
             }
         });
 
+        let rebind = attr.columns.iter().filter(|c| c.is_join() && c.many_to_one_key.is_some()).map(|c| {
+            let name = &c.identifier;
+            let column = c.many_to_one_key.as_ref().unwrap();
+            let joined_struct = c.joined_struct().unwrap().to_string();
+            let joined_meta = model_lookup.get(&joined_struct).expect(&format!("On {}, tried to define join, but failed to find a Model for {}", attr.struct_name, joined_struct));
+            let joined_pkey = joined_meta.primary_key.as_ref().expect("Joined struct must have a primary key");
+            let joined_pkey = syn::Ident::new(&joined_pkey, Span::call_site());
+            quote! {
+                if let Some(modification) = self.#name.modification() {
+                    self.#column = modification.#joined_pkey;
+                }
+            }
+        });
+
         quote! {
-            fn insert<'e, E>(self, db: E) -> #box_future<'e, ::ormlite::Result<Self>>
+            fn insert<'e, E>(mut self, db: E) -> #box_future<'e, ::ormlite::Result<Self>>
             where
                 E: 'e + ::ormlite::Executor<'e, Database = #db>,
             {
                 Box::pin(async move {
+                    #(#rebind)*
                     let mut q =::ormlite::query_as::<#db, Self>(#query);
                     #(#query_bindings)*
                     q.fetch_one(db)
@@ -205,10 +244,11 @@ pub trait OrmliteCodegen {
         );
 
         let id_field = syn::Ident::new(attr.primary_key.as_ref().unwrap().as_str(), span);
-        let query_bindings = ast.fields()
-            .filter(|f| f.ident.as_ref().unwrap().to_string().as_str() != attr.primary_key.as_ref().unwrap().as_str())
-            .map(|f| {
-                let name = &f.ident;
+        let query_bindings = attr.columns.iter()
+            .filter(|c| !c.is_join())
+            .filter(|c| c.column_name != attr.primary_key.as_ref().unwrap().as_str())
+            .map(|c| {
+                let name = &c.identifier;
                 quote! {
                     q = q.bind(self.#name);
                 }
@@ -414,7 +454,7 @@ pub trait OrmliteCodegen {
             attr.table_name
         );
 
-        let bind_parameters = generate_query_binding_code_for_partial_model(ast.fields());
+        let bind_parameters = generate_query_binding_code_for_partial_model(attr);
 
         quote! {
             fn insert<'e: 'a, E>(self, db: E) -> #box_future<'a, ::ormlite::Result<Self::Model>>
@@ -451,7 +491,7 @@ pub trait OrmliteCodegen {
         let db = Self::database();
         let box_future = crate::util::box_future();
         let placeholder = Self::placeholder();
-        let bind_update = generate_query_binding_code_for_partial_model(fields);
+        let bind_update = generate_query_binding_code_for_partial_model(attr);
         let id = syn::Ident::new(attr.primary_key.as_ref().unwrap().as_str(), span);
         quote! {
             fn update<'e: 'a, E>(self, db: E) -> #box_future<'a, ::ormlite::Result<Self::Model>>
