@@ -1,7 +1,7 @@
 #![allow(unused)]
 #![allow(non_snake_case)]
 
-use ormlite_attr::{ColumnAttributes, ColumnMetadata, TableMetadata, TableMetadataBuilder, ColumnMetadataBuilder, ModelAttributes};
+use ormlite_attr::{ColumnAttributes, ColumnMetadata, TableMetadata, TableMetadataBuilder, ColumnMetadataBuilder, ModelAttributes, SyndecodeError};
 use crate::codegen::common::OrmliteCodegen;
 use proc_macro::TokenStream;
 use std::borrow::Borrow;
@@ -128,22 +128,20 @@ pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
             lock.insert(s, m);
         }
     });
-    eprintln!("Running macro");
 
     let input2 = input.clone();
     let ast = parse_macro_input!(input2 as DeriveInput);
     let Data::Struct(data) = &ast.data else { panic!("Only structs can derive Model"); };
 
     let table_meta = TableMetadata::try_from(&ast).unwrap();
-    eprintln!("Parsed meta");
+    if table_meta.primary_key.is_none() {
+        panic!("No column marked with #[ormlite(primary_key)], and no column named id, uuid, {0}_id, or {0}_uuid", table_meta.table_name);
+    }
 
     let impl_Model = TABLES.with(|t| {
-        eprintln!("With killed us");
         let read = t.read().unwrap();
-        eprintln!("read killed us");
         codegen::DB::impl_Model(&ast, &table_meta, &read)
     });
-    eprintln!("we're still okay");
     let impl_FromRow = codegen::DB::impl_FromRow(&ast, &table_meta);
 
     let struct_ModelBuilder = codegen::DB::struct_ModelBuilder(&ast, &table_meta);

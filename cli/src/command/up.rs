@@ -32,9 +32,10 @@ impl Up {
         let runtime = create_runtime();
         let url = get_var_database_url();
         let mut conn_owned = create_connection(&url, &runtime)?;
-        let conn = runtime.block_on(conn_owned.acquire())?;
+        let mut conn = runtime.block_on(conn_owned.acquire())?;
+        // let conn = runtime.block_on(conn_owned.acquire())?;
 
-        let executed = get_executed_migrations(&runtime, conn)?;
+        let executed = get_executed_migrations(&runtime, &mut *conn)?;
         let pending = get_pending_migrations(&folder)?
             .into_iter()
             .filter(|m| m.migration_type() != MigrationType::Down)

@@ -129,8 +129,7 @@ impl Down {
                     println!("{}", file_path.display());
                 } else {
                     let body = fs::read_to_string(&file_path)?;
-                    // hack that sqlx screws up lifetimes and we have to acquire for each for loop
-                    let mut conn = runtime.block_on(conn_owned.acquire())?;
+                    let conn = &mut *conn;
                     runtime.block_on(conn.execute(&*body))?;
                     let mut args = PgArguments::default();
                     args.add(migration.version);

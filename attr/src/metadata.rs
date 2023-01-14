@@ -81,11 +81,7 @@ impl TryFrom<&DeriveInput> for TableMetadata {
     fn try_from(ast: &DeriveInput) -> Result<Self, Self::Error> {
         let result = TableMetadata::builder_from_struct_attributes(&ast)?
             .complete_with_struct_body(&ast);
-        if let Some(meta) = result.as_ref().ok() {
-            if meta.primary_key.is_none() {
-                return Err(SyndecodeError(format!("No column marked with #[ormlite(primary_key)], and no column named id, uuid, {0}_id, or {0}_uuid", meta.table_name)));
-            }
-        }
+
         result
     }
 }
