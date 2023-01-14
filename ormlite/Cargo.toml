@@ -30,7 +30,7 @@ json = ["sqlx/json"]
 
 [dependencies]
 sqlx = { version = "0.6.2" }
-tokio = { version = "1.15.0", features = ["full"] }
+tokio = { version = "1.24.1", features = ["full"] }
 ormlite-macro = { path = "../macro" , version = "0.7.1"}
 ormlite-core = { path = "../core" , version = "0.7.1"}
 sqlx-core = "0.6.2"
