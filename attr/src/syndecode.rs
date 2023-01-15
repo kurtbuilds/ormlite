@@ -1,4 +1,3 @@
-use proc_macro2::TokenTree;
 use self::args::ArgsAttribute;
 use self::derive::DeriveAttribute;
 use self::properties::PropertiesAttribute;
@@ -15,16 +14,16 @@ pub enum Attribute {
     Flag(String),
 }
 
-impl Attribute {
-    pub fn name(&self) -> &str {
-        match self {
-            Attribute::Derive(attr) => attr.trait_name(),
-            Attribute::Properties(attr) => attr.name.as_str(),
-            Attribute::Args(attr) => attr.name.as_str(),
-            Attribute::Flag(attr) => &attr,
-        }
-    }
-}
+// impl Attribute {
+//     pub fn name(&self) -> &str {
+//         match self {
+//             Attribute::Derive(attr) => attr.trait_name(),
+//             Attribute::Properties(attr) => attr.name.as_str(),
+//             Attribute::Args(attr) => attr.name.as_str(),
+//             Attribute::Flag(attr) => &attr,
+//         }
+//     }
+// }
 
 #[derive(Debug)]
 pub struct Attributes(Vec<Attribute>);
@@ -44,8 +43,8 @@ impl Attributes {
     }
 }
 
-impl From<&Vec<syn::Attribute>> for Attributes {
-    fn from(attrs: &Vec<syn::Attribute>) -> Self {
+impl Attributes {
+    pub(crate) fn filter_from(attrs: &Vec<syn::Attribute>, filter: &str) -> Self {
         let mut attributes = Vec::new();
         for attr in attrs.iter() {
             if attr.path.is_ident("derive") {
@@ -54,7 +53,10 @@ impl From<&Vec<syn::Attribute>> for Attributes {
                     .map(|d| Attribute::Derive(d))
                     .for_each(|a| attributes.push(a));
             } else {
-                let name = attr.path.segments.first().unwrap().ident.to_string();
+                let name = attr.path.segments.last().unwrap().ident.to_string();
+                if name != filter {
+                    continue
+                }
                 let attr = if attr.tokens.is_empty() {
                     Attribute::Flag(name)
                 } else {

@@ -1,13 +1,8 @@
-#![allow(unused)]
-extern crate core;
-
 use clap::{Parser, Subcommand};
 use anyhow::Result;
 mod schema;
 mod command;
 mod util;
-mod syndecode;
-pub(crate) mod config;
 
 use command::*;
 

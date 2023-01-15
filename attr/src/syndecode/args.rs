@@ -1,6 +1,5 @@
-use syn::__private::quote::__private::ext::RepToTokensExt;
 use syn::__private::quote::__private::TokenTree;
-use ormlite_attr::SyndecodeError;
+use crate::SyndecodeError;
 
 #[derive(Debug)]
 pub struct ArgsAttribute {
@@ -13,9 +12,9 @@ impl TryFrom<&syn::Attribute> for ArgsAttribute {
 
     fn try_from(attr: &syn::Attribute) -> Result<Self, Self::Error> {
         let name = attr.path.segments.first().ok_or_else(|| SyndecodeError(format!("Must have a segment.")))?.ident.to_string();
-        let group = attr.tokens.clone().into_iter().next().ok_or_else(|| SyndecodeError(format!("Must have a token group.")))?;
+        let group = attr.tokens.clone().into_iter().next().ok_or_else(|| SyndecodeError(format!("ArgAttributes must have at least one token group.")))?;
         let TokenTree::Group(group) = group else {
-            return Err(SyndecodeError(format!("Must have a token group.")));
+            return Err(SyndecodeError(format!("ArgAttributes must have a token group.")));
         };
         let mut group = group.stream().into_iter();
 

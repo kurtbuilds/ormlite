@@ -54,7 +54,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Lastly, you can delete the object.
     john.delete(&mut conn).await?;
     // You can get a single user.
-    Person::get_one(1u32, &mut conn)
+    Person::fetch_one(1u32, &mut conn)
         .await
         .expect_err("Should not exist");
 
@@ -66,7 +66,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .insert(&mut conn)
     .await?;
 
-    let dan = Person::get_one(1u32, &mut conn).await?;
+    let dan = Person::fetch_one(1u32, &mut conn).await?;
     println!("get_one {:?}", dan);
 
     let dan2 = dan.update_partial().age(29).update(&mut conn).await?;
@@ -80,7 +80,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .insert(&mut conn)
     .await?;
 
-    let kurt = Person::build()
+    let kurt = Person::builder()
         .name("Kurt".to_string())
         .age(29)
         .insert(&mut conn)

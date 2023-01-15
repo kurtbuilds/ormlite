@@ -171,7 +171,7 @@ pub struct Person {
 
 async fn builder_syntax_example() {    
     // builder syntax for insert
-    let john = Person::build()
+    let john = Person::builder()
         .name("John".to_string())
         .age(99)
         .insert(&mut conn).await?;
@@ -266,6 +266,69 @@ pub struct Person {
     pub id: i32,
     pub name: String,
     pub age: i32,
+}
+```
+
+## Joins
+
+Currently, join support is in a very early stage. We only support many-to-one relations (e.g. Person belongs to Organization.), but
+support for many-to-many and one-to-many is planned.
+
+If you do use it, we appreciate reports on any bugs you encounter.
+
+```rust
+use ormlite::model::*;
+
+#[derive(Model, Debug)]
+pub struct Person {
+    pub id: Uuid,
+    pub name: String,
+    pub age: i32,
+    
+    pub organization_id: Uuid,
+    
+    #[ormlite(many_to_one_key = organization_id)]
+    pub organization: Join<Organization>,
+}
+
+#[derive(Model, Debug)]
+pub struct Organization {
+    pub id: Uuid,
+    pub name: String,
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Note we don't need to insert it.
+    let org = Organization {
+        id: Uuid::new_v4(),
+        name: "Acme".to_string(),
+    };
+    
+    let user = Person {
+        id: Uuid::new_v4(),
+        name: "John".to_string(),
+        age: 99,
+        // Note we don't need to set this field. It'll be overwritten by the Join.
+        organization_id: Uuid::default(),
+        organization: Join::new(org),
+    };
+    
+    let mut conn = ormlite::SqliteConnection::connect(":memory:").await.unwrap();
+    let user = user.insert(&mut conn).await?;
+    assert!(user.organization.loaded());
+    println!("{:?}", user);
+    
+    // You can choose whether you want to load the relation or not. The value will be Join::NotQueried if you don't 
+    // opt-in to loading it.
+    let users = Person::select()
+        .join(Person::organization())
+        .fetch_all(&mut conn)
+        .await?;
+    for user in users {
+        assert!(user.organization.loaded());
+        println!("{:?}", user);
+    }
 }
 ```
 
@@ -401,8 +464,10 @@ And now, our database is ready to go!
 - [x] Automatically generate insert models
 - [x] Automatically generate migrations
 - [x] Eliminate need for FromRow macro
+- [x] Many to one joins
 - [ ] Autogenerate indexes for migrations
-- [ ] Joins
+- [ ] Many to many joins
+- [ ] One to many joins
 - [ ] Make sure features are wired up correctly to support mysql and different runtimes & SSL libraries.
 - [ ] Macro option to auto adjust columns like updated_at
 - [ ] Upsert functionality

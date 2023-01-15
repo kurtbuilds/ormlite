@@ -7,6 +7,7 @@ use sqlx::database::HasArguments;
 
 use sqlx::{Executor, IntoArguments};
 use std::marker::PhantomData;
+use crate::join::JoinDescription;
 
 pub struct SelectQueryBuilder<'args, DB, Model>
 where
@@ -105,10 +106,26 @@ where
         self
     }
 
+    pub fn where_bind<T>(mut self, clause: &'static str, value: T) -> Self
+        where
+            T: 'args + Send + sqlx::Type<DB> + sqlx::Encode<'args, DB>,
+    {
+        self.wheres.push(clause.to_string());
+        self.arguments.add(value);
+        self
+    }
     /// Dangerous because it takes a string that could be user crafted. You should prefer .where_ which
     /// takes a &'static str, and pass arguments with `.bind()`.
     pub fn dangerous_where(mut self, clause: &str) -> Self {
         self.wheres.push(clause.to_string());
+        self
+    }
+
+    pub fn join(mut self, join_description: JoinDescription) -> Self {
+        self.join.push(join_description.to_join_clause(M::_table_name()));
+        self.columns.extend(join_description.to_select_clause());
+        println!("columns: {:?}", self.columns);
+        println!("joins: {:?}", self.join);
         self
     }
 
@@ -123,7 +140,7 @@ where
     /// # Arguments:
     /// * `clause` - The join clause. If it doesn't start with any of `JOIN`, `INNER`,
     /// `LEFT`, `RIGHT`, `OUTER`, or `FULL` (case-insensitive), `JOIN` is assumed.
-    pub fn join(mut self, clause: &str) -> Self {
+    pub fn join_old(mut self, clause: &str) -> Self {
         if let Some(x) = Some(clause.split_once(' ').map_or(clause, |x| x.0)) {
             if !vec!["join", "inner", "left", "right", "outer", "full"]
                 .contains(&x.to_lowercase().as_str())
@@ -194,7 +211,8 @@ where
         }
         r += "SELECT\n";
         r += &self.columns.join(", ");
-        r += &format!("\nFROM \"{}\"", M::table_name());
+        r += "\n";
+        r += &format!(r#"FROM "{}" "#, M::_table_name());
         if !self.join.is_empty() {
             r += &self.join.join("\n");
         }

@@ -72,10 +72,13 @@ expand-run:
     printf '#![feature(core_panic)]\n' >> examples/expand.rs
     cargo expand --example many-to-one --features sqlite,runtime-tokio-rustls,uuid >> examples/expand.rs
     sd '::alloc::' '::std::' examples/expand.rs -f
-    sd '# \[ormlite.*' '' examples/expand.rs -f
+    sd '# ?\[ormlite.*' '' examples/expand.rs -f
     cargo run --example expand --features sqlite,runtime-tokio-rustls,uuid
 alias er := expand-run
 
 rerun:
     cargo run --example expand --features sqlite,runtime-tokio-rustls,uuid
 alias rr := expand-run
+
+backtrace:
+    RUSTFLAGS="-Z macro-backtrace" cargo run --example many-to-one --features sqlite,runtime-tokio-rustls,uuid

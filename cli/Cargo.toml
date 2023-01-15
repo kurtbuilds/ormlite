@@ -22,8 +22,8 @@ default = ["ormlite/postgres", "ormlite/uuid", "ormlite/time", "ormlite/json"]
 anyhow = "1.0.68"
 time = { version = "0.3.5", features = ["formatting"] }
 clap = { version = "4.0.32", features = ["derive"] }
-ignore = "0.4.18"
 ormlite = { version = "0.7.1", path = "../ormlite" }
+ormlite-core = { version = "0.7.1", path = "../core" }
 ormlite-attr = { version = "0.7.1", path = "../attr" }
 tokio = { version = "1", features = ["full"] }
 sqldiff = "0.4.0"

@@ -4,6 +4,8 @@ pub use futures_core::future::BoxFuture;
 pub use join::Join;
 
 mod error;
+pub mod config;
 pub mod model;
 pub mod query_builder;
-mod join;
+pub mod join;
+pub mod insert;

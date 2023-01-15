@@ -6,7 +6,7 @@ use clap::Parser;
 use ormlite::{Executor, Arguments, Acquire};
 use ormlite::postgres::PgArguments;
 use crate::command::{get_executed_migrations, get_pending_migrations, MigrationType};
-use crate::config::{get_var_snapshot_folder, get_var_database_url, get_var_migration_folder};
+use ormlite_core::config::{get_var_snapshot_folder, get_var_database_url, get_var_migration_folder};
 use crate::util::{CommandSuccess, create_connection, create_runtime};
 use sha2::{Digest, Sha384};
 
@@ -31,16 +31,14 @@ impl Up {
         let folder = get_var_migration_folder();
         let runtime = create_runtime();
         let url = get_var_database_url();
-        let mut conn_owned = create_connection(&url, &runtime)?;
-        let mut conn = runtime.block_on(conn_owned.acquire())?;
-        // let conn = runtime.block_on(conn_owned.acquire())?;
+        let mut conn = create_connection(&url, &runtime)?;
+        let conn = runtime.block_on(conn.acquire())?;
 
         let executed = get_executed_migrations(&runtime, &mut *conn)?;
         let pending = get_pending_migrations(&folder)?
             .into_iter()
             .filter(|m| m.migration_type() != MigrationType::Down)
             .collect::<Vec<_>>();
-        ;
 
         if executed.len() >= pending.len() {
             eprintln!("No migrations to run.");
@@ -54,7 +52,7 @@ impl Up {
             let snapshot_folder = get_var_snapshot_folder();
             fs::create_dir_all(&snapshot_folder)?;
             let file_stem = executed.last().map(|m| m.name.clone()).unwrap_or("0_empty".to_string());
-            let file_path = snapshot_folder.join(format!("{}.sql.bak", file_stem));
+            let file_path = snapshot_folder.join(format!("{file_stem}.sql.bak"));
             let backup_file = File::create(&file_path)?;
             std::process::Command::new("pg_dump")
                 .arg(&url)
@@ -66,7 +64,6 @@ impl Up {
 
         let iter = pending.iter().skip(executed.len()).take(if self.all { pending.len() } else { 1 });
         for migration in iter {
-            let conn = runtime.block_on(conn_owned.acquire())?;
             let file_path = folder.join(&migration.name).with_extension(migration.migration_type().extension());
             let body = std::fs::read_to_string(&file_path)?;
 
@@ -82,7 +79,7 @@ impl Up {
             args.add(checksum);
             args.add(elapsed.as_nanos() as i64);
             let q = ormlite::query_with("INSERT INTO _sqlx_migrations (version, description, installed_on, success, checksum, execution_time) VALUES ($1, $2, NOW(), true, $3, $4)", args);
-            runtime.block_on(q.execute(conn))?;
+            runtime.block_on(q.execute(&mut *conn))?;
             eprintln!("{}: Executed migration", file_path.display());
         }
         Ok(())

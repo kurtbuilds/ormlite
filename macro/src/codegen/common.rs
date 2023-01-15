@@ -7,12 +7,13 @@ use syn::punctuated::Punctuated;
 use syn::token::Comma;
 use syn::{DeriveInput, Field};
 use syn::spanned::Spanned;
+use attr::TableMetadata;
 use ormlite_attr::{DeriveInputExt, FieldExt};
-use crate::MetadataLookup;
+use crate::MetadataCache;
 
 /// Given the fields of a ModelBuilder struct, return the quoted code.
 fn generate_query_binding_code_for_partial_model(
-    attr: &attr::TableMetadata,
+    attr: &TableMetadata,
 ) -> impl Iterator<Item=TokenStream> + '_ {
     attr.columns.iter()
         .filter(|c| !c.is_join())
@@ -26,18 +27,6 @@ fn generate_query_binding_code_for_partial_model(
         })
 }
 
-/// Give the fields as a TokenStream of Strings (becomes string literals when used in quote!)
-fn get_field_name_tokens(
-    fields: syn::punctuated::Iter<Field>
-) -> impl Iterator<Item=TokenStream> + '_ {
-    fields
-        .map(|f| f.ident.as_ref().unwrap().to_string().into_token_stream())
-}
-
-fn get_field_names(fields: syn::punctuated::Iter<Field>) -> impl Iterator<Item=String> + '_ {
-    fields.map(|f| f.ident.as_ref().unwrap().to_string().replace("r#", ""))
-}
-
 /// bool whether the given type is `String`
 fn ty_is_string(ty: &syn::Type) -> bool {
     let p = match ty {
@@ -47,50 +36,94 @@ fn ty_is_string(ty: &syn::Type) -> bool {
     p.path.segments.last().map(|s| s.ident == "String").unwrap_or(false)
 }
 
+
+/// `name` renames the column. Can pass `col.column_name` if it's not renamed.
+fn from_row_for_column(get_value: proc_macro2::TokenStream, col: &attr::ColumnMetadata) -> proc_macro2::TokenStream {
+    let id = &col.identifier;
+    let ty = &col.column_type;
+    if col.is_join() {
+        quote! {
+            let #id = ::ormlite::model::Join::default();
+        }
+    } else {
+        quote! {
+            let #id: #ty = row.try_get(#get_value)?;
+        }
+    }
+}
+
+fn from_row_bounds(attr: &TableMetadata) -> impl Iterator<Item=proc_macro2::TokenStream> + '_ {
+    attr.columns.iter()
+        .filter(|c| !c.is_join())
+        .map(|c| {
+            let ty = &c.column_type;
+            quote! {
+                    #ty: ::ormlite::decode::Decode<'a, R::Database>,
+                    #ty: ::ormlite::types::Type<R::Database>,
+            }
+        })
+}
+
+fn is_vec(p: &syn::Path) -> bool {
+    let Some(segment) = p.segments.last() else {
+        return false;
+    };
+    segment.ident == "Vec"
+}
+
 pub trait OrmliteCodegen {
     fn database() -> TokenStream;
     fn placeholder() -> TokenStream;
     fn raw_placeholder() -> Placeholder;
 
-    fn impl_FromRow(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
+    fn impl_FromRow(ast: &DeriveInput, attr: &attr::TableMetadata, cache: &MetadataCache) -> TokenStream {
         let span = ast.span();
         let model = &ast.ident;
 
-        let fields = attr.columns.iter()
-            .map(|c| syn::Ident::new(&c.column_name, span));
+        let bounds = from_row_bounds(attr);
 
-        let mut columns = attr.columns.iter()
-            .filter(|c| !c.is_join())
+        let columns = attr.columns.iter()
             .map(|c| {
-                let name_str = &c.column_name;
-                let name = syn::Ident::new(&c.column_name, span);
-                let ty = &c.column_type;
+                let name = &c.column_name;
+                from_row_for_column(quote! { #name }, c)
+            })
+            .collect::<Vec<_>>()
+            ;
+        let fields = attr.all_fields(span);
+
+        let prefix_branches = attr.columns.iter().filter(|c| c.is_join()).map(|c| {
+            let name = &c.identifier.to_string();
+            let iden = &c.identifier;
+            let meta = cache.get(c.joined_struct_name().unwrap().as_str())
+                .expect("Joined struct not found");
+            let path = c.joined_path().unwrap();
+            let relation = &c.identifier;
+            let result = if is_vec(path) {
+                unimplemented!("Join<Vec<...>> isn't supported quite yet...");
+            } else {
+                let prefixed_columns = meta.columns.iter().map(|c| {
+                    format!("__{}__{}", relation, c.identifier)
+                });
                 quote! {
-                    let #name: #ty = row.try_get(#name_str)?;
+                    #path::from_row_using_aliases(row, &[
+                        #(
+                            #prefixed_columns,
+                        )*
+                    ])?
                 }
-            }).collect::<Vec<_>>();
-
-        for join in attr.columns.iter().filter(|c| c.is_join()) {
-            let name = &join.identifier;
-            let ty = &join.column_type;
-            let join_model = match ty {
-                syn::Type::Path(p) => p.path.segments.last().unwrap().ident.clone(),
-                _ => panic!("Join type must be a path"),
             };
-            columns.push(quote! {
-                let #name = ::ormlite::model::Join::default();
-            });
-        }
-
-        let bounds = attr.columns.iter()
-            .filter(|c| !c.is_join())
-            .map(|c| {
-                let ty = &c.column_type;
-                quote! {
-                    #ty: ::ormlite::decode::Decode<'a, R::Database>,
-                    #ty: ::ormlite::types::Type<R::Database>,
+            quote! {
+                #name => {
+                    model.#iden = ::ormlite::model::Join::_query_result(#result);
+                }
             }
-            });
+
+        });
+
+        let field_names = attr.columns.iter()
+            .filter(|c| !c.is_join())
+            .map(|c| c.identifier.to_string());
+
         quote! {
             impl<'a, R: ::ormlite::Row> ::ormlite::model::FromRow<'a, R> for #model
                 where
@@ -100,6 +133,68 @@ pub trait OrmliteCodegen {
                     )*
             {
                 fn from_row(row: &'a R) -> ::std::result::Result<Self, ::ormlite::SqlxError> {
+                    let mut model = Self::from_row_using_aliases(row, &[
+                        #(
+                            #field_names,
+                        )*
+                    ])?;
+                    let mut prefixes = row.columns().iter().filter_map(|c| {
+                        let name = ::ormlite::Column::name(c);
+                        if name.starts_with("__") {
+                            name.rsplitn(2, "__").last().map(|s| &s[2..])
+                        } else {
+                            None
+                        }
+                    })
+                        .collect::<Vec<_>>();
+                    prefixes.sort();
+                    prefixes.dedup();
+                    for prefix in prefixes {
+                        match prefix {
+                            #(
+                                #prefix_branches
+                            )*
+                            _ => {
+                                return Err(::ormlite::SqlxError::Decode(
+                                    Box::new(::ormlite::Error::OrmliteError(format!("Unknown column prefix: {}", prefix))),
+                                ));
+                            }
+                        }
+                    }
+                    Ok(model)
+                }
+            }
+        }
+    }
+
+    fn impl_from_row_using_aliases(ast: &DeriveInput, attr: &TableMetadata, metadata_cache: &MetadataCache) -> TokenStream {
+        let span = ast.span();
+        let model = &ast.ident;
+        let fields = attr.all_fields(span);
+        let bounds = from_row_bounds(attr);
+        let mut incrementer = 0usize..;
+        let columns = attr.columns.iter()
+            .map(|c| {
+                if c.is_join() {
+                    from_row_for_column(proc_macro2::TokenStream::new(), c)
+                } else {
+                    let index = incrementer.next().unwrap();
+                    let get = quote! { aliases[#index] };
+                    from_row_for_column(get, c)
+                }
+            })
+            .collect::<Vec<_>>()
+            ;
+
+        quote! {
+            impl #model {
+                pub fn from_row_using_aliases<'a, R: ::ormlite::Row>(row: &'a R, aliases: &'a [&str]) -> ::std::result::Result<Self, ::ormlite::SqlxError>
+                    where
+                        &'a str: ::ormlite::ColumnIndex<R>,
+                        #(
+                            #bounds
+                        )*
+                {
                     #(
                         #columns
                     )*
@@ -109,20 +204,79 @@ pub trait OrmliteCodegen {
         }
     }
 
-    fn impl_Model(ast: &DeriveInput, attr: &attr::TableMetadata, model_lookup: &MetadataLookup) -> TokenStream {
+    fn static_join_descriptions(ast: &DeriveInput, attr: &TableMetadata, metadata_cache: &MetadataCache) -> TokenStream {
+        let span = ast.span();
+        let model = &ast.ident;
+        let joins = attr.columns.iter().filter(|c| c.is_join()).map(|c| {
+            let relation = &c.identifier;
+            let relation_name = &c.identifier.to_string();
+            let key = if let Some(key) = &c.many_to_one_key {
+                key.to_string()
+            } else {
+                attr.primary_key.clone().expect("Must have a primary key for the join.")
+            };
+            let foreign_key = if let Some(foreign_key) = &c.one_to_many_foreign_key {
+                unimplemented!("one_to_many_foreign_key not implemented yet");
+            } else {
+                attr.primary_key.clone().expect("Must have a primary key for the join.")
+            };
+            let join_type = if c.one_to_many_foreign_key.is_some() {
+                quote! { ::ormlite::__private::SemanticJoinType::OneToMany }
+            } else if c.many_to_one_key.is_some() {
+                quote! { ::ormlite::__private::SemanticJoinType::ManyToOne }
+            } else if c.many_to_many_table.is_some() {
+                quote! { ::ormlite::__private::SemanticJoinType::ManyToMany }
+            } else {
+                panic!("Unknown join type");
+            };
+            let joined_table = metadata_cache.get(&c.joined_struct_name().unwrap().to_string()).expect("Did not find metadata for joined struct");
+            let table_name = &joined_table.table_name;
+            let columns = joined_table.columns.iter().filter(|c| !c.is_join()).map(|c| {
+                c.identifier.to_string()
+            });
+            quote! {
+                pub fn #relation() -> ::ormlite::__private::JoinDescription {
+                    ::ormlite::__private::JoinDescription {
+                        joined_columns: &[
+                            #(
+                                #columns,
+                            )*
+                        ],
+                        table_name: #table_name,
+                        relation: #relation_name,
+                        key: #key,
+                        foreign_key: #foreign_key,
+                        semantic_join_type: #join_type,
+                    }
+                }
+            }
+        });
+
+        quote! {
+            impl #model {
+                #(
+                    #joins
+                )*
+            }
+        }
+    }
+
+
+    fn impl_Model(ast: &DeriveInput, attr: &attr::TableMetadata, metadata_cache: &MetadataCache) -> TokenStream {
         let db = Self::database();
         let model = &ast.ident;
         let partial_model = quote::format_ident!("{}Builder", model.to_string());
 
         let impl_Model__table_meta = Self::impl_Model__table_meta(ast, attr);
-        let impl_Model__insert = Self::impl_Model__insert(attr, model_lookup);
+        let impl_Model__insert = Self::impl_Model__insert(attr, metadata_cache);
         let impl_Model__update_all_fields = Self::impl_Model__update_all_fields(ast, attr);
         let impl_Model__delete = Self::impl_Model__delete(ast, attr);
-        let impl_Model__get_one = Self::impl_Model__get_one(ast, attr);
+        let impl_Model__fetch_one = Self::impl_Model__fetch_one(ast, attr);
         let impl_Model__select = Self::impl_Model__select(ast, attr);
-        let impl_Model__build = Self::impl_Model__build(ast, attr);
+        let impl_Model__builder = Self::impl_Model__builder(ast, attr);
         let impl_Model__update_partial = Self::impl_Model__update_partial(ast, attr);
 
+        let static_join_descriptions = Self::static_join_descriptions(ast, attr, metadata_cache);
         quote! {
             impl<'slf> ::ormlite::model::Model<'slf, #db> for #model {
                 type ModelBuilder = #partial_model<'slf>;
@@ -131,46 +285,48 @@ pub trait OrmliteCodegen {
                 #impl_Model__insert
                 #impl_Model__update_all_fields
                 #impl_Model__delete
-                #impl_Model__get_one
+                #impl_Model__fetch_one
                 #impl_Model__select
-                #impl_Model__build
+                #impl_Model__builder
                 #impl_Model__update_partial
 
                fn query(query: &str) -> ::ormlite::query::QueryAs<#db, Self, <#db as ::ormlite::database::HasArguments>::Arguments> {
                     ::ormlite::query_as::<_, Self>(query)
                 }
             }
+
+            #static_join_descriptions
         }
     }
+
     fn impl_Model__table_meta(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
         let table_name = &attr.table_name;
-        let id = &attr.primary_key;
+        // let id = &attr.primary_key;
         let fields = ast.fields();
         let n_fields = fields.len();
-        let field_names = get_field_name_tokens(fields);
+        let field_names = attr.columns.iter()
+            .filter(|c| !c.is_join())
+            .map(|c| c.identifier.to_string());
 
         quote! {
-            fn table_name() -> &'static str {
+            fn _table_name() -> &'static str {
                 #table_name
             }
 
-            fn fields() -> &'static [&'static str] {
+            fn _table_columns() -> &'static [&'static str] {
                 &[#(#field_names,)*]
             }
 
-            fn num_fields() -> usize {
-                #n_fields
-            }
-
-            fn primary_key_column() -> &'static str {
-                #id
-            }
+            // fn primary_key_column() -> &'static str {
+            //     #id
+            // }
         }
     }
 
-    fn impl_Model__insert(attr: &attr::TableMetadata, model_lookup: &MetadataLookup) -> TokenStream {
+    fn impl_Model__insert(attr: &attr::TableMetadata, metadata_cache: &MetadataCache) -> TokenStream {
         let box_future = crate::util::box_future();
         let db = Self::database();
+        let table = &attr.table_name;
         let field_names = attr.columns.iter().filter(|c| !c.is_join())
             .map(|f| f.column_name.clone())
             .collect::<Vec<_>>().join(", ");
@@ -180,45 +336,64 @@ pub trait OrmliteCodegen {
             .collect::<Vec<_>>()
             .join(", ");
 
-        let query = format!(
-            "INSERT INTO \"{}\" ({}) VALUES ({}) RETURNING *",
-            attr.table_name, field_names, params
-        );
-
         let query_bindings = attr.columns.iter().filter(|c| !c.is_join()).map(|c| {
             let name = &c.identifier;
             quote! {
-                q = q.bind(self.#name);
+                q = q.bind(model.#name);
             }
         });
 
         let rebind = attr.columns.iter().filter(|c| c.is_join() && c.many_to_one_key.is_some()).map(|c| {
             let name = &c.identifier;
             let column = c.many_to_one_key.as_ref().unwrap();
-            let joined_struct = c.joined_struct().unwrap().to_string();
-            let joined_meta = model_lookup.get(&joined_struct).expect(&format!("On {}, tried to define join, but failed to find a Model for {}", attr.struct_name, joined_struct));
+            let joined_struct = c.joined_struct_name().unwrap().to_string();
+            let joined_meta = metadata_cache.get(&joined_struct).expect(&format!("On {}, tried to define join, but failed to find a Model for {}", attr.struct_name, joined_struct));
             let joined_pkey = joined_meta.primary_key.as_ref().expect("Joined struct must have a primary key");
             let joined_pkey = syn::Ident::new(&joined_pkey, Span::call_site());
             quote! {
-                if let Some(modification) = self.#name.modification() {
-                    self.#column = modification.#joined_pkey;
+                if let Some(modification) = model.#name._take_modification() {
+                    model.#column = modification.#joined_pkey;
+                    match modification
+                        .insert(&mut *conn)
+                        .on_conflict(::ormlite::query_builder::OnConflict::Ignore)
+                        .await {
+                        Ok(_) => (),
+                        Err(::ormlite::Error::SqlxError(::ormlite::SqlxError::RowNotFound)) => (),
+                        Err(e) => return Err(e),
+                    }
                 }
             }
         });
 
         quote! {
-            fn insert<'e, E>(mut self, db: E) -> #box_future<'e, ::ormlite::Result<Self>>
-            where
-                E: 'e + ::ormlite::Executor<'e, Database = #db>,
+            fn insert<'a, A>(mut self, conn: A) -> ::ormlite::__private::Insertion<'a, A, Self, #db>
+                where
+                    A: 'a + Send + ::ormlite::Acquire<'a, Database=#db>
             {
-                Box::pin(async move {
-                    #(#rebind)*
-                    let mut q =::ormlite::query_as::<#db, Self>(#query);
-                    #(#query_bindings)*
-                    q.fetch_one(db)
-                        .await
-                        .map_err(::ormlite::Error::from)
-                })
+                ::ormlite::__private::Insertion {
+                    acquire: conn,
+                    model: self,
+                    closure: Box::new(|conn, mut model, query| {
+                        Box::pin(async move {
+                            let mut conn = conn.acquire().await?;
+                            #(
+                                #rebind
+                            )*
+                            let mut q = ::ormlite::query_as(&query);
+                            #(
+                                #query_bindings
+                            )*
+                            q.fetch_one(&mut *conn)
+                                .await
+                                .map_err(::ormlite::Error::from)
+                        })
+                    }),
+                    table_name: #table,
+                    columns: #field_names,
+                    placeholders: #params,
+                    on_conflict: ::ormlite::query_builder::OnConflict::Abort,
+                    _db: ::std::marker::PhantomData,
+                }
             }
         }
     }
@@ -306,7 +481,7 @@ pub trait OrmliteCodegen {
         }
     }
 
-    fn impl_Model__get_one(_ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
+    fn impl_Model__fetch_one(_ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
         let mut placeholder = Self::raw_placeholder();
 
         let query = format!(
@@ -319,7 +494,7 @@ pub trait OrmliteCodegen {
         let db = Self::database();
         let box_future = crate::util::box_future();
         quote! {
-            fn get_one<'e, 'a, Arg, E>(id: Arg, db: E) -> #box_future<'e, ::ormlite::Result<Self>>
+            fn fetch_one<'e, 'a, Arg, E>(id: Arg, db: E) -> #box_future<'e, ::ormlite::Result<Self>>
             where
                 'a: 'e,
                 Arg: 'a + Send + ::ormlite::Encode<'a, #db> + ::ormlite::types::Type<#db>,
@@ -348,11 +523,11 @@ pub trait OrmliteCodegen {
         }
     }
 
-    fn impl_Model__build(ast: &DeriveInput, _attr: &attr::TableMetadata) -> TokenStream {
+    fn impl_Model__builder(ast: &DeriveInput, _attr: &attr::TableMetadata) -> TokenStream {
         let model = &ast.ident;
         let partial_model = quote::format_ident!("{}Builder", model.to_string());
         quote! {
-                fn build() -> #partial_model<'static> {
+                fn builder() -> #partial_model<'static> {
                     #partial_model::default()
                 }
             }
@@ -523,6 +698,28 @@ pub trait OrmliteCodegen {
             }
         }
     }
+
+    fn impl_ModelBuilder__build(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
+        let span = ast.span();
+
+        let unpack = attr.columns.iter()
+            .map(|c| syn::Ident::new(c.column_name.as_str(), span))
+            .map(|c| {
+                let msg = format!("Tried to build a model, but the field `{}` was not set.", c);
+                quote! { let #c = self.#c.expect(#msg); }
+            });
+
+        let fields = attr.columns.iter()
+            .map(|c| syn::Ident::new(c.column_name.as_str(), span));
+
+        quote! {
+            fn build(self) -> Self::Model {
+                #( #unpack )*
+                Self::Model { #( #fields, )* }
+            }
+        }
+    }
+
     fn impl_ModelBuilder(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
         let model = &ast.ident;
         let db = Self::database();
@@ -530,12 +727,14 @@ pub trait OrmliteCodegen {
 
         let impl_ModelBuilder__insert = Self::impl_ModelBuilder__insert(ast, attr);
         let impl_ModelBuilder__update = Self::impl_ModelBuilder__update(ast, attr);
+        let impl_ModelBuilder__build = Self::impl_ModelBuilder__build(ast, attr);
 
         quote! {
             impl<'a> ::ormlite::model::ModelBuilder<'a, #db> for #partial_model<'a> {
                 type Model = #model;
                 #impl_ModelBuilder__insert
                 #impl_ModelBuilder__update
+                #impl_ModelBuilder__build
             }
         }
     }

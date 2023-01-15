@@ -1,18 +1,15 @@
-/// Decode a sqldiff::Schema from the current code base.
-use std::collections::HashMap;
+
 use std::fmt::Formatter;
-use std::fs;
+
 use std::path::Path;
 use anyhow::Result;
-use ignore::Walk;
 use sqldiff::Schema;
-use syn::{AngleBracketedGenericArguments, DeriveInput, GenericArgument, Item, PathArguments, Type};
-use ormlite_attr::{ColumnMetadata, SyndecodeError, TableMetadata};
+use syn::{AngleBracketedGenericArguments, GenericArgument, PathArguments, Type};
+use ormlite_attr::{ColumnMetadata, TableMetadata};
 use sqldiff::Table;
 use syn::__private::ToTokens;
+use ormlite_attr::{load_from_project, LoadOptions};
 use crate::command::Migrate;
-
-use crate::syndecode::Attributes;
 
 pub trait TryFromOrmlite: Sized {
     fn try_from_ormlite_project(path: &[&Path], opts: &Migrate) -> Result<Self>;
@@ -26,7 +23,7 @@ impl SqlDiffTableExt for Table {
     fn from_metadata(metadata: &TableMetadata) -> Result<Self, TypeTranslationError> {
         Ok(Self {
             name: metadata.table_name.clone(),
-            columns: metadata.columns.iter().map(|c| {
+            columns: metadata.columns.iter().filter(|c| !c.is_join()).map(|c| {
                 let mut col = sqldiff::Column::from_metadata(c)?;
                 col.primary_key = metadata.primary_key.as_ref().map(|c| c == col.name.as_str()).unwrap_or(false);
                 Ok(col)
@@ -114,65 +111,29 @@ impl SqlType {
                         let arg = args.first().expect("No arguments in angle brackets.");
                         let GenericArgument::Type(arg) = arg else { panic!("No type in argument") };
                         if arg.to_token_stream().to_string() != "u8" {
-                            return Err(TypeTranslationError(format!("Don't know how to convert Rust type to SQL: {}", ty.to_token_stream().to_string())));
+                            return Err(TypeTranslationError(format!("Don't know how to convert Rust type to SQL: {}", ty.to_token_stream())));
                         }
                         Bytes
                     }
-                    _ => return Err(TypeTranslationError(format!("Don't know how to convert Rust type to SQL: {}", ty.to_token_stream().to_string())))
+                    _ => return Err(TypeTranslationError(format!("Don't know how to convert Rust type to SQL: {}", ty.to_token_stream())))
                 };
-                return Ok(SqlType {
+                Ok(SqlType {
                     ty,
                     nullable: false,
                 })
             }
-            _ => return Err(TypeTranslationError(format!("Don't know how to convert Rust type to SQL: {}", ty.to_token_stream().to_string())))
+            _ => return Err(TypeTranslationError(format!("Don't know how to convert Rust type to SQL: {}", ty.to_token_stream())))
         }
     }
 }
 
 impl TryFromOrmlite for Schema {
     fn try_from_ormlite_project(paths: &[&Path], opts: &Migrate) -> Result<Self> {
-        let walk = paths.iter().map(|p| Walk::new(p)).flatten();
-        let walk = walk.filter_map(|e| e.ok())
-            .filter(|e| e.path().extension().map(|e| e == "rs")
-                .unwrap_or(false));
-
         let mut schema = Self::new();
-
-        for entry in walk {
-            let contents = fs::read_to_string(&entry.path())?;
-            if !contents.contains("Model") {
-                continue;
-            }
-            if opts.verbose {
-                eprintln!("{}: Checking for #[derive(Model)]", entry.path().display());
-            }
-            let mut ast = syn::parse_file(&contents)?;
-            let structs = ast.items.into_iter().filter_map(|item| match item {
-                Item::Struct(s) => Some(s),
-                _ => None,
-            })
-                .map(|s| {
-                    let attrs = Attributes::from(&s.attrs);
-                    (s, attrs)
-                })
-                .inspect(|(s, attrs)| {
-                    if opts.verbose {
-                        eprintln!("{}: Found struct {}. Detected derives: {:?}", entry.path().display(), s.ident, attrs.derives());
-                    }
-                })
-                .filter(|(_, attrs)| attrs.has_derive("Model"))
-                .collect::<Vec<_>>();
-            for (item, attrs) in structs {
-                let derive: DeriveInput = item.into();
-                let table = TableMetadata::try_from(&derive)
-                    .map_err(|e| SyndecodeError(format!(
-                        "{}: Encounterd an error while scanning for #[derive(Model)] structs: {}",
-                        entry.path().display(), e.to_string()))
-                    )?;
-                let table = sqldiff::Table::from_metadata(&table)?;
-                schema.tables.push(table);
-            }
+        let tables = load_from_project(paths, &LoadOptions { verbose: opts.verbose })?;
+        for table in tables {
+            let table = Table::from_metadata(&table)?;
+            schema.tables.push(table);
         }
         Ok(schema)
     }

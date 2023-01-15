@@ -1,18 +1,17 @@
 use syn::__private::quote::__private::TokenTree;
-use crate::syndecode::Attribute;
 
 #[derive(Debug)]
 pub struct DeriveAttribute(String);
 
 impl DeriveAttribute {
-    pub fn new(name: &str) -> Self {
-        Self(name.to_string())
-    }
+    // pub fn new(name: &str) -> Self {
+    //     Self(name.to_string())
+    // }
 
-    /// Get the full name, including a module path.
-    fn full_name(&self) -> &str {
-        &self.0
-    }
+    // /// Get the full name, including a module path.
+    // fn full_name(&self) -> &str {
+    //     &self.0
+    // }
 
     /// Get only the trait name
     pub(crate) fn trait_name(&self) -> &str {

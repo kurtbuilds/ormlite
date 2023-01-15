@@ -2,7 +2,7 @@ use core::default::Default;
 use sqlx::database::HasArguments;
 use sqlx::{Arguments, Database, IntoArguments};
 
-pub struct QueryBuilderArgs<'q, DB: HasArguments<'q>>(
+pub struct QueryBuilderArgs<'q, DB: Database>(
     pub Box<<DB as HasArguments<'q>>::Arguments>,
     usize,
 );

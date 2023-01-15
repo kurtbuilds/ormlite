@@ -3,9 +3,9 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 const MIGRATION_FOLDER: &str = "migrations";
-const MIGRATION_TABLE: &str = "_sqlx_migrations";
+pub const MIGRATION_TABLE: &str = "_sqlx_migrations";
 const MIGRATION_SNAPSHOT_FOLDER: &str = "migrations/snapshot";
-const MODEL_FOLDERS: &str = ".";
+pub const MODEL_FOLDERS: &str = ".";
 
 pub fn get_var_migration_folder() -> PathBuf {
     let folder = var("MIGRATION_FOLDER").unwrap_or_else(|_| MIGRATION_FOLDER.to_string());

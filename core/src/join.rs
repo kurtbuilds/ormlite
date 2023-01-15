@@ -1,16 +1,20 @@
-use sqlx::Connection;
 
+#[derive(Debug)]
 pub enum Join<T> {
     NotQueried,
     QueryResult(T),
     Modified(T),
 }
 
+
 impl<T> Join<T> {
+    /// To load data for insertion, use `new`.
     pub fn new(obj: T) -> Self {
         Join::Modified(obj)
     }
 
+
+    /// Whether join data has been loaded into memory.
     pub fn loaded(&self) -> bool {
         match self {
             Join::NotQueried => false,
@@ -19,17 +23,28 @@ impl<T> Join<T> {
         }
     }
 
-    pub fn modification(&self) -> Option<&T> {
-        match self {
+    pub async fn load<'a, A: sqlx::Acquire<'a>>(&mut self, _acq: A) -> Result<(), ()> {
+        unimplemented!()
+    }
+
+    /// Takes ownership and return any modified data. Leaves the Join in a NotQueried state.
+    #[doc(hidden)]
+    pub fn _take_modification(&mut self) -> Option<T> {
+        let owned = std::mem::replace(self, Join::NotQueried);
+        match owned {
             Join::NotQueried => None,
             Join::QueryResult(_) => None,
-            Join::Modified(obj) => Some(obj),
+            Join::Modified(obj) => {
+                Some(obj)
+            }
         }
     }
 
-    pub async fn load<C: Connection>(&mut self, _conn: &mut C) -> Result<(), ()> {
-        unimplemented!()
+    #[doc(hidden)]
+    pub fn _query_result(obj: T) -> Self {
+        Join::QueryResult(obj)
     }
+
 }
 
 impl<T> Default for Join<T> {
@@ -98,5 +113,57 @@ impl<T> std::ops::Deref for Join<T> {
                 r
             }
         }
+    }
+}
+
+
+#[derive(Debug, Copy, Clone)]
+pub enum SemanticJoinType {
+    OneToMany,
+    ManyToOne,
+    ManyToMany(&'static str),
+}
+
+/// Not meant for end users.
+#[doc(hidden)]
+#[derive(Debug, Clone, Copy)]
+pub struct JoinDescription {
+    pub joined_columns: &'static [&'static str],
+    pub table_name: &'static str,
+    pub relation: &'static str,
+    pub key: &'static str,
+    pub foreign_key: &'static str,
+    pub semantic_join_type: SemanticJoinType,
+}
+
+impl JoinDescription {
+    pub fn to_join_clause(&self, local_table: &str) -> String {
+        use SemanticJoinType::*;
+        let table = self.table_name;
+        let relation = self.relation;
+        let local_key = self.key;
+        let foreign_key = self.foreign_key;
+        match &self.semantic_join_type {
+            ManyToOne => {
+                format!(r#"JOIN "{table}" AS "{relation}" ON "{relation}"."{foreign_key}" = "{local_table}"."{local_key}" "#)
+            }
+            OneToMany => {
+                format!(r#"JOIN "{table}" AS "{relation}" ON "{relation}"."{local_key}" = "{local_table}"."{foreign_key}" "#)
+            }
+            ManyToMany(_join_table) => {
+                unimplemented!()
+            }
+        }
+    }
+
+    pub fn to_select_clause(&self) -> Vec<String> {
+        self.joined_columns.iter()
+            .map(|c| format!(r#" "{table}"."{col}" as "{alias}" "#,
+                             table=self.relation, col=c, alias=self.alias(c)))
+            .collect::<Vec<_>>()
+    }
+
+    pub fn alias(&self, column: &str) -> String {
+        format!("__{}__{}", self.relation, column)
     }
 }

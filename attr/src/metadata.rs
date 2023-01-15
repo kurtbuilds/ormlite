@@ -35,7 +35,13 @@ impl TableMetadata {
         }
         Ok(builder)
     }
+
+    pub fn all_fields(&self, span: proc_macro2::Span) -> impl Iterator<Item=syn::Ident> + '_ {
+        self.columns.iter()
+            .map(move |c| syn::Ident::new(&c.column_name, span))
+    }
 }
+
 
 
 impl TableMetadataBuilder {
@@ -79,10 +85,8 @@ impl TryFrom<&DeriveInput> for TableMetadata {
     type Error = SyndecodeError;
 
     fn try_from(ast: &DeriveInput) -> Result<Self, Self::Error> {
-        let result = TableMetadata::builder_from_struct_attributes(&ast)?
-            .complete_with_struct_body(&ast);
-
-        result
+        TableMetadata::builder_from_struct_attributes(&ast)?
+            .complete_with_struct_body(&ast)
     }
 }
 
@@ -90,16 +94,18 @@ impl TryFrom<&DeriveInput> for TableMetadata {
 /// All the metadata we can capture about a column
 #[derive(Clone, Debug, Builder)]
 pub struct ColumnMetadata {
+    /// Name of the column in the database
     pub column_name: String,
     pub column_type: Type,
     /// Only says whether the primary key is marked (with an attribute). Use table_metadata.primary_key to definitively know the primary key.
     pub marked_primary_key: bool,
     pub has_database_default: bool,
+    /// Identifier used in Rust to refer to the column
     pub identifier: syn::Ident,
 
     // only for joins
     pub many_to_one_key: Option<syn::Ident>,
-    pub many_to_many_table_name: Option<syn::Path>,
+    pub many_to_many_table: Option<syn::Path>,
     pub one_to_many_foreign_key: Option<syn::Path>,
 }
 
@@ -112,16 +118,38 @@ impl ColumnMetadata {
         ty_is_join(&self.column_type)
     }
 
-    pub fn joined_struct(&self) -> Option<syn::Ident> {
-        if !self.is_join() {
+    /// We expect this to only return a `Model` of some kind.
+    pub fn joined_struct_name(&self) -> Option<String> {
+        let Some(path) = self.joined_path() else {
             return None;
-        }
+        };
+        let Some(segment) = path.segments.last() else {
+            return None;
+        };
+        let syn::PathArguments::AngleBracketed(args) = &segment.arguments else {
+            return Some(segment.ident.to_string());
+        };
+        let Some(arg) = args.args.last() else {
+            return None;
+        };
+        let syn::GenericArgument::Type(Type::Path(path)) = arg else {
+            return None;
+        };
+        path.path.segments.last().map(|s| s.ident.to_string())
+    }
+
+    /// Whatever is inside the `Join`. We're expecting a `Model` or a `Vec<Model>`.
+    pub fn joined_path(&self) -> Option<&syn::Path> {
         let Type::Path(path) = &self.column_type else {
             return None;
         };
         let Some(segment) = path.path.segments.last() else {
             return None;
         };
+        if segment.ident != "Join" {
+            return None;
+        }
+        // go inside Join<...>
         let syn::PathArguments::AngleBracketed(args) = &segment.arguments else {
             return None;
         };
@@ -131,10 +159,7 @@ impl ColumnMetadata {
         let syn::GenericArgument::Type(Type::Path(path)) = arg else {
             return None;
         };
-        let Some(segment) = path.path.segments.last() else {
-            return None;
-        };
-        Some(segment.ident.clone())
+        Some(&path.path)
     }
 }
 
@@ -152,7 +177,7 @@ impl TryFrom<&Field> for ColumnMetadata {
             .marked_primary_key(false)
             .has_database_default(false)
             .many_to_one_key(None)
-            .many_to_many_table_name(None)
+            .many_to_many_table(None)
             .one_to_many_foreign_key(None)
         ;
         let mut has_join_directive = false;
@@ -165,13 +190,17 @@ impl TryFrom<&Field> for ColumnMetadata {
             if args.default {
                 builder.has_database_default(true);
             }
+
+            if let Some(column_name) = args.column {
+                builder.column_name(column_name.value());
+            }
             if let Some(value) = args.many_to_one_key {
                 let ident = value.segments.last().unwrap().ident.clone();
                 builder.many_to_one_key(Some(ident));
                 has_join_directive = true;
             }
-            if let Some(value) = args.many_to_many_table_name {
-                builder.many_to_many_table_name(Some(value));
+            if let Some(value) = args.many_to_many_table {
+                builder.many_to_many_table(Some(value));
                 has_join_directive = true;
             }
             if let Some(value) = args.one_to_many_foreign_key {
@@ -180,7 +209,7 @@ impl TryFrom<&Field> for ColumnMetadata {
             }
         }
         if ty_is_join(&f.ty) && !has_join_directive {
-            return Err(SyndecodeError(format!("Column {} is a Join. You must specify one of: many_to_one_key, many_to_many_table_name, or one_to_many_foreign_key", ident)));
+            return Err(SyndecodeError(format!("Column {} is a Join. You must specify one of these attributes: many_to_one_key, many_to_many_table_name, or one_to_many_foreign_key", ident)));
         }
         builder.build().map_err(|e| SyndecodeError(e.to_string()))
     }

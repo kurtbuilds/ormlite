@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use syn::__private::quote::__private::TokenTree;
-use proc_macro2::TokenStream;
-use ormlite_attr::SyndecodeError;
+use crate::SyndecodeError;
 
 #[derive(Debug)]
 pub struct PropertiesAttribute {

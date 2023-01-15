@@ -1,23 +1,24 @@
-use std::cmp::Ordering;
-use std::env::var;
+
+
 use std::fs;
 use time::OffsetDateTime as DateTime;
 use time::macros::format_description;
 use std::fs::File;
 use std::io::Write;
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
+use std::path::{Path};
+
 use clap::Parser;
 use anyhow::{anyhow, Context, Error, Result};
-use sqldiff::{Migration, Schema, SchemaColumn, Statement};
+use sqldiff::{Migration, Schema, Statement};
 use ormlite::FromRow;
 use tokio::runtime::Runtime;
 use crate::schema::TryFromOrmlite;
-use ormlite::{Acquire, Executor};
-use ormlite::postgres::{PgConnection, PgConnectOptions, PgPool};
-use crate::{config, util};
-use crate::command::MigrationType::{Down, Simple, Up};
-use crate::config::get_var_model_folders;
+use ormlite::{Acquire};
+use ormlite::postgres::{PgConnection};
+
+use ormlite_core::config;
+
+use ormlite_core::config::get_var_model_folders;
 use crate::util::{create_connection, create_runtime};
 
 const GET_MIGRATIONS_QUERY: &str = "SELECT
@@ -92,8 +93,8 @@ pub struct Migrate {
 }
 
 
-fn create_migration(folder: &Path, mut file_name: String, migration: MigrationType, content: &str) -> Result<()> {
-    let file_path = folder.join(&file_name).with_extension(migration.extension());
+fn create_migration(folder: &Path, file_name: String, migration: MigrationType, content: &str) -> Result<()> {
+    let file_path = folder.join(file_name).with_extension(migration.extension());
 
     let mut file = File::create(&file_path).context("Failed to create file")?;
     file.write_all(content.as_bytes())
@@ -132,8 +133,8 @@ pub fn get_pending_migrations(folder: &Path) -> Result<Vec<MigrationMetadata>> {
 
 // Returns the type of migration environment, either None (any), Simple, or Up (it doesn't return Down)
 fn check_for_pending_migrations(folder: &Path, runtime: &Runtime, conn: &mut PgConnection) -> Result<Option<MigrationType>> {
-    let executed = get_executed_migrations(&runtime, conn)?;
-    let pending = get_pending_migrations(&folder)?;
+    let executed = get_executed_migrations(runtime, conn)?;
+    let pending = get_pending_migrations(folder)?;
 
     if executed.len() < pending.len() {
         return Err(anyhow!("Pending migrations are not in sync with the database. Please run `ormlite up` first."));
@@ -195,7 +196,7 @@ impl Migrate {
             if self.verbose {
                 eprintln!("Debug calculations for migration:");
                 for debug in &migration.debug_results {
-                    eprintln!("{:?}", debug);
+                    eprintln!("{debug:?}");
                 }
             }
 
@@ -212,7 +213,7 @@ impl Migrate {
 
         let dt = DateTime::now_utc();
         let mut file_name = dt.format(format_description!("[year][month][day][hour][minute][second]"))?;
-        file_name.push_str("_");
+        file_name.push('_');
         file_name.push_str(&self.name);
         let migration_body = migration.as_ref().map(|m| {
             m.statements.iter()
