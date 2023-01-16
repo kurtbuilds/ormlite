@@ -16,7 +16,7 @@ path = "src/main.rs"
 #sqlite = ["sqlx/sqlite"]
 #postgres = ["sqlx/postgres"]
 #runtime-tokio-rustls = ["sqlx/runtime-tokio-rustls"]
-default = ["ormlite/postgres", "ormlite/uuid", "ormlite/time", "ormlite/json"]
+default = ["ormlite/postgres", "ormlite/uuid", "ormlite/time", "ormlite/json", "ormlite/chrono", "ormlite/runtime-tokio-rustls"]
 
 [dependencies]
 anyhow = "1.0.68"
