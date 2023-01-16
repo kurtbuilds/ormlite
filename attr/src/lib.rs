@@ -23,7 +23,7 @@ pub struct LoadOptions {
 }
 
 pub fn load_from_project(paths: &[&Path], opts: &LoadOptions) -> anyhow::Result<Vec<TableMetadata>> {
-    let walk = paths.iter().map(|p| Walk::new(p)).flatten();
+    let walk = paths.iter().flat_map(Walk::new);
     let mut results = vec![];
 
     let walk = walk.filter_map(|e| e.ok())
@@ -31,7 +31,7 @@ pub fn load_from_project(paths: &[&Path], opts: &LoadOptions) -> anyhow::Result<
             .unwrap_or(false));
 
     for entry in walk {
-        let contents = fs::read_to_string(&entry.path())?;
+        let contents = fs::read_to_string(entry.path())?;
         if !contents.contains("Model") {
             continue;
         }
@@ -59,7 +59,7 @@ pub fn load_from_project(paths: &[&Path], opts: &LoadOptions) -> anyhow::Result<
             let table = TableMetadata::try_from(&derive)
                 .map_err(|e| SyndecodeError(format!(
                     "{}: Encounterd an error while scanning for #[derive(Model)] structs: {}",
-                    entry.path().display(), e.to_string()))
+                    entry.path().display(), e))
                 )?;
             results.push(table);
         }

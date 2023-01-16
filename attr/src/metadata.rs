@@ -48,10 +48,10 @@ impl TableMetadataBuilder {
     pub fn complete_with_struct_body(&mut self, ast: &DeriveInput) -> Result<TableMetadata, SyndecodeError> {
         let model = &ast.ident;
         let model_lowercased = model.to_string().to_case(Case::Snake);
-        self.table_name.get_or_insert(model_lowercased.clone());
+        self.table_name.get_or_insert(model_lowercased);
 
         let mut cols = ast.fields()
-            .map(|f| ColumnMetadata::try_from(f))
+            .map(ColumnMetadata::try_from)
             .collect::<Result<Vec<_>, _>>().unwrap();
         let mut primary_key = cols
             .iter()
@@ -85,8 +85,8 @@ impl TryFrom<&DeriveInput> for TableMetadata {
     type Error = SyndecodeError;
 
     fn try_from(ast: &DeriveInput) -> Result<Self, Self::Error> {
-        TableMetadata::builder_from_struct_attributes(&ast)?
-            .complete_with_struct_body(&ast)
+        TableMetadata::builder_from_struct_attributes(ast)?
+            .complete_with_struct_body(ast)
     }
 }
 
@@ -209,7 +209,7 @@ impl TryFrom<&Field> for ColumnMetadata {
             }
         }
         if ty_is_join(&f.ty) && !has_join_directive {
-            return Err(SyndecodeError(format!("Column {} is a Join. You must specify one of these attributes: many_to_one_key, many_to_many_table_name, or one_to_many_foreign_key", ident)));
+            return Err(SyndecodeError(format!("Column {ident} is a Join. You must specify one of these attributes: many_to_one_key, many_to_many_table_name, or one_to_many_foreign_key")));
         }
         builder.build().map_err(|e| SyndecodeError(e.to_string()))
     }

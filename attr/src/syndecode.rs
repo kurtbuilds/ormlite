@@ -44,13 +44,13 @@ impl Attributes {
 }
 
 impl Attributes {
-    pub(crate) fn filter_from(attrs: &Vec<syn::Attribute>, filter: &str) -> Self {
+    pub(crate) fn filter_from(attrs: &[syn::Attribute], filter: &str) -> Self {
         let mut attributes = Vec::new();
         for attr in attrs.iter() {
             if attr.path.is_ident("derive") {
                 DeriveAttribute::decode_many_from_attr(attr)
                     .into_iter()
-                    .map(|d| Attribute::Derive(d))
+                    .map(Attribute::Derive)
                     .for_each(|a| attributes.push(a));
             } else {
                 let name = attr.path.segments.last().unwrap().ident.to_string();
@@ -60,9 +60,9 @@ impl Attributes {
                 let attr = if attr.tokens.is_empty() {
                     Attribute::Flag(name)
                 } else {
-                    PropertiesAttribute::try_from(attr).map(|p| Attribute::Properties(p))
+                    PropertiesAttribute::try_from(attr).map(Attribute::Properties)
                         .or_else(|_| {
-                            ArgsAttribute::try_from(attr).map(|a| Attribute::Args(a))
+                            ArgsAttribute::try_from(attr).map(Attribute::Args)
                         }).expect("Unknown attribute")
                 };
                 attributes.push(attr);

@@ -4,9 +4,9 @@ use syn::__private::quote::__private::TokenTree;
 pub struct DeriveAttribute(String);
 
 impl DeriveAttribute {
-    // pub fn new(name: &str) -> Self {
-    //     Self(name.to_string())
-    // }
+    pub fn new(name: &str) -> Self {
+        Self(name.to_string())
+    }
 
     // /// Get the full name, including a module path.
     // fn full_name(&self) -> &str {
@@ -16,7 +16,7 @@ impl DeriveAttribute {
     /// Get only the trait name
     pub(crate) fn trait_name(&self) -> &str {
         if self.0.contains("::") {
-            self.0.rsplitn(2, "::").next().unwrap()
+            self.0.rsplit("::").next().unwrap()
         } else {
             &self.0
         }
@@ -27,12 +27,12 @@ impl DeriveAttribute {
         let TokenTree::Group(group) = group else {
             panic!("Derive attribute must have a token group");
         };
-        let mut group = group.stream().into_iter();
+        let group = group.stream().into_iter();
 
         let mut current: Option<String> = None;
         let mut attributes = Vec::new();
 
-        while let Some(tok) = group.next() {
+        for tok in group {
             match tok {
                 TokenTree::Group(_) => {}
                 TokenTree::Ident(i) => {

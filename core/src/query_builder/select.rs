@@ -231,7 +231,8 @@ where
 impl<'args, DB: sqlx::Database + DatabaseMetadata, M: Model<'args, DB>> Default for SelectQueryBuilder<'args, DB, M> {
     fn default() -> Self {
         Self {
-            query: Select::default().from(M::_table_name()),
+            query: Select::default()
+                .from(M::_table_name()),
             arguments: QueryBuilderArgs::default(),
             model: PhantomData,
             gen: DB::placeholder(),

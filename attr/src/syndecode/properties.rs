@@ -12,10 +12,10 @@ impl TryFrom<&syn::Attribute> for PropertiesAttribute {
     type Error = SyndecodeError;
 
     fn try_from(attr: &syn::Attribute) -> Result<Self, Self::Error> {
-        let name = attr.path.segments.first().ok_or_else(|| SyndecodeError(format!("Must have a segment.")))?.ident.to_string();
-        let group = attr.tokens.clone().into_iter().next().ok_or_else(|| SyndecodeError(format!("Must have a token group.")))?;
+        let name = attr.path.segments.first().ok_or_else(|| SyndecodeError("Must have a segment.".to_string()))?.ident.to_string();
+        let group = attr.tokens.clone().into_iter().next().ok_or_else(|| SyndecodeError("Must have a token group.".to_string()))?;
         let TokenTree::Group(group) = group else {
-            return Err(SyndecodeError(format!("Must have a token group.")));
+            return Err(SyndecodeError("Must have a token group.".to_string()));
         };
         let mut group = group.stream().into_iter();
 
@@ -33,7 +33,7 @@ impl TryFrom<&syn::Attribute> for PropertiesAttribute {
                 TokenTree::Ident(i) if current_key.is_none() => {
                     current_key = Some(i.to_string());
                     if !matches!(group.next(), Some(TokenTree::Punct(p)) if p.as_char() == '=') {
-                        return Err(SyndecodeError(format!("Expected an equals sign.")));
+                        return Err(SyndecodeError("Expected an equals sign.".to_string()));
                     }
                 }
                 _ => {
