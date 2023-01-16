@@ -1,3 +1,4 @@
+use sqlmo::query::{Join as JoinQueryFragment, JoinTable, JoinType, SelectColumn, SelectExpression};
 
 #[derive(Debug)]
 pub enum Join<T> {
@@ -44,7 +45,6 @@ impl<T> Join<T> {
     pub fn _query_result(obj: T) -> Self {
         Join::QueryResult(obj)
     }
-
 }
 
 impl<T> Default for Join<T> {
@@ -137,30 +137,32 @@ pub struct JoinDescription {
 }
 
 impl JoinDescription {
-    pub fn to_join_clause(&self, local_table: &str) -> String {
+    pub fn to_join_clause(&self, local_table: &str) -> JoinQueryFragment {
         use SemanticJoinType::*;
         let table = self.table_name;
         let relation = self.relation;
         let local_key = self.key;
         let foreign_key = self.foreign_key;
-        match &self.semantic_join_type {
+        let join = match &self.semantic_join_type {
             ManyToOne => {
-                format!(r#"JOIN "{table}" AS "{relation}" ON "{relation}"."{foreign_key}" = "{local_table}"."{local_key}" "#)
+                format!(r#""{relation}"."{foreign_key}" = "{local_table}"."{local_key}" "#)
             }
             OneToMany => {
-                format!(r#"JOIN "{table}" AS "{relation}" ON "{relation}"."{local_key}" = "{local_table}"."{foreign_key}" "#)
+                format!(r#""{relation}"."{local_key}" = "{local_table}"."{foreign_key}" "#)
             }
             ManyToMany(_join_table) => {
                 unimplemented!()
             }
-        }
+        };
+        JoinQueryFragment::new(table)
+            .alias(self.relation)
+            .on_raw(join)
     }
 
-    pub fn to_select_clause(&self) -> Vec<String> {
+    pub fn select_clause(&self) -> impl Iterator<Item=SelectColumn> + '_ {
         self.joined_columns.iter()
-            .map(|c| format!(r#" "{table}"."{col}" as "{alias}" "#,
-                             table=self.relation, col=c, alias=self.alias(c)))
-            .collect::<Vec<_>>()
+            .map(|c| SelectColumn::table_column(self.relation, *c)
+                .alias(self.alias(*c)))
     }
 
     pub fn alias(&self, column: &str) -> String {

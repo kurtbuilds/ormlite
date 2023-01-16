@@ -62,23 +62,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         age: 98,
         org_id: Uuid::default(),
         organization: Join::new(org.clone()),
-    }.insert(&mut db).await.unwrap();
+    }.insert(&mut db)
+        .await
+        .unwrap();
     assert_eq!(p2.org_id, org.id, "we can do insertion with an existing join obj, and it will pass the error.");
 
     let orgs = Organization::select()
         .fetch_all(&mut db)
-        .await.unwrap();
+        .await
+        .unwrap();
     assert_eq!(orgs.len(), 1, "exactly 1 orgs");
 
     let people = Person::select()
         .fetch_all(&mut db)
-        .await.unwrap();
+        .await
+        .unwrap();
     assert_eq!(people.len(), 2, "exactly 2 people");
 
     let people = Person::select()
         .join(Person::organization())
         .fetch_all(&mut db)
-        .await.unwrap();
+        .await
+        .unwrap();
     assert_eq!(people.len(), 2, "exactly 2 people");
     for person in &people {
         assert_eq!(person.organization.name, "my org", "we can join on the org");

@@ -1,5 +1,3 @@
-
-
 use std::fs;
 use time::OffsetDateTime as DateTime;
 use time::macros::format_description;
@@ -9,7 +7,7 @@ use std::path::{Path};
 
 use clap::Parser;
 use anyhow::{anyhow, Context, Error, Result};
-use sqldiff::{Migration, Schema, Statement};
+use sqlmo::{Migration, Schema, Statement, Dialect, ToSql};
 use ormlite::FromRow;
 use tokio::runtime::Runtime;
 use crate::schema::TryFromOrmlite;
@@ -165,7 +163,7 @@ fn autogenerate_migration(codebase_path: &[&Path], runtime: &Runtime, conn: &mut
 
     let desired = Schema::try_from_ormlite_project(codebase_path, opts)?;
 
-    let migration = current.migrate_to(desired, &sqldiff::Options {
+    let migration = current.migrate_to(desired, &sqlmo::MigrationOptions {
         debug: opts.verbose,
     })?;
     Ok(migration)
@@ -202,7 +200,7 @@ impl Migrate {
 
             if self.dry {
                 for statement in migration.statements {
-                    println!("{};", statement.prepare("public"));
+                    println!("{};", statement.to_sql(Dialect::Postgres));
                 }
                 return Ok(());
             }
@@ -217,7 +215,7 @@ impl Migrate {
         file_name.push_str(&self.name);
         let migration_body = migration.as_ref().map(|m| {
             m.statements.iter()
-                .map(|s| s.prepare("public"))
+                .map(|s| s.to_sql(Dialect::Postgres))
                 .collect::<Vec<_>>()
                 .join(";\n")
         }).unwrap_or_default();

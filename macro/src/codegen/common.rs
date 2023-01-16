@@ -327,14 +327,10 @@ pub trait OrmliteCodegen {
         let box_future = crate::util::box_future();
         let db = Self::database();
         let table = &attr.table_name;
-        let field_names = attr.columns.iter().filter(|c| !c.is_join())
-            .map(|f| f.column_name.clone())
-            .collect::<Vec<_>>().join(", ");
         let mut placeholder = Self::raw_placeholder();
-        let params = attr.columns.iter().filter(|c| !c.is_join())
-            .map(|_| placeholder.next().unwrap())
-            .collect::<Vec<_>>()
-            .join(", ");
+        let params = attr.columns.iter()
+            .filter(|c| !c.is_join())
+            .map(|_| placeholder.next().unwrap());
 
         let query_bindings = attr.columns.iter().filter(|c| !c.is_join()).map(|c| {
             let name = &c.identifier;
@@ -388,10 +384,10 @@ pub trait OrmliteCodegen {
                                 .map_err(::ormlite::Error::from)
                         })
                     }),
-                    table_name: #table,
-                    columns: #field_names,
-                    placeholders: #params,
-                    on_conflict: ::ormlite::query_builder::OnConflict::Abort,
+                    insert: ::ormlite::__private::Insert::new(#table)
+                        .columns(Self::_table_columns())
+                        .one_value(&[#(#params,)*])
+                        .returning(Self::_table_columns()),
                     _db: ::std::marker::PhantomData,
                 }
             }
@@ -517,8 +513,8 @@ pub trait OrmliteCodegen {
         let db = Self::database();
         quote! {
             fn select<'args>() -> ::ormlite::query_builder::SelectQueryBuilder<'args, #db, Self> {
-                ::ormlite::query_builder::SelectQueryBuilder::new(::ormlite::query_builder::Placeholder::question_mark())
-                    .column(&format!("\"{}\".*", #table_name))
+                ::ormlite::query_builder::SelectQueryBuilder::default()
+                    .select(format!("\"{}\".*", #table_name))
             }
         }
     }

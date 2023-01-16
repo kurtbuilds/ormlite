@@ -3,10 +3,9 @@ use std::fmt::Formatter;
 
 use std::path::Path;
 use anyhow::Result;
-use sqldiff::Schema;
+use sqlmo::{Schema, Table};
 use syn::{AngleBracketedGenericArguments, GenericArgument, PathArguments, Type};
 use ormlite_attr::{ColumnMetadata, TableMetadata};
-use sqldiff::Table;
 use syn::__private::ToTokens;
 use ormlite_attr::{load_from_project, LoadOptions};
 use crate::command::Migrate;
@@ -22,9 +21,10 @@ trait SqlDiffTableExt {
 impl SqlDiffTableExt for Table {
     fn from_metadata(metadata: &TableMetadata) -> Result<Self, TypeTranslationError> {
         Ok(Self {
+            schema: None,
             name: metadata.table_name.clone(),
             columns: metadata.columns.iter().filter(|c| !c.is_join()).map(|c| {
-                let mut col = sqldiff::Column::from_metadata(c)?;
+                let mut col = sqlmo::TableColumn::from_metadata(c)?;
                 col.primary_key = metadata.primary_key.as_ref().map(|c| c == col.name.as_str()).unwrap_or(false);
                 Ok(col)
             }).collect::<Result<Vec<_>,_>>()?,
@@ -34,11 +34,11 @@ impl SqlDiffTableExt for Table {
 }
 
 trait SqlDiffColumnExt {
-    fn from_metadata(metadata: &ColumnMetadata) -> Result<sqldiff::Column, TypeTranslationError>;
+    fn from_metadata(metadata: &ColumnMetadata) -> Result<sqlmo::TableColumn, TypeTranslationError>;
 }
 
-impl SqlDiffColumnExt for sqldiff::Column {
-    fn from_metadata(metadata: &ColumnMetadata) -> Result<sqldiff::Column, TypeTranslationError> {
+impl SqlDiffColumnExt for sqlmo::TableColumn {
+    fn from_metadata(metadata: &ColumnMetadata) -> Result<sqlmo::TableColumn, TypeTranslationError> {
         let ty = SqlType::from_type(&metadata.column_type)?;
         Ok(Self {
             name: metadata.column_name.clone(),
@@ -51,12 +51,12 @@ impl SqlDiffColumnExt for sqldiff::Column {
 }
 
 struct SqlType {
-    pub ty: sqldiff::Type,
+    pub ty: sqlmo::Type,
     pub nullable: bool,
 }
 
-impl From<sqldiff::Type> for SqlType {
-    fn from(value: sqldiff::Type) -> Self {
+impl From<sqlmo::Type> for SqlType {
+    fn from(value: sqlmo::Type) -> Self {
         Self {
             ty: value,
             nullable: false,
@@ -77,7 +77,7 @@ impl std::fmt::Display for TypeTranslationError {
 
 impl SqlType {
     fn from_type(ty: &Type) -> Result<Self, TypeTranslationError> {
-        use sqldiff::Type::*;
+        use sqlmo::Type::*;
         match ty {
             Type::Paren(t) => {
                 Self::from_type(&t.elem)
@@ -148,7 +148,7 @@ mod tests {
 
     #[test]
     fn test_convert_type() -> Result<()> {
-        use sqldiff::Type;
+        use sqlmo::Type;
 
         let s = parse_str::<syn::Type>("String").unwrap();
         assert_matches!(SqlType::from_type(&s)?.ty, Type::Text);

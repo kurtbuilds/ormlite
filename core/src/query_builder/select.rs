@@ -2,27 +2,51 @@ use crate::error::{Error, Result};
 use crate::query_builder::args::QueryBuilderArgs;
 use crate::query_builder::{util, Placeholder};
 use crate::model::Model;
+use sqlmo::ToSql;
 
 use sqlx::database::HasArguments;
 
 use sqlx::{Executor, IntoArguments};
 use std::marker::PhantomData;
 use crate::join::JoinDescription;
+use sqlmo::{Select, query::Where};
+
+pub use sqlmo::query::Direction;
+use sqlmo::query::{Join, SelectColumn};
+
+// Add additional information to the sqlx::Database
+pub trait DatabaseMetadata {
+    fn dialect() -> sqlmo::Dialect;
+    fn placeholder() -> Placeholder;
+}
+
+#[cfg(feature = "postgres")]
+impl DatabaseMetadata for sqlx::postgres::Postgres {
+    fn dialect() -> sqlmo::Dialect {
+        sqlmo::Dialect::Postgres
+    }
+
+    fn placeholder() -> Placeholder {
+        Placeholder::dollar_sign()
+    }
+}
+
+#[cfg(feature = "sqlite")]
+impl DatabaseMetadata for sqlx::sqlite::Sqlite {
+    fn dialect() -> sqlmo::Dialect {
+        sqlmo::Dialect::Sqlite
+    }
+
+    fn placeholder() -> Placeholder {
+        Placeholder::question_mark()
+    }
+}
 
 pub struct SelectQueryBuilder<'args, DB, Model>
 where
     DB: sqlx::Database,
 {
-    with: Vec<(String, String)>,
-    columns: Vec<String>,
-    join: Vec<String>,
-    wheres: Vec<String>,
-    group: Vec<String>,
-    order: Vec<String>,
-    having: Vec<String>,
-    limit: Option<usize>,
-    offset: Option<usize>,
-
+    pub query: Select,
     arguments: QueryBuilderArgs<'args, DB>,
     model: PhantomData<Model>,
     gen: Placeholder,
@@ -31,42 +55,39 @@ where
 impl<'args, DB, M> SelectQueryBuilder<'args, DB, M>
 where
     M: Sized + Send + Sync + Unpin + for<'r> sqlx::FromRow<'r, DB::Row> + 'static + Model<'static, DB>,
-    DB: sqlx::Database,
+    DB: sqlx::Database + DatabaseMetadata,
     <DB as HasArguments<'args>>::Arguments: IntoArguments<'args, DB>,
 {
-    pub async fn fetch_all<'executor, E>(mut self, db: E) -> Result<Vec<M>>
+    pub async fn fetch_all<'executor, E>(self, db: E) -> Result<Vec<M>>
     where
         E: Executor<'executor, Database = DB>,
     {
-        let text = self.build_sql()?;
+        let (text, args) = self.into_query_and_args()?;
         let z: &str = &text;
-        let args = std::mem::take(&mut self.arguments);
         util::query_as_with_recast_lifetime::<DB, M>(z, args)
             .fetch_all(db)
             .await
             .map_err(|e| Error::from(e))
     }
 
-    pub async fn fetch_one<'executor, E>(mut self, db: E) -> Result<M>
+    pub async fn fetch_one<'executor, E>(self, db: E) -> Result<M>
     where
         E: Executor<'executor, Database = DB>,
     {
-        let text = self.build_sql()?;
+        let (text, args) = self.into_query_and_args()?;
         let z: &str = &text;
-        let args = std::mem::take(&mut self.arguments);
         util::query_as_with_recast_lifetime::<DB, M>(z, args)
             .fetch_one(db)
             .await
             .map_err(|e| Error::from(e))
     }
 
-    pub async fn fetch_optional<'executor, E>(mut self, db: E) -> Result<Option<M>>
+    pub async fn fetch_optional<'executor, E>(self, db: E) -> Result<Option<M>>
     where
         E: Executor<'executor, Database = DB>,
     {
-        let text = self.build_sql()?;
+        let (text, args) = self.into_query_and_args()?;
         let z: &str = &text;
-        let args = std::mem::take(&mut self.arguments);
         util::query_as_with_recast_lifetime::<DB, M>(z, args)
             .fetch_optional(db)
             .await
@@ -74,7 +95,7 @@ where
     }
 
     pub fn with(mut self, name: &str, query: &str) -> Self {
-        self.with.push((name.to_string(), query.to_string()));
+        self.query = self.query.with_raw(name, query);
         self
     }
 
@@ -83,8 +104,8 @@ where
     ///
     /// # Arguments
     /// * `column` - The column to add. Examples: "id", "name", "person.*"
-    pub fn column(mut self, column: &str) -> Self {
-        self.columns.push(column.to_string());
+    pub fn select(mut self, column: impl Into<String>) -> Self {
+        self.query = self.query.select_raw(column.into());
         self
     }
 
@@ -102,30 +123,29 @@ where
     /// # Arguments
     /// * `clause` - The clause to add. Examples: "id = ?", "name = ?", "person.id = ?"
     pub fn where_(mut self, clause: &'static str) -> Self {
-        self.wheres.push(clause.to_string());
+        self.query = self.query.where_raw(clause);
         self
     }
 
+    /// Convenience method to add a `WHERE` and bind a value in one call.
     pub fn where_bind<T>(mut self, clause: &'static str, value: T) -> Self
         where
             T: 'args + Send + sqlx::Type<DB> + sqlx::Encode<'args, DB>,
     {
-        self.wheres.push(clause.to_string());
+        self.query = self.query.where_raw(clause);
         self.arguments.add(value);
         self
     }
-    /// Dangerous because it takes a string that could be user crafted. You should prefer .where_ which
+    /// Dangerous because it takes a string that could be user crafted. You should prefer `.where_` which
     /// takes a &'static str, and pass arguments with `.bind()`.
     pub fn dangerous_where(mut self, clause: &str) -> Self {
-        self.wheres.push(clause.to_string());
+        self.query = self.query.where_raw(clause);
         self
     }
 
     pub fn join(mut self, join_description: JoinDescription) -> Self {
-        self.join.push(join_description.to_join_clause(M::_table_name()));
-        self.columns.extend(join_description.to_select_clause());
-        println!("columns: {:?}", self.columns);
-        println!("joins: {:?}", self.join);
+        self.query = self.query.join(join_description.to_join_clause(M::_table_name()));
+        self.query.columns.extend(join_description.select_clause());
         self
     }
 
@@ -135,27 +155,9 @@ where
         self.where_(clause)
     }
 
-    /// Add a JOIN clause to the query.
-    ///
-    /// # Arguments:
-    /// * `clause` - The join clause. If it doesn't start with any of `JOIN`, `INNER`,
-    /// `LEFT`, `RIGHT`, `OUTER`, or `FULL` (case-insensitive), `JOIN` is assumed.
-    pub fn join_old(mut self, clause: &str) -> Self {
-        if let Some(x) = Some(clause.split_once(' ').map_or(clause, |x| x.0)) {
-            if !vec!["join", "inner", "left", "right", "outer", "full"]
-                .contains(&x.to_lowercase().as_str())
-            {
-                self.join.push("JOIN ".to_string() + clause);
-                return self;
-            }
-        }
-        self.join.push(clause.to_string());
-        self
-    }
-
     /// Add a HAVING clause to the query.
     pub fn having(mut self, clause: &str) -> Self {
-        self.having.push(clause.to_string());
+        self.query = self.query.having(Where::Raw(clause.to_string()));
         self
     }
 
@@ -164,7 +166,7 @@ where
     /// # Arguments:
     /// * `clause`: The GROUP BY clause to add. Examples: "id", "id, date", "1, 2, ROLLUP(3)"
     pub fn group_by(mut self, clause: &str) -> Self {
-        self.group.push(clause.to_string());
+        self.query = self.query.group_by(clause);
         self
     }
 
@@ -172,20 +174,31 @@ where
     ///
     /// # Arguments:
     /// * `clause`: The ORDER BY clause to add. "created_at DESC", "id ASC NULLS FIRST"
-    pub fn order_by(mut self, clause: &str) -> Self {
-        self.order.push(clause.to_string());
+    /// * `direction`: Direction::Asc or Direction::Desc
+    pub fn order_by(mut self, clause: &str, direction: Direction) -> Self {
+        self.query = self.query.order_by(clause, direction);
+        self
+    }
+
+    pub fn order_asc(mut self, clause: &str) -> Self {
+        self.query = self.query.order_asc(clause);
+        self
+    }
+
+    pub fn order_desc(mut self, clause: &str) -> Self {
+        self.query = self.query.order_desc(clause);
         self
     }
 
     /// Add a limit to the query.
     pub fn limit(mut self, limit: usize) -> Self {
-        self.limit = Some(limit);
+        self.query = self.query.limit(limit);
         self
     }
 
     /// Add an offset to the query.
     pub fn offset(mut self, offset: usize) -> Self {
-        self.offset = Some(offset);
+        self.query = self.query.offset(offset);
         self
     }
 
@@ -198,80 +211,30 @@ where
         self
     }
 
-    fn build_sql(&mut self) -> Result<String> {
-        let mut r = String::new();
-        if !self.with.is_empty() {
-            r += "WITH ";
-            r += &self
-                .with
-                .iter()
-                .map(|(name, clause)| format!("{} AS (\n{}\n)", name, clause))
-                .collect::<Vec<_>>()
-                .join(", ");
-        }
-        r += "SELECT\n";
-        r += &self.columns.join(", ");
-        r += "\n";
-        r += &format!(r#"FROM "{}" "#, M::_table_name());
-        if !self.join.is_empty() {
-            r += &self.join.join("\n");
-        }
-        if !self.wheres.is_empty() {
-            r += "\nWHERE ";
-            r += &*self
-                .wheres
-                .iter()
-                .map(|clause| format!("({})", clause))
-                .collect::<Vec<_>>()
-                .join("\nAND ");
-        }
-        if !self.group.is_empty() {
-            r += "\nGROUP BY ";
-            r += &self.group.join("\n, ");
-        }
-        if !self.order.is_empty() {
-            r += "\nORDER BY ";
-            r += &self.order.join("\n, ");
-        }
-        if !self.having.is_empty() {
-            r += "\nHAVING ";
-            r += &self.having.join("\n, ");
-        }
-        if let Some(limit) = self.limit {
-            r += &format!("\nLIMIT {}", limit);
-            if let Some(offset) = self.offset {
-                r += &format!(" OFFSET {}", offset);
-            }
-        }
-        let (r, placeholder_count) = util::replace_placeholders(&r, &mut self.gen)?;
-        if placeholder_count != self.arguments.len() {
+    pub fn into_query_and_args(mut self) -> Result<(String, QueryBuilderArgs<'args, DB>)> {
+        let q = self.query.to_sql(DB::dialect());
+        let args = self.arguments;
+        let (q, placeholder_count) = util::replace_placeholders(&q, &mut self.gen)?;
+        if placeholder_count != args.len() {
             return Err(Error::OrmliteError(format!(
                 "Failing to build query. {} placeholders were found in the query, but \
                 {} arguments were provided.",
                 placeholder_count,
-                self.arguments.len(),
+                args.len(),
             )));
         }
-        Ok(r)
+        eprintln!("query: {}", q);
+        Ok((q, args))
     }
+}
 
-    // Bit of a hack for this function to exist, since we have the DB, we *should* know the placeholder, but
-    // DB comes from sqlx, and we don't have a notion of the placeholder. Ergo, let's just pass in the placeholder.
-    // Maybe refactor it in the future
-    pub fn new(placeholder: Placeholder) -> Self {
+impl<'args, DB: sqlx::Database + DatabaseMetadata, M> Default for SelectQueryBuilder<'args, DB, M> {
+    fn default() -> Self {
         Self {
-            with: Vec::new(),
-            columns: Vec::new(),
-            join: Vec::new(),
-            wheres: Vec::new(),
-            group: Vec::new(),
-            order: Vec::new(),
-            having: Vec::new(),
-            limit: None,
-            offset: None,
+            query: Select::default(),
             arguments: QueryBuilderArgs::default(),
             model: PhantomData,
-            gen: placeholder,
+            gen: DB::placeholder(),
         }
     }
 }

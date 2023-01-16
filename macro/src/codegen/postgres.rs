@@ -27,8 +27,8 @@ impl OrmliteCodegen for PostgresBackend {
         let db = Self::database();
         quote! {
             fn select<'args>() -> ::ormlite::query_builder::SelectQueryBuilder<'args, #db, Self> {
-                ::ormlite::query_builder::SelectQueryBuilder::new(::ormlite::query_builder::Placeholder::dollar_sign())
-                    .column(&format!("\"{}\".*", #table_name))
+                ::ormlite::query_builder::SelectQueryBuilder::default()
+                    .select(&format!("\"{}\".*", #table_name))
             }
         }
     }

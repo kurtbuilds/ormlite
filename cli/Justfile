@@ -19,7 +19,7 @@ release:
     cargo build --release
 
 install:
-    cargo install --path .
+    cargo install --path . --features ormlite/runtime-tokio-rustls
 
 # Tools for development
 bootstrap:

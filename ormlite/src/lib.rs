@@ -32,6 +32,7 @@ pub mod database {
 pub mod __private {
     pub use ormlite_core::join::{JoinDescription, SemanticJoinType};
     pub use ormlite_core::insert::Insertion;
+    pub use sqlmo::Insert;
 }
 
 #[deprecated(note = "Most objects in ormlite::export:: are directly in ormlite::* now.")]

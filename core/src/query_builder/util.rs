@@ -52,7 +52,7 @@ pub fn replace_placeholders<T: Iterator<Item = String>>(
 }
 
 
-pub fn query_as_with_recast_lifetime<'q, 'r, DB, Model>(
+pub(super) fn query_as_with_recast_lifetime<'q, 'r, DB, Model>(
     s: &'q str,
     args: QueryBuilderArgs<'r, DB>,
 ) -> QueryAs<'q, DB, Model, QueryBuilderArgs<'q, DB>>
