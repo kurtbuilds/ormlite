@@ -1581,6 +1581,8 @@ dependencies = [
 [[package]]
 name = "sqlmo"
 version = "0.7.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7cc57b600b649c58a6bcb54666936cd3d55d1f1df2ac70077e4ca5d25747d162"
 dependencies = [
  "anyhow",
  "convert_case",
