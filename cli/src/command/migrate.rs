@@ -7,7 +7,7 @@ use std::path::{Path};
 
 use clap::Parser;
 use anyhow::{anyhow, Context, Error, Result};
-use sqlmo::{Migration, Schema, Statement, Dialect, ToSql};
+use sqlmo::{Migration, Schema, Dialect, ToSql, migrate::Statement};
 use ormlite::FromRow;
 use tokio::runtime::Runtime;
 use crate::schema::TryFromOrmlite;
@@ -230,7 +230,7 @@ impl Migrate {
             for statement in &migration.statements {
                 match statement {
                     Statement::CreateTable(t) => println!("Create table {} with columns: {}", &t.name, t.columns.iter().map(|c| c.name.to_string()).collect::<Vec<_>>().join(", ")),
-                    Statement::CreateIndex(s) => println!("Create index {} on {}", &s.name, &s.table_name),
+                    Statement::CreateIndex(s) => println!("Create index {} on {}", &s.name, &s.table),
                     Statement::AlterTable(s) => println!("Alter table {}", &s.name),
                 }
             }

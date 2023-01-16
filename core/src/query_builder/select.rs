@@ -12,7 +12,7 @@ use crate::join::JoinDescription;
 use sqlmo::{Select, query::Where};
 
 pub use sqlmo::query::Direction;
-use sqlmo::query::{Join, SelectColumn};
+
 
 // Add additional information to the sqlx::Database
 pub trait DatabaseMetadata {
@@ -67,7 +67,7 @@ where
         util::query_as_with_recast_lifetime::<DB, M>(z, args)
             .fetch_all(db)
             .await
-            .map_err(|e| Error::from(e))
+            .map_err(Error::from)
     }
 
     pub async fn fetch_one<'executor, E>(self, db: E) -> Result<M>
@@ -79,7 +79,7 @@ where
         util::query_as_with_recast_lifetime::<DB, M>(z, args)
             .fetch_one(db)
             .await
-            .map_err(|e| Error::from(e))
+            .map_err(Error::from)
     }
 
     pub async fn fetch_optional<'executor, E>(self, db: E) -> Result<Option<M>>
@@ -91,7 +91,7 @@ where
         util::query_as_with_recast_lifetime::<DB, M>(z, args)
             .fetch_optional(db)
             .await
-            .map_err(|e| Error::from(e))
+            .map_err(Error::from)
     }
 
     pub fn with(mut self, name: &str, query: &str) -> Self {
@@ -223,7 +223,6 @@ where
                 args.len(),
             )));
         }
-        eprintln!("query: {}", q);
         Ok((q, args))
     }
 }

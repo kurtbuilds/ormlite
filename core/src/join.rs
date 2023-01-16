@@ -1,4 +1,4 @@
-use sqlmo::query::{Join as JoinQueryFragment, JoinTable, JoinType, SelectColumn, SelectExpression};
+use sqlmo::query::{Join as JoinQueryFragment, SelectColumn};
 
 #[derive(Debug)]
 pub enum Join<T> {
@@ -62,7 +62,7 @@ impl<T> Join<Vec<T>> {
     pub fn push(&mut self, obj: T) {
         match self {
             Join::QueryResult(t) => {
-                let mut inner = std::mem::replace(t, Vec::new());
+                let mut inner = std::mem::take(t);
                 inner.push(obj);
                 *self = Join::Modified(inner);
             }
@@ -161,8 +161,8 @@ impl JoinDescription {
 
     pub fn select_clause(&self) -> impl Iterator<Item=SelectColumn> + '_ {
         self.joined_columns.iter()
-            .map(|c| SelectColumn::table_column(self.relation, *c)
-                .alias(self.alias(*c)))
+            .map(|c| SelectColumn::table_column(self.relation, c)
+                .alias(self.alias(c)))
     }
 
     pub fn alias(&self, column: &str) -> String {

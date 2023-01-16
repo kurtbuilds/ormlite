@@ -1,4 +1,5 @@
 use futures_core::future::BoxFuture;
+#[allow(unused_imports)]
 use sqlmo::{Insert, Dialect, ToSql};
 pub use sqlmo::query::OnConflict;
 use crate::Result;

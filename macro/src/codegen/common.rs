@@ -229,7 +229,7 @@ pub trait OrmliteCodegen {
             } else {
                 panic!("Unknown join type");
             };
-            let joined_table = metadata_cache.get(&c.joined_struct_name().unwrap().to_string()).expect("Did not find metadata for joined struct");
+            let joined_table = metadata_cache.get(&c.joined_struct_name().unwrap()).expect("Did not find metadata for joined struct");
             let table_name = &joined_table.table_name;
             let columns = joined_table.columns.iter().filter(|c| !c.is_join()).map(|c| {
                 c.identifier.to_string()
@@ -342,10 +342,10 @@ pub trait OrmliteCodegen {
         let rebind = attr.columns.iter().filter(|c| c.is_join() && c.many_to_one_key.is_some()).map(|c| {
             let name = &c.identifier;
             let column = c.many_to_one_key.as_ref().unwrap();
-            let joined_struct = c.joined_struct_name().unwrap().to_string();
-            let joined_meta = metadata_cache.get(&joined_struct).expect(&format!("On {}, tried to define join, but failed to find a Model for {}", attr.struct_name, joined_struct));
+            let joined_struct = c.joined_struct_name().unwrap();
+            let joined_meta = metadata_cache.get(&joined_struct).unwrap_or_else(|| panic!("On {}, tried to define join, but failed to find a Model for {}", attr.struct_name, joined_struct));
             let joined_pkey = joined_meta.primary_key.as_ref().expect("Joined struct must have a primary key");
-            let joined_pkey = syn::Ident::new(&joined_pkey, Span::call_site());
+            let joined_pkey = syn::Ident::new(joined_pkey, Span::call_site());
             quote! {
                 if let Some(modification) = model.#name._take_modification() {
                     model.#column = modification.#joined_pkey;
@@ -701,7 +701,7 @@ pub trait OrmliteCodegen {
         let unpack = attr.columns.iter()
             .map(|c| syn::Ident::new(c.column_name.as_str(), span))
             .map(|c| {
-                let msg = format!("Tried to build a model, but the field `{}` was not set.", c);
+                let msg = format!("Tried to build a model, but the field `{c}` was not set.");
                 quote! { let #c = self.#c.expect(#msg); }
             });
 

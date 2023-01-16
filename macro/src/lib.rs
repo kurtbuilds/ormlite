@@ -44,7 +44,7 @@ fn load_project_metadata(cache: &RwLock<MetadataCache>) {
 pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
     TABLES.with(load_project_metadata);
 
-    let input2 = input.clone();
+    let input2 = input;
     let ast = parse_macro_input!(input2 as DeriveInput);
     let Data::Struct(data) = &ast.data else { panic!("Only structs can derive Model"); };
 
@@ -91,7 +91,7 @@ pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
 pub fn expand_derive_fromrow(input: TokenStream) -> TokenStream {
     TABLES.with(load_project_metadata);
 
-    let input2 = input.clone();
+    let input2 = input;
     let ast = parse_macro_input!(input2 as DeriveInput);
     let Data::Struct(data) = &ast.data else { panic!("Only structs can derive Model"); };
 

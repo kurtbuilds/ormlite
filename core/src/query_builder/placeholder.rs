@@ -19,7 +19,7 @@ impl Iterator for Placeholder {
     fn next(&mut self) -> Option<String> {
         match *self {
             Placeholder::DollarSign(ref mut i) => {
-                let r = Some(format!("${}", i));
+                let r = Some(format!("${i}"));
                 *i += 1;
                 r
             }

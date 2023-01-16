@@ -3,7 +3,7 @@ use std::fmt::Formatter;
 
 use std::path::Path;
 use anyhow::Result;
-use sqlmo::{Schema, Table};
+use sqlmo::{Schema, Table, schema::Column};
 use syn::{AngleBracketedGenericArguments, GenericArgument, PathArguments, Type};
 use ormlite_attr::{ColumnMetadata, TableMetadata};
 use syn::__private::ToTokens;
@@ -24,7 +24,7 @@ impl SqlDiffTableExt for Table {
             schema: None,
             name: metadata.table_name.clone(),
             columns: metadata.columns.iter().filter(|c| !c.is_join()).map(|c| {
-                let mut col = sqlmo::TableColumn::from_metadata(c)?;
+                let mut col = Column::from_metadata(c)?;
                 col.primary_key = metadata.primary_key.as_ref().map(|c| c == col.name.as_str()).unwrap_or(false);
                 Ok(col)
             }).collect::<Result<Vec<_>,_>>()?,
@@ -34,11 +34,11 @@ impl SqlDiffTableExt for Table {
 }
 
 trait SqlDiffColumnExt {
-    fn from_metadata(metadata: &ColumnMetadata) -> Result<sqlmo::TableColumn, TypeTranslationError>;
+    fn from_metadata(metadata: &ColumnMetadata) -> Result<Column, TypeTranslationError>;
 }
 
-impl SqlDiffColumnExt for sqlmo::TableColumn {
-    fn from_metadata(metadata: &ColumnMetadata) -> Result<sqlmo::TableColumn, TypeTranslationError> {
+impl SqlDiffColumnExt for Column {
+    fn from_metadata(metadata: &ColumnMetadata) -> Result<Column, TypeTranslationError> {
         let ty = SqlType::from_type(&metadata.column_type)?;
         Ok(Self {
             name: metadata.column_name.clone(),
@@ -129,7 +129,7 @@ impl SqlType {
 
 impl TryFromOrmlite for Schema {
     fn try_from_ormlite_project(paths: &[&Path], opts: &Migrate) -> Result<Self> {
-        let mut schema = Self::new();
+        let mut schema = Self::default();
         let tables = load_from_project(paths, &LoadOptions { verbose: opts.verbose })?;
         for table in tables {
             let table = Table::from_metadata(&table)?;

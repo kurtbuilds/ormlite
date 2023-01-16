@@ -24,7 +24,7 @@ pub fn replace_placeholders<T: Iterator<Item = String>>(
             }
             Token::Char(c) => match c {
                 '?' => {
-                    buf.push_str(&*placeholder_generator.next().unwrap());
+                    buf.push_str(&placeholder_generator.next().unwrap());
                     placeholder_count += 1;
                 }
                 '$' => {
@@ -33,10 +33,9 @@ pub fn replace_placeholders<T: Iterator<Item = String>>(
                         match next_tok {
                             Token::Number(text, _) => {
                                 let n = text.parse::<usize>().map_err(|_| Error::OrmliteError(
-                                    format!("Failed to parse number after a $ during query tokenization. Value was: {}",
-                                        text
+                                    format!("Failed to parse number after a $ during query tokenization. Value was: {text}"
                                     )))?;
-                                buf.push_str(&format!("${}", next_tok));
+                                buf.push_str(&format!("${next_tok}"));
                                 placeholder_count = std::cmp::max(placeholder_count, n);
                             }
                             _ => {}
@@ -74,10 +73,10 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::query_builder::args::QueryBuilderArgs;
-    use crate::{Error, Result};
-    use sqlparser::dialect::GenericDialect;
-    use sqlparser::tokenizer::Tokenizer;
+    
+    use crate::{Result};
+    
+    
 
     #[test]
     fn test_replace_placeholders() -> Result<()> {

@@ -26,6 +26,6 @@ impl<'q, DB: Database> IntoArguments<'q, DB> for QueryBuilderArgs<'q, DB> {
 
 impl<'q, DB: Database> Default for QueryBuilderArgs<'q, DB> {
     fn default() -> Self {
-        Self(Box::new(<DB as HasArguments<'q>>::Arguments::default()), 0)
+        Self(Box::default(), 0)
     }
 }
