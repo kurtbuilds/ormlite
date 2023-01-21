@@ -16,10 +16,10 @@ pub struct Insertion<'a, Acquire, Model, DB: sqlx::Database> {
 
 impl<'a, Acquire, Model, DB: sqlx::Database> Insertion<'a, Acquire, Model, DB> {
     pub fn on_conflict(mut self, c: OnConflict) -> Self {
-        self.insert.on_conflict = c;
         if c == OnConflict::Ignore {
             self.insert.returning = Vec::new();
         }
+        self.insert.on_conflict = c;
         self
     }
 }
