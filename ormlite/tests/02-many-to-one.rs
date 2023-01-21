@@ -84,6 +84,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         assert_eq!(person.organization.name, "my org", "we can join on the org");
         assert!(matches!(person.organization, Join::QueryResult(_)), "Join results are returned as Join::QueryResult");
     }
-    println!("people: {:#?}", people);
+    // println!("people: {:#?}", people);
     Ok(())
 }
