@@ -91,8 +91,7 @@ pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
 pub fn expand_derive_fromrow(input: TokenStream) -> TokenStream {
     TABLES.with(load_project_metadata);
 
-    let input2 = input;
-    let ast = parse_macro_input!(input2 as DeriveInput);
+    let ast = parse_macro_input!(input as DeriveInput);
     let Data::Struct(data) = &ast.data else { panic!("Only structs can derive Model"); };
 
     let table_meta = TableMetadata::try_from(&ast).unwrap();
@@ -111,5 +110,20 @@ pub fn expand_derive_fromrow(input: TokenStream) -> TokenStream {
         #impl_from_row_using_aliases
     };
 
+    TokenStream::from(expanded)
+}
+
+#[proc_macro_derive(TableMeta, attributes(ormlite))]
+pub fn expand_derive_table_meta(input: TokenStream) -> TokenStream {
+    let ast = parse_macro_input!(input as DeriveInput);
+    let Data::Struct(data) = &ast.data else { panic!("Only structs can derive Model"); };
+
+    let table_meta = TableMetadata::try_from(&ast).unwrap();
+
+    let impl_TableMeta = codegen::DB::impl_TableMeta(&ast, &table_meta);
+
+    let expanded = quote! {
+        #impl_TableMeta
+    };
     TokenStream::from(expanded)
 }

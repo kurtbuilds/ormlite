@@ -261,13 +261,12 @@ pub trait OrmliteCodegen {
         }
     }
 
-
     fn impl_Model(ast: &DeriveInput, attr: &attr::TableMetadata, metadata_cache: &MetadataCache) -> TokenStream {
         let db = Self::database();
         let model = &ast.ident;
         let partial_model = quote::format_ident!("{}Builder", model.to_string());
 
-        let impl_Model__table_meta = Self::impl_Model__table_meta(ast, attr);
+        let impl_TableMeta = Self::impl_TableMeta(ast, attr);
         let impl_Model__insert = Self::impl_Model__insert(attr, metadata_cache);
         let impl_Model__update_all_fields = Self::impl_Model__update_all_fields(ast, attr);
         let impl_Model__delete = Self::impl_Model__delete(ast, attr);
@@ -281,7 +280,6 @@ pub trait OrmliteCodegen {
             impl<'slf> ::ormlite::model::Model<'slf, #db> for #model {
                 type ModelBuilder = #partial_model<'slf>;
 
-                #impl_Model__table_meta
                 #impl_Model__insert
                 #impl_Model__update_all_fields
                 #impl_Model__delete
@@ -296,30 +294,36 @@ pub trait OrmliteCodegen {
             }
 
             #static_join_descriptions
+            #impl_TableMeta
         }
     }
 
-    fn impl_Model__table_meta(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
+    fn impl_TableMeta(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
+        let model = &ast.ident;
         let table_name = &attr.table_name;
-        // let id = &attr.primary_key;
+        let id = match &attr.primary_key {
+            Some(id) => quote! { Some(#id) },
+            None => quote! { None },
+        };
         let fields = ast.fields();
-        let n_fields = fields.len();
         let field_names = attr.columns.iter()
             .filter(|c| !c.is_join())
             .map(|c| c.identifier.to_string());
 
         quote! {
-            fn _table_name() -> &'static str {
-                #table_name
-            }
+            impl ::ormlite::model::TableMeta for #model {
+                fn table_name() -> &'static str {
+                    #table_name
+                }
 
-            fn _table_columns() -> &'static [&'static str] {
-                &[#(#field_names,)*]
-            }
+                fn table_columns() -> &'static [&'static str] {
+                    &[#(#field_names,)*]
+                }
 
-            // fn primary_key_column() -> &'static str {
-            //     #id
-            // }
+                fn primary_key() -> Option<&'static str> {
+                    #id
+                }
+            }
         }
     }
 
@@ -385,9 +389,9 @@ pub trait OrmliteCodegen {
                         })
                     }),
                     insert: ::ormlite::__private::Insert::new(#table)
-                        .columns(Self::_table_columns())
+                        .columns(Self::table_columns())
                         .one_value(&[#(#params,)*])
-                        .returning(Self::_table_columns()),
+                        .returning(Self::table_columns()),
                     _db: ::std::marker::PhantomData,
                 }
             }

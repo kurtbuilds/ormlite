@@ -60,21 +60,13 @@ pub trait ModelBuilder<'a, DB>
 pub trait Model<'slf, DB>
     where
         DB: sqlx::Database,
-        Self: Sized,
+        Self: Sized + TableMeta,
 {
     type ModelBuilder: ModelBuilder<'slf, DB>;
 
     /// Create a builder-pattern object to update one or more columns.
     /// You can also use `update_all_fields` to update all columns.
     fn update_partial(&'slf self) -> Self::ModelBuilder;
-
-    #[doc(hidden)]
-    fn _table_name() -> &'static str;
-
-    /// All table columns. Excludes relation fields.
-    #[doc(hidden)]
-    fn _table_columns() -> &'static [&'static str];
-
     /// Insert the model into the database.
     fn insert<'a, A>(self, conn: A) -> crate::insert::Insertion<'a, A, Self, DB>
         where
@@ -107,4 +99,10 @@ pub trait Model<'slf, DB>
     fn select<'args>() -> SelectQueryBuilder<'args, DB, Self>;
 
     fn builder() -> Self::ModelBuilder;
+}
+
+pub trait TableMeta {
+    fn table_name() -> &'static str;
+    fn table_columns() -> &'static [&'static str];
+    fn primary_key() -> Option<&'static str>;
 }
