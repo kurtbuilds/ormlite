@@ -9,7 +9,7 @@
 ///
 use crate::Result;
 use crate::SelectQueryBuilder;
-use futures_core::future::BoxFuture;
+use futures::future::BoxFuture;
 
 /// A struct that is `Insertable` is expected to have same fields as the model, excluding fields
 /// that have sane defaults at the database level. Concretely, if you have a Person struct:

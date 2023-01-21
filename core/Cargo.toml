@@ -15,9 +15,8 @@ postgres = ["sqlx/postgres"]
 runtime-tokio-rustls = ["sqlx/runtime-tokio-rustls"]
 
 [dependencies]
-futures-core = "0.3.19"
 tokio = { version = "1", features = ["full"] }
-futures = "0.3.19"
+futures = "0.3.25"
 sqlx = "0.6.0"
 sqlparser = "0.28.0"
 thiserror = "1.0.30"

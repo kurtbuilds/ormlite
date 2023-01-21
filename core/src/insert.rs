@@ -1,4 +1,4 @@
-use futures_core::future::BoxFuture;
+use futures::future::BoxFuture;
 #[allow(unused_imports)]
 use sqlmo::{Insert, Dialect, ToSql};
 pub use sqlmo::query::OnConflict;
