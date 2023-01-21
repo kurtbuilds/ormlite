@@ -1,7 +1,6 @@
-use ormlite::model::*;
 use uuid::Uuid;
 
-#[derive(TableMeta)]
+#[derive(ormlite::TableMeta)]
 pub struct Person {
     id: Uuid,
     name: String,

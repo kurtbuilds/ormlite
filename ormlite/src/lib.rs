@@ -1,6 +1,6 @@
 pub use ormlite_core::BoxFuture;
 pub use ormlite_core::{Error, Result};
-pub use model::{Model, FromRow};
+pub use model::{Model, FromRow, TableMeta};
 pub use ::sqlx::{Row, ColumnIndex, Decode, Column};
 
 pub use ::sqlx::{query, query_as, query_as_with, Connection, Executor, Pool, Acquire, ConnectOptions, Encode, Arguments, query_with};
