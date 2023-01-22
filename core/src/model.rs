@@ -99,6 +99,15 @@ pub trait Model<'slf, DB>
     fn select<'args>() -> SelectQueryBuilder<'args, DB, Self>;
 
     fn builder() -> Self::ModelBuilder;
+
+    #[deprecated(note = "Use `fetch_one` instead")]
+    fn get_one<'e, 'a, Arg, E>(_id: Arg, _db: E) -> BoxFuture<'e, Result<Self>>
+        where
+            'a: 'e,
+            E: 'e + sqlx::Executor<'e, Database=DB>,
+            Arg: 'a + Send + sqlx::Encode<'a, DB> + sqlx::Type<DB> {
+        unimplemented!("Use `fetch_one` instead")
+    }
 }
 
 pub trait TableMeta {

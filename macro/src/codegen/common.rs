@@ -266,7 +266,7 @@ pub trait OrmliteCodegen {
         let model = &ast.ident;
         let partial_model = quote::format_ident!("{}Builder", model.to_string());
 
-        let impl_TableMeta = Self::impl_TableMeta(ast, attr);
+        let impl_TableMeta = Self::impl_TableMeta(attr);
         let impl_Model__insert = Self::impl_Model__insert(attr, metadata_cache);
         let impl_Model__update_all_fields = Self::impl_Model__update_all_fields(ast, attr);
         let impl_Model__delete = Self::impl_Model__delete(ast, attr);
@@ -298,17 +298,16 @@ pub trait OrmliteCodegen {
         }
     }
 
-    fn impl_TableMeta(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
-        let model = &ast.ident;
+    fn impl_TableMeta(attr: &attr::TableMetadata) -> TokenStream {
+        let model = &attr.struct_name;
         let table_name = &attr.table_name;
         let id = match &attr.primary_key {
             Some(id) => quote! { Some(#id) },
             None => quote! { None },
         };
-        let fields = ast.fields();
         let field_names = attr.columns.iter()
             .filter(|c| !c.is_join())
-            .map(|c| c.identifier.to_string());
+            .map(|c| c.column_name.to_string());
 
         quote! {
             impl ::ormlite::model::TableMeta for #model {
@@ -389,9 +388,9 @@ pub trait OrmliteCodegen {
                         })
                     }),
                     insert: ::ormlite::__private::Insert::new(#table)
-                        .columns(Self::table_columns())
+                        .columns(<Self as ::ormlite::TableMeta>::table_columns())
                         .one_value(&[#(#params,)*])
-                        .returning(Self::table_columns()),
+                        .returning(<Self as ::ormlite::TableMeta>::table_columns()),
                     _db: ::std::marker::PhantomData,
                 }
             }

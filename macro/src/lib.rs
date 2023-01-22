@@ -87,7 +87,7 @@ pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
-#[proc_macro_derive(FromRow)]
+#[proc_macro_derive(FromRow, attributes(ormlite))]
 pub fn expand_derive_fromrow(input: TokenStream) -> TokenStream {
     TABLES.with(load_project_metadata);
 
@@ -120,7 +120,7 @@ pub fn expand_derive_table_meta(input: TokenStream) -> TokenStream {
 
     let table_meta = TableMetadata::try_from(&ast).unwrap();
 
-    let impl_TableMeta = codegen::DB::impl_TableMeta(&ast, &table_meta);
+    let impl_TableMeta = codegen::DB::impl_TableMeta(&table_meta);
 
     let expanded = quote! {
         #impl_TableMeta
