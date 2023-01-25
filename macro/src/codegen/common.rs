@@ -4,7 +4,7 @@ use ormlite_core::query_builder::Placeholder;
 use proc_macro2::{TokenStream, Span};
 use quote::{quote, ToTokens};
 use syn::punctuated::Punctuated;
-use syn::token::Comma;
+use syn::token::{Comma, Token};
 use syn::{DeriveInput, Field};
 use syn::spanned::Spanned;
 use attr::TableMetadata;
@@ -321,6 +321,35 @@ pub trait OrmliteCodegen {
 
                 fn primary_key() -> Option<&'static str> {
                     #id
+                }
+            }
+        }
+    }
+
+    fn impl_IntoArguments(attr: &attr::TableMetadata) -> TokenStream {
+        let db = Self::database();
+        let model = &attr.struct_name;
+        let mut placeholder = Self::raw_placeholder();
+        let params = attr.columns.iter()
+            .filter(|c| !c.is_join())
+            .map(|c| {
+                let field = &c.identifier;
+                let value = if c.is_primitive() {
+                    quote! { self.#field }
+                } else {
+                    quote! { ::ormlite::types::Json(self.#field) }
+                };
+                quote! { ::ormlite::Arguments::add(&mut args, #value); }
+            });
+
+        quote! {
+            impl<'a> ::ormlite::IntoArguments<'a, #db> for #model {
+                fn into_arguments(self) -> <#db as ::ormlite::database::HasArguments<'a>>::Arguments {
+                    let mut args = <#db as ::ormlite::database::HasArguments<'a>>::Arguments::default();
+                    #(
+                        #params
+                    )*
+                    args
                 }
             }
         }

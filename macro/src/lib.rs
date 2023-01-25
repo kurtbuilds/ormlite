@@ -127,3 +127,18 @@ pub fn expand_derive_table_meta(input: TokenStream) -> TokenStream {
     };
     TokenStream::from(expanded)
 }
+
+#[proc_macro_derive(IntoArguments, attributes(ormlite))]
+pub fn expand_derive_into_arguments(input: TokenStream) -> TokenStream {
+    let ast = parse_macro_input!(input as DeriveInput);
+    let Data::Struct(data) = &ast.data else { panic!("Only structs can derive Model"); };
+
+    let table_meta = TableMetadata::try_from(&ast).unwrap();
+
+    let impl_IntoArguments = codegen::DB::impl_IntoArguments(&table_meta);
+
+    let expanded = quote! {
+        #impl_IntoArguments
+    };
+    TokenStream::from(expanded)
+}

@@ -50,7 +50,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     john.age += 1;
     john.update_all_fields(&mut conn).await?;
 
-    /// Query building syntax is basically SQL translated into chained function calls.
+    /// Query builder syntax closely follows SQL syntax, translated into chained function calls.
     let people = Person::select()
         .where_("age > ?").bind(50)
         .fetch_all(&mut conn).await?;
@@ -58,72 +58,122 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-> **Note**: Using this syntax, there are two possible issues. First, `id` must be set client-side instead of using the
-> database's auto-increment counter, because the field is not `Option`. Second, the struct cannot track which fields are
-> modified, so the update method must updates all columns. If these issues present problems for your usage, check the
-> sections [Insertion Struct](#insertion-struct) or [Builder Syntax](#builder-syntax) below for alternative APIs that
-> resolve these issues.
+# Quickstart
 
-Continue reading this `README` for installation instructions, advanced examples, and more.
+### Installation
 
-While the software is still 0.x, we hold a high standard for stability. Breaking changes will only be made for good
-reason, with migration instructions provided. We mark affected changes with `#[deprecated]`, and provide inline
-migration instructions.
-
-`ormlite` is built on the wonderful foundation of [`sqlx`](https://github.com/launchbadge/sqlx)
-
-# Quickstart with Migrations
-
-`ormlite` has a CLI tool to generate migrations. To our knowledge, `ormlite` is the first, and currently only, Rust ORM
-that auto-generates migrations based on changes to Rust code.
-
-> **NOTE**: The CLI tool is under development. It works for simple cases, but it may not support all features yet. Please 
-> submit an issue if you encounter any. It also only works for Postgres currently.
-
-The CLI also has built-in functionality for database snapshots, letting you roll back locally without needing to write
-(or generate) down migrations.
-
-See the [quickstart](#cli-quickstart) section for documentation.
-
-The `ormlite` CLI tool is 100% compatible with
-[`sqlx-cli`](https://github.com/launchbadge/sqlx/blob/master/sqlx-cli/README.md#usage). The latter does not support
-auto-generation or snapshots, but does support other database types, and is less bleeding edge.
-
-# Installation
-
+First, update your 
 For postgres:
 
-    [dependencies]
-    ormlite = { version = "...", features = ["postgres", "runtime-tokio-rustls"]
+```toml
+[dependencies]
+# For postgres
+ormlite = { version = "...", features = ["postgres", "runtime-tokio-rustls"]
+# For sqlite
+ormlite = { version = "...", features = ["sqlite", "runtime-tokio-rustls"]
+```
 
-For sqlite:
+Other databases are runtimes are supported, but are less tested. Please submit an issue if you encounter any.
 
-    [dependencies]
-    ormlite = { version = "...", features = ["sqlite", "runtime-tokio-rustls"]
 
-Other databases (mysql) and runtimes should work smoothly, but might not be 100% wired up yet. Please submit an issue if you encounter any.
+### Environment Setup
 
-# Project Goals
+You need `DATABASE_URL` in your environment. We recommend a tool like [`just`](https://github.com/casey/just), which
+can be configured to pull in a `.env` file, but for simplicity, here we'll use your shell directly.
 
-We prioritize these objectives in the project:
+```bash
+export DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres
+```
 
-* **Fast**: We aim for minimal to no measurable overhead for using the ORM.
-* **True to SQL**: The API leans towards using Plain Old SQL. We eschew custom query syntax so that users don't have to learn or memorize new syntax.
-* **`async`-first**: We built on top of the great foundation of `sqlx`, and `ormlite` is fully `async`.
-* **Explicit**: We name methods expressively to avoid confusion about what they do.
+### Migrations
 
-# Usage
+If you are querying a static database and don't need migrations, skip this section. If you want migrations, keep reading.
 
-## Insertion Struct
+First, install the CLI tool. It is 100% compatible with [`sqlx-cli`](https://github.com/launchbadge/sqlx/blob/master/sqlx-cli/README.md#usage).
+`sqlx-cli` does not support auto-generating migrations or snapshots (to rollback in development without writing down migrations), but it is less bleeding edge.
 
-As noted above, on full database models, all fields must be set before insertion, which might present problems for
-certain fields, notably autoincrement id fields.
+```bash
+cargo install ormlite
+```
 
-You can add an attribute to generate a struct used only for insertion.
+Next, create the database and the migrations table. This creates a `_sqlx_migrations` table that tracks your migrations.
+
+```bash
+# If the database doesn't exist, create it first:
+# createdb $DATABASE_URL
+ormlite init
+```
+
+Let's see migrations in action. Create a Rust struct with `#[derive(Model)]`, which the CLI tool detects to auto-generate migrations:
+
+```
+# src/models.rs
+
+use ormlite::model::*;
+
+#[derive(Model, Debug)]
+pub struct Person {
+    pub id: i32,
+    pub name: String,
+    pub age: i32,
+}
+```
+
+Next, auto-generate the migration.
+
+```bash
+ormlite migrate initial
+```
+
+This creates a plain SQL file in `migrations/`. Let's review it before we execute it:
+
+```bash
+cat migrations/*.sql
+```
+
+Once you're satisfied reviewing it, you can execute it:
+
+```bash
+ormlite up
+```
+
+That's the end of setup. Let's now look at insertion.
+
+# Insert & Update
+
+The insert and update syntax at the top of the README is most effective for UUID primary key tables.
 
 ```rust
 use ormlite::model::*;
+use uuid::Uuid;
 
+#[derive(Model, Debug)]
+pub struct Event {
+    pub id: Uuid,
+    pub name: String,
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mut conn = ormlite::SqliteConnection::connect(":memory:").await.unwrap();
+
+    let mut event = Event {
+        id: Uuid::new_v4(),
+        name: "user_clicked".to_string(),
+    }.insert(&mut conn).await?;
+    println!("{:?}", event);
+}
+```
+
+However, this syntax has two possible issues. First, `id` is not `Option`, so it must be set,
+causing problems for autoincrement id fields. Second, the struct cannot track which fields are modified, so the update
+method must update all columns.
+
+### Insertion Struct
+
+To work around the autoincrement issue, you can use an insertion struct, shown here, or a builder, shown below.
+
+```rust
 #[derive(Model, Debug)]
 #[ormlite(Insertable = InsertPerson)]
 pub struct Person {
@@ -132,7 +182,7 @@ pub struct Person {
     pub age: i32,
 }
 
-async fn insertion_struct_example() {  
+async fn insertion_struct_example(conn: &mut SqliteConnection) {  
     let john: Person = InsertPerson {
         name: "John".to_string(),
         age: 99,
@@ -145,8 +195,6 @@ If the derived struct doesn't meet your needs, you can manually define a struct 
 specifying `table = "<table>"` to route the struct to the same database table.
 
 ```rust
-use ormlite::model::*;
-
 #[derive(Model, Debug)]
 #[ormlite(table = "person")]
 pub struct InsertPerson {
@@ -155,13 +203,11 @@ pub struct InsertPerson {
 }
 ```
 
-## Builder Syntax
+### Insert Builder & Update Builder
 
 You can also use builder syntax for insertion or to update only certain fields.
 
 ```rust
-use ormlite::model::*;
-
 #[derive(Model, Debug)]
 pub struct Person {
     pub id: i32,
@@ -185,7 +231,7 @@ async fn builder_syntax_example() {
 }
 ```
 
-## Query Builder
+# Select Query
 
 You can use `Model::select` to build a SQL query using Rust logic.
 
@@ -193,8 +239,6 @@ You can use `Model::select` to build a SQL query using Rust logic.
 > and `ormlite` will replace the `?` placeholders with `$` placeholders when it constructs the final query.
 
 ```rust
-use ormlite::model::*;
-
 #[derive(Model, Debug)]
 pub struct Person {
     pub id: i32,
@@ -212,20 +256,13 @@ async fn query_builder_example() {
 }
 ```
 
-## Raw Query
+### Raw Query
 
-You can always fallback to raw queries if none of the ORM methods work for you.
+You can fall back to raw queries if the ORM methods don't work for you. You can include handwritten strings, or if
+you want a query builder that you have full control over, you can use [`sqlmo`](https://github.com/kurtbuilds/sqlmo),
+the engine which powers `ormlite`'s query builder (& migration auto-generation).
 
 ```rust
-use ormlite::model::*;
-
-#[derive(Model, Debug)]
-pub struct Person {
-    pub id: i32,
-    pub name: String,
-    pub age: i32,
-}
-
 async fn model_query_example() {
     // Query using the Model to still deserialize results into the struct
     let _person = Person::query("SELECT * FROM person WHERE id = ?")
@@ -246,39 +283,31 @@ async fn raw_query_example() {
 }
 ```
 
-## Attributes
+# Table Customization
 
-The following attributes are available:
+Attributes are defined in [these structs](https://github.com/kurtbuilds/ormlite/blob/master/attr/src/attr.rs).
 
-On the struct:
-
-- `#[ormlite(table = "<table_name>")]`: Specify the table name.
-- `#[ormlite(Insertable = InsertStructName)]`: Specify the name of the struct used for insert.
-
-See example usage below:
+This example shows them in action:
 
 ```rust
-use ormlite::model::*;
-
 #[derive(Model, Debug)]
 #[ormlite(table = "people", Insertable = InsertPerson)]
 pub struct Person {
+    #[ormlite(primary_key)]
     pub id: i32,
     pub name: String,
+    #[ormlite(column = "name_of_column_in_db")]
     pub age: i32,
 }
 ```
 
 ## Joins
 
-Currently, join support is in a very early stage. We only support many-to-one relations (e.g. Person belongs to Organization.), but
-support for many-to-many and one-to-many is planned.
-
-If you do use it, we appreciate reports on any bugs you encounter.
+Join support is alpha stage. Right now, we only support many-to-one relations (e.g. Person belongs to Organization). 
+Support for many-to-many and one-to-many is planned. If you use this functionality, we appreciate reports on any 
+bugs reports you encounter.
 
 ```rust
-use ormlite::model::*;
-
 #[derive(Model, Debug)]
 pub struct Person {
     pub id: Uuid,
@@ -332,7 +361,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-## Uuid and DateTime columns
+# Features & Data Types
+
+## Uuid, Chrono, & Time
 
 If you want Uuid or DateTime, combined with serde, you need to depend directly on `uuid`, `time` or `chrono`, 
 and add the `serde` feature to each of them.
@@ -351,7 +382,6 @@ use serde::{Serialize, Deserialize};
 use ormlite::types::Uuid;
 use ormlite::types::chrono::{DateTime, Utc};
 
-
 #[derive(Model, Debug, Serialize, Deserialize)]
 pub struct Person {
     pub uuid: Uuid,
@@ -362,8 +392,8 @@ pub struct Person {
 
 ## Json/Jsonb Columns
 
-You can use `ormlite::types::Json` for JSON or JSONB fields. For unstructured data, use `serde_json::Value` for the 
-generic. Use a struct with `Deserialize + Serialize` as the generic for structured data.
+You can use `ormlite::types::Json` for JSON or JSONB fields. For unstructured data, use `serde_json::Value` as the inner
+type. Use a struct with `Deserialize + Serialize` as the generic for structured data.
 
 ```rust
 use ormlite::model::*;
@@ -383,75 +413,9 @@ pub struct Job {
 }
 ```
 
-## Logging
+# Logging
 
 You can log queries using sqlx's logger: `RUST_LOG=sqlx=info`
-
-## CLI Quickstart
-
-First, install it:
-
-```bash
-cargo install --git https://github.com/kurtbuilds/ormlite
-```
-
-Ensure that you have DATABASE_URL set in your environment. Here, we do it with an extremely simple `.env` setup.
-In general, we recommend a tool like [`just`](https://github.com/casey/just) to run commands with `.env` files. However,
-this guide sources the .env to bash environment to keep it simple.
-
-```bash
-# .env
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres
-```
-
-```bash
-# /bin/bash
-export $(cat .env)
-```
-
-Now, you can setup the database:
-
-```bash
-ormlite init
-```
-
-This will create a `_sqlx_migrations` table that tracks your migrations.
-
-Next, let's create a Rust struct with `#[derive(Model)]`, which the tool will be able to read to auto-generate SQL:
-
-```
-# src/models.rs
-
-use ormlite::model::*;
-
-#[derive(Model, Debug)]
-pub struct Person {
-    pub id: i32,
-    pub name: String,
-    pub age: i32,
-}
-```
-
-Now, we can generate the SQL:
-
-```bash
-ormlite migrate initial
-```
-
-This creates a plain SQL file in `migrations/`. Let's review it before we execute it:
-
-```bash
-# /bin/bash
-cat migrations/*.sql
-```
-
-Once you're happy with the SQL, you can execute it:
-
-```bash
-ormlite up
-```
-
-And now, our database is ready to go!
 
 # Roadmap
 - [x] Insert, update, delete directly on model instances

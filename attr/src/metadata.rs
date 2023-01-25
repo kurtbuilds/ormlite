@@ -59,17 +59,11 @@ impl TableMetadataBuilder {
             .map(|c| c.column_name.clone())
             .next();
         if primary_key.is_none() {
-            for f in cols.iter_mut() {
-                if [
-                    "id".to_string(),
-                    "uuid".to_string(),
-                    format!("{}_id", self.table_name.as_ref().unwrap()),
-                    format!("{}_uuid", self.table_name.as_ref().unwrap()),
-                ]
-                    .contains(&f.column_name)
-                {
-                    primary_key = Some(f.column_name.clone());
-                    f.has_database_default = true;
+            let candidates = sqlmo::util::pkey_column_names(&self.table_name.as_ref().unwrap());
+            for c in &mut cols {
+                if candidates.contains(&c.column_name) {
+                    primary_key = Some(c.column_name.clone());
+                    c.has_database_default = true;
                     break;
                 }
             }
@@ -118,6 +112,9 @@ impl ColumnMetadata {
         ty_is_join(&self.column_type)
     }
 
+    pub fn is_primitive(&self) -> bool {
+        ty_is_primitive(&self.column_type)
+    }
     /// We expect this to only return a `Model` of some kind.
     pub fn joined_struct_name(&self) -> Option<String> {
         let Some(path) = self.joined_path() else {
@@ -222,4 +219,23 @@ fn ty_is_join(ty: &Type) -> bool {
         _ => return false,
     };
     p.path.segments.last().map(|s| s.ident == "Join").unwrap_or(false)
+}
+
+/// bool whether the given type is primitive
+fn ty_is_primitive(ty: &Type) -> bool {
+    let Type::Path(p) = ty else {
+        return false;
+    };
+    let Some(s) = p.path.segments.last() else {
+        return false;
+    };
+    [
+        "i8", "i16", "i32", "i64", "i128", "isize",
+        "u8", "u16", "u32", "u64", "u128", "usize",
+        "f32", "f64",
+        "bool",
+        "String",
+        "str",
+        "DateTime", "NaiveDate", "NaiveTime", "NaiveDateTime",
+    ].contains(&s.ident.to_string().as_str())
 }
