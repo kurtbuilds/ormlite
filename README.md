@@ -100,7 +100,7 @@ Next, create the database and the migrations table. This creates a `_sqlx_migrat
 
 ```bash
 # If the database doesn't exist, create it first:
-# createdb $DATABASE_URL
+# createdb <dbname>  # for postgres
 ormlite init
 ```
 
