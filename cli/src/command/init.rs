@@ -3,6 +3,7 @@
 
 use anyhow::Result;
 use clap::Parser;
+use colored::Colorize;
 use ormlite::Acquire;
 
 
@@ -35,6 +36,7 @@ impl Init {
 
         runtime.block_on(conn.execute(INIT_QUERY))?;
 
+        eprintln!("{} Initialized database at {}", "SUCCESS".green(), url);
         Ok(())
     }
 }
