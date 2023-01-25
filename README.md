@@ -58,6 +58,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
+You might like `ormlite` because:
+
+- It auto-generates migrations from Rust structs. To my knowledge, it is the only Rust ORM with this capability.
+- The join API (in alpha) has far fewer moving pieces than any other Rust ORMs. It only relies on the table `struct`s themselves, and does not rely on relation traits (SeaORM) or modules (Diesel).
+- There's little to no query builder syntax to learn. The query builder basically joins together &str fragments of raw SQL. It strikes the right level of abstraction between composability, and having near-zero learning curve for anyone who already knows SQL.
+
 # Quickstart
 
 ### Installation
