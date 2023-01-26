@@ -61,7 +61,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 You might like `ormlite` because:
 
 - It auto-generates migrations from Rust structs. To my knowledge, it is the only Rust ORM with this capability.
-- The join API (in alpha) has far fewer moving pieces than any other Rust ORMs. It only relies on the table `struct`s themselves, and does not rely on relation traits (SeaORM) or modules (Diesel).
+- The join API (in alpha) has far fewer moving pieces than any other Rust ORM. It only relies on the table `struct`s themselves, and does not rely on relation traits (SeaORM) or modules (Diesel).
 - There's little to no query builder syntax to learn. The query builder basically joins together &str fragments of raw SQL. It strikes the right level of abstraction between composability, and having near-zero learning curve for anyone who already knows SQL.
 
 # Quickstart
@@ -85,7 +85,7 @@ Other databases are runtimes are supported, but are less tested. Please submit a
 ### Environment Setup
 
 You need `DATABASE_URL` in your environment. We recommend a tool like [`just`](https://github.com/casey/just), which
-can be configured to pull in a `.env` file, but for simplicity, here we'll use your shell directly.
+can pull in a `.env` file, but for simplicity, here we'll use shell directly.
 
 ```bash
 export DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres
@@ -95,18 +95,18 @@ export DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres
 
 If you are querying a static database and don't need migrations, skip this section. If you want migrations, keep reading.
 
-First, install the CLI tool. It is 100% compatible with [`sqlx-cli`](https://github.com/launchbadge/sqlx/blob/master/sqlx-cli/README.md#usage).
-`sqlx-cli` does not support auto-generating migrations or snapshots (to rollback in development without writing down migrations), but it is less bleeding edge.
+First, install the `ormlite` CLI tool. Currently, the CLI only supports Postgres. While the `ormlite` CLI is separate from [`sqlx-cli`](https://github.com/launchbadge/sqlx/blob/master/sqlx-cli/README.md#usage), they are 100% compatible with each other.
+`sqlx-cli` does not support auto-generating migrations or snapshots (to rollback in development without writing down migrations), but it is less bleeding edge and supports more database types.
 
 ```bash
 cargo install ormlite
 ```
 
-Next, create the database and the migrations table. This creates a `_sqlx_migrations` table that tracks your migrations.
+Next, create the database and the migrations table. `init` creates a `_sqlx_migrations` table that tracks your migrations.
 
 ```bash
-# If the database doesn't exist, create it first:
-# createdb <dbname>  # for postgres
+# Create the database if it doesn't exist. For postgres, that's:
+# createdb <dbname>
 ormlite init
 ```
 
@@ -143,7 +143,9 @@ Once you're satisfied reviewing it, you can execute it:
 ormlite up
 ```
 
-That's the end of setup. Let's now look at insertion.
+By default, `up` also creates a snapshot, so you can rollback using `ormlite down` if need be. There's also an option to generate paired up/down migrations instead of only up migrations.
+
+That's the end of setup. Let's now look at how to run queries.
 
 # Insert & Update
 
@@ -171,7 +173,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-However, this syntax has two possible issues. First, `id` is not `Option`, so it must be set,
+This syntax has two possible issues. First, `id` is not `Option`, so it must be set,
 causing problems for autoincrement id fields. Second, the struct cannot track which fields are modified, so the update
 method must update all columns.
 
@@ -265,8 +267,8 @@ async fn query_builder_example() {
 ### Raw Query
 
 You can fall back to raw queries if the ORM methods don't work for you. You can include handwritten strings, or if
-you want a query builder that you have full control over, you can use [`sqlmo`](https://github.com/kurtbuilds/sqlmo),
-the engine which powers `ormlite`'s query builder (& migration auto-generation).
+you want a lower-level query builder, you can use [`sqlmo`](https://github.com/kurtbuilds/sqlmo),
+the underlying engine that powers `ormlite`'s query builder & migration auto-generation.
 
 ```rust
 async fn model_query_example() {
@@ -309,9 +311,8 @@ pub struct Person {
 
 ## Joins
 
-Join support is alpha stage. Right now, we only support many-to-one relations (e.g. Person belongs to Organization). 
-Support for many-to-many and one-to-many is planned. If you use this functionality, we appreciate reports on any 
-bugs reports you encounter.
+Join support is alpha stage. Right now, `ormlite` only support many-to-one relations (e.g. Person belongs to Organization). 
+Support for many-to-many and one-to-many is planned. If you use this functionality, please report any bugs you encounter.
 
 ```rust
 #[derive(Model, Debug)]
