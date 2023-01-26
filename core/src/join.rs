@@ -1,4 +1,6 @@
+use std::ops::{Deref, DerefMut, Index, IndexMut};
 use sqlmo::query::{Join as JoinQueryFragment, SelectColumn};
+
 
 #[derive(Debug)]
 pub enum Join<T> {
@@ -38,6 +40,23 @@ impl<T> Join<T> {
             Join::Modified(obj) => {
                 Some(obj)
             }
+        }
+    }
+
+    fn transition_to_modified(&mut self) -> &mut T {
+        let owned = std::mem::replace(self, Join::NotQueried);
+        match owned {
+            Join::NotQueried => panic!("Tried to deref_mut a joined object, but it has not been queried."),
+            Join::QueryResult(r) => {
+                *self = Join::Modified(r);
+            }
+            Join::Modified(r) => {
+                *self = Join::Modified(r);
+            }
+        }
+        match self {
+            Join::Modified(r) => r,
+            _ => unreachable!(),
         }
     }
 
@@ -84,7 +103,7 @@ impl<T> Join<Vec<T>> {
     }
 }
 
-impl<T> std::ops::Index<usize> for Join<Vec<T>> {
+impl<T> Index<usize> for Join<Vec<T>> {
     type Output = T;
 
     fn index(&self, index: usize) -> &Self::Output {
@@ -100,7 +119,14 @@ impl<T> std::ops::Index<usize> for Join<Vec<T>> {
     }
 }
 
-impl<T> std::ops::Deref for Join<T> {
+impl<T> IndexMut<usize> for Join<Vec<T>> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        let inner = self.transition_to_modified();
+        &mut inner[index]
+    }
+}
+
+impl<T> Deref for Join<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -115,7 +141,11 @@ impl<T> std::ops::Deref for Join<T> {
         }
     }
 }
-
+impl<T> DerefMut for Join<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.transition_to_modified()
+    }
+}
 
 #[derive(Debug, Copy, Clone)]
 pub enum SemanticJoinType {
