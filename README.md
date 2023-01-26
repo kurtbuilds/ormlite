@@ -73,9 +73,9 @@ First, update your `Cargo.toml`:
 ```toml
 [dependencies]
 # For postgres
-ormlite = { version = "0.9", features = ["postgres", "runtime-tokio-rustls"]
+ormlite = { version = "0.9", features = ["postgres", "runtime-tokio-rustls"] }
 # For sqlite
-ormlite = { version = "0.9", features = ["sqlite", "runtime-tokio-rustls"]
+ormlite = { version = "0.9", features = ["sqlite", "runtime-tokio-rustls"] }
 ```
 
 Other databases are runtimes are supported, but are less tested. Please submit an issue if you encounter any.
