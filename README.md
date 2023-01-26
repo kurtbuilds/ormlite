@@ -68,8 +68,7 @@ You might like `ormlite` because:
 
 ### Installation
 
-First, update your 
-For postgres:
+First, update your `Cargo.toml`:
 
 ```toml
 [dependencies]
