@@ -78,7 +78,7 @@ ormlite = { version = "0.9", features = ["postgres", "runtime-tokio-rustls"] }
 ormlite = { version = "0.9", features = ["sqlite", "runtime-tokio-rustls"] }
 ```
 
-Other databases are runtimes are supported, but are less tested. Please submit an issue if you encounter any.
+Other databases and runtimes are supported, but are less tested. Please submit an issue if you encounter any.
 
 
 ### Environment Setup
