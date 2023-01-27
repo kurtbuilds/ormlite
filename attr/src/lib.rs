@@ -64,10 +64,5 @@ pub fn load_from_project(paths: &[&Path], opts: &LoadOptions) -> anyhow::Result<
             results.push(table);
         }
     }
-    if results.is_empty() {
-        panic!("No models found in the given paths: {}", paths.iter().map(|p| p.display().to_string()).collect::<Vec<_>>().join(", "));
-    }
     Ok(results)
 }
-
-
