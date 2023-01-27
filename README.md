@@ -94,11 +94,11 @@ export DATABASE_URL=postgres://postgres:postgres@localhost:5432/postgres
 
 If you are querying a static database and don't need migrations, skip this section. If you want migrations, keep reading.
 
-First, install the `ormlite` CLI tool. Currently, the CLI only supports Postgres. While the `ormlite` CLI is separate from [`sqlx-cli`](https://github.com/launchbadge/sqlx/blob/master/sqlx-cli/README.md#usage), they are 100% compatible with each other.
+First, install `ormlite-cli`. Currently, the CLI only supports Postgres. While `ormlite-cli` is separate from [`sqlx-cli`](https://github.com/launchbadge/sqlx/blob/master/sqlx-cli/README.md#usage), they are 100% compatible with each other.
 `sqlx-cli` does not support auto-generating migrations or snapshots (to rollback in development without writing down migrations), but it is less bleeding edge and supports more database types.
 
 ```bash
-cargo install ormlite
+cargo install ormlite-cli
 ```
 
 Next, create the database and the migrations table. `init` creates a `_sqlx_migrations` table that tracks your migrations.
