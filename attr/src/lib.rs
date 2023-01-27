@@ -58,7 +58,7 @@ pub fn load_from_project(paths: &[&Path], opts: &LoadOptions) -> anyhow::Result<
             let derive: DeriveInput = item.into();
             let table = TableMetadata::try_from(&derive)
                 .map_err(|e| SyndecodeError(format!(
-                    "{}: Encounterd an error while scanning for #[derive(Model)] structs: {}",
+                    "{}: Encountered an error while scanning for #[derive(Model)] structs: {}",
                     entry.path().display(), e))
                 )?;
             results.push(table);
