@@ -1,6 +1,6 @@
 [package]
 name = "ormlite-macro"
-version = "0.9.3"
+version = "0.9.4"
 edition = "2021"
 description = "An ORM for people who love SQL. Use the `ormlite` crate, not this one."
 authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
@@ -20,8 +20,8 @@ runtime-tokio-rustls = ["sqlx/runtime-tokio-rustls"]
 syn = { version = "1.0.82", features = ["derive", "parsing"] }
 quote = "1.0.10"
 proc-macro2 = "1.0.49"
-ormlite-core = { version = "0.9.3", path = "../core" }
-ormlite-attr = { version = "0.9.3", path = "../attr" }
+ormlite-core = { version = "0.9.4", path = "../core" }
+ormlite-attr = { version = "0.9.4", path = "../attr" }
 sqlx = { version = "0.6.0" }
 lazy_static = "1.4.0"
 #sqlx-macros = { version = "0.6.0" , default-features = false }
