@@ -43,7 +43,6 @@ impl TableMetadata {
 }
 
 
-
 impl TableMetadataBuilder {
     pub fn complete_with_struct_body(&mut self, ast: &DeriveInput) -> Result<TableMetadata, SyndecodeError> {
         let model = &ast.ident;
@@ -187,7 +186,6 @@ impl TryFrom<&Field> for ColumnMetadata {
             if args.default {
                 builder.has_database_default(true);
             }
-
             if let Some(column_name) = args.column {
                 builder.column_name(column_name.value());
             }
@@ -229,6 +227,19 @@ fn ty_is_primitive(ty: &Type) -> bool {
     let Some(s) = p.path.segments.last() else {
         return false;
     };
+    let ident = s.ident.to_string();
+    if ident == "Option" {
+        let syn::PathArguments::AngleBracketed(args) = &s.arguments else {
+            return false;
+        };
+        let Some(arg) = args.args.last() else {
+            return false;
+        };
+        let syn::GenericArgument::Type(ty) = arg else {
+            return false;
+        };
+        return ty_is_primitive(ty);
+    }
     [
         "i8", "i16", "i32", "i64", "i128", "isize",
         "u8", "u16", "u32", "u64", "u128", "usize",
@@ -237,5 +248,32 @@ fn ty_is_primitive(ty: &Type) -> bool {
         "String",
         "str",
         "DateTime", "NaiveDate", "NaiveTime", "NaiveDateTime",
+        "Decimal",
     ].contains(&s.ident.to_string().as_str())
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_primitive() {
+        let ty = syn::parse_str::<Type>("i32").unwrap();
+        assert!(ty_is_primitive(&ty));
+
+        let ty = syn::parse_str::<Type>("NaiveDate").unwrap();
+        assert!(ty_is_primitive(&ty));
+
+        let ty = syn::parse_str::<Type>("Option<NaiveDate>").unwrap();
+        assert!(ty_is_primitive(&ty));
+
+        let ty = syn::parse_str::<Type>("User").unwrap();
+        assert!(!ty_is_primitive(&ty));
+
+        let ty = syn::parse_str::<Type>("Option<User>").unwrap();
+        assert!(!ty_is_primitive(&ty));
+
+        let ty = syn::parse_str::<Type>("rust_decimal::Decimal").unwrap();
+        assert!(!ty_is_primitive(&ty));
+    }
 }
