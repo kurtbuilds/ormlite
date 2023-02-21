@@ -1,15 +1,10 @@
 pub mod common;
 #[cfg(feature = "mysql")]
-mod mysql;
+#[cfg_attr(docsrs, doc(cfg(feature = "mysql")))]
+pub mod mysql;
 #[cfg(feature = "postgres")]
 #[cfg_attr(docsrs, doc(cfg(feature = "postgres")))]
-mod postgres;
+pub mod postgres;
 #[cfg(feature = "sqlite")]
-mod sqlite;
-
-#[cfg(feature = "mysql")]
-compile_error!("mysql is currently not supported");
-#[cfg(feature = "postgres")]
-pub type DB = postgres::PostgresBackend;
-#[cfg(feature = "sqlite")]
-pub type DB = sqlite::SqliteBackend;
+#[cfg_attr(docsrs, doc(cfg(feature = "sqlite")))]
+pub mod sqlite;

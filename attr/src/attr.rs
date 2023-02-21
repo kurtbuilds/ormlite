@@ -4,8 +4,37 @@ use syn::{Ident, LitStr, Path};
 /// Available attributes on a struct
 #[derive(StructMeta, Debug)]
 pub struct ModelAttributes {
+    /// The name of the table in the database. Defaults to the struct name.
+    /// Example:
+    /// #[ormlite(table_name = "users")]
+    /// pub struct User {
+    ///    pub id: i32,
+    /// }
     pub table: Option<LitStr>,
-    pub Insertable: Option<Ident>,
+
+    /// The struct name of an insertion struct.
+    /// Example:
+    /// #[ormlite(insertable = InsertUser)]
+    /// pub struct User {
+    ///   pub id: i32,
+    /// }
+    ///
+    pub insertable: Option<Ident>,
+
+    /// Set the target database. Only needed if you have multiple databases enabled.
+    /// If you have a single database enabled, you don't need to set this.
+    /// Even with multiple databases, you can skip this by setting a default database with the `default-<db>` feature.
+    ///
+    /// Currently, because methods conflict, you
+    /// You can use this attribute multiple times to set multiple databases.
+    /// Example:
+    /// #[ormlite(database = "postgres")]
+    /// #[ormlite(database = "sqlite")]
+    /// pub struct User {
+    ///  pub id: i32,
+    /// }
+    /// This will generate orm code for `User` for both the `postgres` and `sqlite` databases.
+    pub database: Option<LitStr>,
 }
 
 /// Available attributes on a column (struct field)
@@ -28,7 +57,7 @@ pub struct ColumnAttributes {
     ///     #[ormlite(many_to_many_table_name = join_user_role)]
     ///     pub roles: Join<Vec<Role>>,
     /// }
-    pub many_to_many_table: Option<Path>,
+    pub many_to_many_table: Option<Ident>,
 
     /// Example:
     /// pub struct User {

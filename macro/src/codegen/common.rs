@@ -72,11 +72,11 @@ fn is_vec(p: &syn::Path) -> bool {
 }
 
 pub trait OrmliteCodegen {
-    fn database() -> TokenStream;
-    fn placeholder() -> TokenStream;
-    fn raw_placeholder() -> Placeholder;
+    fn database(&self) -> TokenStream;
+    fn placeholder(&self) -> TokenStream;
+    fn raw_placeholder(&self) -> Placeholder;
 
-    fn impl_FromRow(ast: &DeriveInput, attr: &attr::TableMetadata, cache: &MetadataCache) -> TokenStream {
+    fn impl_FromRow(&self, ast: &DeriveInput, attr: &attr::TableMetadata, cache: &MetadataCache) -> TokenStream {
         let span = ast.span();
         let model = &ast.ident;
 
@@ -96,14 +96,14 @@ pub trait OrmliteCodegen {
             let iden = &c.identifier;
             let meta = cache.get(c.joined_struct_name().unwrap().as_str())
                 .expect("Joined struct not found");
-            let path = c.joined_path().unwrap();
             let relation = &c.identifier;
-            let result = if is_vec(path) {
+            let result = if c.is_join_many() {
                 unimplemented!("Join<Vec<...>> isn't supported quite yet...");
             } else {
                 let prefixed_columns = meta.columns.iter().map(|c| {
                     format!("__{}__{}", relation, c.identifier)
                 });
+                let path = c.joined_model();
                 quote! {
                     #path::from_row_using_aliases(row, &[
                         #(
@@ -167,7 +167,7 @@ pub trait OrmliteCodegen {
         }
     }
 
-    fn impl_from_row_using_aliases(ast: &DeriveInput, attr: &TableMetadata, metadata_cache: &MetadataCache) -> TokenStream {
+    fn impl_from_row_using_aliases(&self, ast: &DeriveInput, attr: &TableMetadata, metadata_cache: &MetadataCache) -> TokenStream {
         let span = ast.span();
         let model = &ast.ident;
         let fields = attr.all_fields(span);
@@ -204,7 +204,7 @@ pub trait OrmliteCodegen {
         }
     }
 
-    fn static_join_descriptions(ast: &DeriveInput, attr: &TableMetadata, metadata_cache: &MetadataCache) -> TokenStream {
+    fn static_join_descriptions(&self, ast: &DeriveInput, attr: &TableMetadata, metadata_cache: &MetadataCache) -> TokenStream {
         let span = ast.span();
         let model = &ast.ident;
         let joins = attr.columns.iter().filter(|c| c.is_join()).map(|c| {
@@ -261,21 +261,19 @@ pub trait OrmliteCodegen {
         }
     }
 
-    fn impl_Model(ast: &DeriveInput, attr: &attr::TableMetadata, metadata_cache: &MetadataCache) -> TokenStream {
-        let db = Self::database();
+    fn impl_Model(&self, ast: &DeriveInput, attr: &attr::TableMetadata, metadata_cache: &MetadataCache) -> TokenStream {
+        let db = self.database();
         let model = &ast.ident;
         let partial_model = quote::format_ident!("{}Builder", model.to_string());
 
-        let impl_TableMeta = Self::impl_TableMeta(attr);
-        let impl_Model__insert = Self::impl_Model__insert(attr, metadata_cache);
-        let impl_Model__update_all_fields = Self::impl_Model__update_all_fields(ast, attr);
-        let impl_Model__delete = Self::impl_Model__delete(ast, attr);
-        let impl_Model__fetch_one = Self::impl_Model__fetch_one(ast, attr);
-        let impl_Model__select = Self::impl_Model__select(ast, attr);
-        let impl_Model__builder = Self::impl_Model__builder(ast, attr);
-        let impl_Model__update_partial = Self::impl_Model__update_partial(ast, attr);
+        let impl_Model__insert = self.impl_Model__insert(attr, metadata_cache);
+        let impl_Model__update_all_fields = self.impl_Model__update_all_fields(ast, attr);
+        let impl_Model__delete = self.impl_Model__delete(ast, attr);
+        let impl_Model__fetch_one = self.impl_Model__fetch_one(ast, attr);
+        let impl_Model__select = self.impl_Model__select(ast, attr);
+        let impl_Model__builder = self.impl_Model__builder(ast, attr);
+        let impl_Model__update_partial = self.impl_Model__update_partial(ast, attr);
 
-        let static_join_descriptions = Self::static_join_descriptions(ast, attr, metadata_cache);
         quote! {
             impl<'slf> ::ormlite::model::Model<'slf, #db> for #model {
                 type ModelBuilder = #partial_model<'slf>;
@@ -292,13 +290,10 @@ pub trait OrmliteCodegen {
                     ::ormlite::query_as::<_, Self>(query)
                 }
             }
-
-            #static_join_descriptions
-            #impl_TableMeta
         }
     }
 
-    fn impl_TableMeta(attr: &attr::TableMetadata) -> TokenStream {
+    fn impl_TableMeta(&self, attr: &attr::TableMetadata) -> TokenStream {
         let model = &attr.struct_name;
         let table_name = &attr.table_name;
         let id = match &attr.primary_key {
@@ -326,10 +321,10 @@ pub trait OrmliteCodegen {
         }
     }
 
-    fn impl_IntoArguments(attr: &attr::TableMetadata) -> TokenStream {
-        let db = Self::database();
+    fn impl_IntoArguments(&self, attr: &attr::TableMetadata) -> TokenStream {
+        let db = self.database();
         let model = &attr.struct_name;
-        let mut placeholder = Self::raw_placeholder();
+        let mut placeholder = self.raw_placeholder();
         let params = attr.columns.iter()
             .filter(|c| !c.is_join())
             .map(|c| {
@@ -355,11 +350,11 @@ pub trait OrmliteCodegen {
         }
     }
 
-    fn impl_Model__insert(attr: &attr::TableMetadata, metadata_cache: &MetadataCache) -> TokenStream {
+    fn impl_Model__insert(&self, attr: &attr::TableMetadata, metadata_cache: &MetadataCache) -> TokenStream {
         let box_future = crate::util::box_future();
-        let db = Self::database();
+        let db = self.database();
         let table = &attr.table_name;
-        let mut placeholder = Self::raw_placeholder();
+        let mut placeholder = self.raw_placeholder();
         let params = attr.columns.iter()
             .filter(|c| !c.is_join())
             .map(|_| placeholder.next().unwrap());
@@ -426,11 +421,11 @@ pub trait OrmliteCodegen {
         }
     }
 
-    fn impl_Model__update_all_fields(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
+    fn impl_Model__update_all_fields(&self, ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
         let span = ast.span();
         let box_future = crate::util::box_future();
-        let db = Self::database();
-        let mut placeholder = Self::raw_placeholder();
+        let db = self.database();
+        let mut placeholder = self.raw_placeholder();
         let update_clause = ast.fields()
             .map(|f| f.name())
             .filter(|f| f != attr.primary_key.as_ref().unwrap().as_str())
@@ -474,8 +469,8 @@ pub trait OrmliteCodegen {
         }
     }
 
-    fn impl_Model__delete(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
-        let mut placeholder = Self::raw_placeholder();
+    fn impl_Model__delete(&self, ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
+        let mut placeholder = self.raw_placeholder();
         let span = ast.span();
 
         let query = format!(
@@ -486,7 +481,7 @@ pub trait OrmliteCodegen {
         );
 
         let box_future = crate::util::box_future();
-        let db = Self::database();
+        let db = self.database();
         let id_field = syn::Ident::new(attr.primary_key.as_ref().unwrap().as_str(), span);
         quote! {
             fn delete<'e, E>(self, db: E) -> #box_future<'e, ::ormlite::Result<()>>
@@ -509,8 +504,8 @@ pub trait OrmliteCodegen {
         }
     }
 
-    fn impl_Model__fetch_one(_ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
-        let mut placeholder = Self::raw_placeholder();
+    fn impl_Model__fetch_one(&self, _ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
+        let mut placeholder = self.raw_placeholder();
 
         let query = format!(
             "SELECT * FROM \"{}\" WHERE {} = {}",
@@ -519,7 +514,7 @@ pub trait OrmliteCodegen {
             placeholder.next().unwrap()
         );
 
-        let db = Self::database();
+        let db = self.database();
         let box_future = crate::util::box_future();
         quote! {
             fn fetch_one<'e, 'a, Arg, E>(id: Arg, db: E) -> #box_future<'e, ::ormlite::Result<Self>>
@@ -540,9 +535,9 @@ pub trait OrmliteCodegen {
     }
 
 
-    fn impl_Model__select(_ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
+    fn impl_Model__select(&self, _ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
         let table_name = &attr.table_name;
-        let db = Self::database();
+        let db = self.database();
         quote! {
             fn select<'args>() -> ::ormlite::query_builder::SelectQueryBuilder<'args, #db, Self> {
                 ::ormlite::query_builder::SelectQueryBuilder::default()
@@ -551,7 +546,7 @@ pub trait OrmliteCodegen {
         }
     }
 
-    fn impl_Model__builder(ast: &DeriveInput, _attr: &attr::TableMetadata) -> TokenStream {
+    fn impl_Model__builder(&self, ast: &DeriveInput, _attr: &attr::TableMetadata) -> TokenStream {
         let model = &ast.ident;
         let partial_model = quote::format_ident!("{}Builder", model.to_string());
         quote! {
@@ -561,7 +556,7 @@ pub trait OrmliteCodegen {
             }
     }
 
-    fn impl_Model__update_partial(ast: &DeriveInput, _attr: &attr::TableMetadata) -> TokenStream {
+    fn impl_Model__update_partial(&self, ast: &DeriveInput, _attr: &attr::TableMetadata) -> TokenStream {
         let model = &ast.ident;
         let partial_model = quote::format_ident!("{}Builder", model.to_string());
         quote! {
@@ -573,7 +568,7 @@ pub trait OrmliteCodegen {
             }
     }
 
-    fn struct_ModelBuilder(ast: &DeriveInput, _attr: &attr::TableMetadata) -> TokenStream {
+    fn struct_ModelBuilder(&self, ast: &DeriveInput, _attr: &attr::TableMetadata) -> TokenStream {
         let model = &ast.ident;
         let model_builder = quote::format_ident!("{}Builder", model.to_string());
         let pub_marker = &ast.vis;
@@ -648,10 +643,10 @@ pub trait OrmliteCodegen {
         }
     }
 
-    fn impl_ModelBuilder__insert(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
+    fn impl_ModelBuilder__insert(&self, ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
         let box_future = crate::util::box_future();
-        let db = Self::database();
-        let placeholder = Self::placeholder();
+        let db = self.database();
+        let placeholder = self.placeholder();
         let query = format!(
             "INSERT INTO \"{}\" ({{}}) VALUES ({{}}) RETURNING *",
             attr.table_name
@@ -682,7 +677,7 @@ pub trait OrmliteCodegen {
         }
     }
 
-    fn impl_ModelBuilder__update(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
+    fn impl_ModelBuilder__update(&self, ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
         let span = ast.span();
         let fields = ast.fields();
 
@@ -691,9 +686,9 @@ pub trait OrmliteCodegen {
             attr.table_name, attr.primary_key.as_ref().unwrap(),
         );
 
-        let db = Self::database();
+        let db = self.database();
         let box_future = crate::util::box_future();
-        let placeholder = Self::placeholder();
+        let placeholder = self.placeholder();
         let bind_update = generate_query_binding_code_for_partial_model(attr);
         let id = syn::Ident::new(attr.primary_key.as_ref().unwrap().as_str(), span);
         quote! {
@@ -710,7 +705,9 @@ pub trait OrmliteCodegen {
                         something like: `<Model>::build().update(&mut db)`. A partial update \
                         looks something like \
                         `<model instance>.update_partial().update(&mut db)`.")
-                        .#id;
+                        .#id
+                        // NOTE: This clone is free for Copy types. .clone() fixes ormlite#13
+                        .clone();
                     let query = format!(
                         #query,
                         set_fields.into_iter().map(|f| format!("{} = {}", f, placeholder.next().unwrap())).collect::<Vec<_>>().join(", "),
@@ -727,7 +724,7 @@ pub trait OrmliteCodegen {
         }
     }
 
-    fn impl_ModelBuilder__build(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
+    fn impl_ModelBuilder__build(&self, ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
         let span = ast.span();
 
         let unpack = attr.columns.iter()
@@ -748,14 +745,14 @@ pub trait OrmliteCodegen {
         }
     }
 
-    fn impl_ModelBuilder(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
+    fn impl_ModelBuilder(&self, ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
         let model = &ast.ident;
-        let db = Self::database();
+        let db = self.database();
         let partial_model = quote::format_ident!("{}Builder", model.to_string());
 
-        let impl_ModelBuilder__insert = Self::impl_ModelBuilder__insert(ast, attr);
-        let impl_ModelBuilder__update = Self::impl_ModelBuilder__update(ast, attr);
-        let impl_ModelBuilder__build = Self::impl_ModelBuilder__build(ast, attr);
+        let impl_ModelBuilder__insert = self.impl_ModelBuilder__insert(ast, attr);
+        let impl_ModelBuilder__update = self.impl_ModelBuilder__update(ast, attr);
+        let impl_ModelBuilder__build = self.impl_ModelBuilder__build(ast, attr);
 
         quote! {
             impl<'a> ::ormlite::model::ModelBuilder<'a, #db> for #partial_model<'a> {
@@ -767,7 +764,7 @@ pub trait OrmliteCodegen {
         }
     }
 
-    fn struct_InsertModel(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
+    fn struct_InsertModel(&self, ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
         if attr.insert_struct.is_none() {
             return quote! {};
         }
@@ -790,13 +787,13 @@ pub trait OrmliteCodegen {
         }
     }
 
-    fn impl_InsertModel(ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
+    fn impl_InsertModel(&self, ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
         if attr.insert_struct.is_none() {
             return quote! {};
         }
         let box_future = crate::util::box_future();
         let model = &ast.ident;
-        let db = Self::database();
+        let db = self.database();
         let insert_model = quote::format_ident!("{}", attr.insert_struct.as_ref().unwrap());
         let fields = attr
             .columns
@@ -805,7 +802,7 @@ pub trait OrmliteCodegen {
             .map(|col_meta| col_meta.column_name.clone())
             .collect::<Vec<_>>()
             .join(",");
-        let mut placeholder = Self::raw_placeholder();
+        let mut placeholder = self.raw_placeholder();
         let placeholders = attr
             .columns
             .iter()

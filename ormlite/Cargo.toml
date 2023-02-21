@@ -10,6 +10,7 @@ homepage = "https://github.com/kurtbuilds/ormlite"
 documentation = "https://docs.rs/ormlite"
 autotests = false
 readme = "../README.md"
+autoexamples = false
 
 [package.metadata.docs.rs]
 features = ["postgres", "runtime-tokio-rustls"]
@@ -28,6 +29,15 @@ decimal = ["sqlx/decimal"]
 chrono = ["sqlx/chrono"]
 time = ["sqlx/time"]
 json = ["sqlx/json"]
+default = ["runtime-tokio-rustls"]
+
+# When you have multiple databases configured, you can use the default-<db> feature to
+# set which database the macros will use by default.
+# Use the `#[orm(database = "postgres")]` attribute to override the default.
+# Use the attribute multiple times to generate code for multiple databases.
+default-postgres = ["postgres", "ormlite-macro/default-postgres"]
+default-sqlite = ["sqlite", "ormlite-macro/default-sqlite"]
+default-mysql = ["mysql", "ormlite-macro/default-mysql"]
 
 [dependencies]
 sqlx = { version = "0.6.2" }

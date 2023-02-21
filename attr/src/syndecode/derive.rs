@@ -1,9 +1,10 @@
-use syn::__private::quote::__private::TokenTree;
+use proc_macro2::TokenTree;
 
 #[derive(Debug)]
 pub struct DeriveAttribute(String);
 
 impl DeriveAttribute {
+    #[allow(dead_code)]
     pub fn new(name: &str) -> Self {
         Self(name.to_string())
     }
@@ -51,6 +52,39 @@ impl DeriveAttribute {
                 _ => {}
             }
         }
+        if let Some(current) = current {
+            attributes.push(Self(current));
+        }
         attributes
+    }
+}
+
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_single_attr() {
+        let attr = syn::parse_quote! {
+            #[derive(Model)]
+        };
+        let attrs = DeriveAttribute::decode_many_from_attr(&attr);
+        assert_eq!(attrs.len(), 1);
+        assert_eq!(attrs[0].trait_name(), "Model");
+    }
+
+    #[test]
+    fn test_many_from_attr() {
+        let attr = syn::parse_quote! {
+            #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+        };
+        let attrs = DeriveAttribute::decode_many_from_attr(&attr);
+        assert_eq!(attrs.len(), 5);
+        assert_eq!(attrs[0].trait_name(), "Debug");
+        assert_eq!(attrs[1].trait_name(), "Clone");
+        assert_eq!(attrs[2].trait_name(), "PartialEq");
+        assert_eq!(attrs[3].trait_name(), "Eq");
+        assert_eq!(attrs[4].trait_name(), "Hash");
     }
 }

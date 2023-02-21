@@ -53,3 +53,16 @@ pub mod postgres {
 pub mod sqlite {
     pub use sqlx::sqlite::*;
 }
+
+
+pub mod __test {
+    pub fn migrate_self(file: &str) -> sqlmo::Migration {
+        use ormlite_core::schema::TryFromOrmlite;
+        let file = std::path::Path::new(file);
+        let paths = vec![file];
+        let options = ormlite_core::schema::Options { verbose: false };
+        let schema: sqlmo::Schema = TryFromOrmlite::try_from_ormlite_project(&paths, &options).unwrap();
+        let migration = sqlmo::Schema::default().migrate_to(schema, &sqlmo::MigrationOptions::default()).unwrap();
+        migration
+    }
+}

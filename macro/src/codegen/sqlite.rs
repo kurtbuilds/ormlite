@@ -7,17 +7,17 @@ use quote::quote;
 pub struct SqliteBackend {}
 
 impl OrmliteCodegen for SqliteBackend {
-    fn database() -> TokenStream {
+    fn database(&self) -> TokenStream {
         quote! { ::ormlite::sqlite::Sqlite }
     }
 
-    fn placeholder() -> TokenStream {
+    fn placeholder(&self) -> TokenStream {
         quote! {
             ::ormlite::query_builder::Placeholder::question_mark()
         }
     }
 
-    fn raw_placeholder() -> Placeholder {
+    fn raw_placeholder(&self) -> Placeholder {
         Placeholder::question_mark()
     }
 }

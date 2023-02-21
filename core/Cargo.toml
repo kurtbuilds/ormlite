@@ -21,3 +21,5 @@ sqlx = "0.6.0"
 sqlparser = "0.28.0"
 thiserror = "1.0.30"
 sqlmo = "0.9.0"
+ormlite-attr = { path = "../attr", version = "0.9.4" }
+anyhow = "1.0.69"

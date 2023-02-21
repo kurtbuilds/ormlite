@@ -2,7 +2,7 @@ use ormlite::model::*;
 use ormlite::Connection;
 
 #[derive(Model, Debug)]
-#[ormlite(Insertable = InsertPerson)]
+#[ormlite(insertable = InsertPerson)]
 // #[index(col, col2, col3, unique = true, name = "my_index", type="btree")]
 pub struct Person {
     pub id: u32,

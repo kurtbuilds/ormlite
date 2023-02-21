@@ -9,3 +9,5 @@ pub mod model;
 pub mod query_builder;
 pub mod join;
 pub mod insert;
+pub mod schema;
+

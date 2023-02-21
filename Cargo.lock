@@ -1217,7 +1217,9 @@ dependencies = [
 name = "ormlite-core"
 version = "0.9.4"
 dependencies = [
+ "anyhow",
  "futures",
+ "ormlite-attr",
  "sqlmo",
  "sqlparser",
  "sqlx",
@@ -1230,6 +1232,7 @@ name = "ormlite-macro"
 version = "0.9.4"
 dependencies = [
  "lazy_static",
+ "once_cell",
  "ormlite-attr",
  "ormlite-core",
  "proc-macro2",

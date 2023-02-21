@@ -10,7 +10,7 @@ use anyhow::{anyhow, Context, Error, Result};
 use sqlmo::{Migration, Schema, Dialect, ToSql, migrate::Statement};
 use ormlite::FromRow;
 use tokio::runtime::Runtime;
-use crate::schema::TryFromOrmlite;
+use ormlite_core::schema::TryFromOrmlite;
 use ormlite::{Acquire};
 use ormlite::postgres::{PgConnection};
 
@@ -161,7 +161,9 @@ fn autogenerate_migration(codebase_path: &[&Path], runtime: &Runtime, conn: &mut
     let mut current = runtime.block_on(Schema::try_from_database(conn, "public"))?;
     current.tables.retain(|t| t.name != "_sqlx_migrations");
 
-    let desired = Schema::try_from_ormlite_project(codebase_path, opts)?;
+    let desired = Schema::try_from_ormlite_project(codebase_path, &ormlite_core::schema::Options {
+        verbose: opts.verbose,
+    })?;
 
     let migration = current.migrate_to(desired, &sqlmo::MigrationOptions {
         debug: opts.verbose,

@@ -4,6 +4,8 @@ use sqlmo::ToSql;
 use uuid::Uuid;
 
 #[derive(Model)]
+#[ormlite(database = "sqlite")]
+#[ormlite(database = "postgres")]
 pub struct Person {
     id: Uuid,
     name: String,

@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 use anyhow::Result;
-mod schema;
+
 mod command;
 mod util;
 

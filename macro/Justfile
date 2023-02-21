@@ -24,7 +24,7 @@ bootstrap:
     cargo install cargo-edit
 
 test *args:
-    cargo test {{args}}
+    cargo test {{args}} -F runtime-tokio-rustls,sqlite
 
 check:
     cargo check

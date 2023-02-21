@@ -1,27 +1,26 @@
 use ormlite::model::*;
 use ormlite::Connection;
-use sqlmo::ToSql;
 use uuid::Uuid;
 
 #[derive(Model)]
 pub struct Person {
     id: Uuid,
+    #[ormlite(primary_key)]
     name: String,
     age: u8,
 }
 
 
+pub static CREATE_TABLE_SQL: &str =
+    "CREATE TABLE person (id text PRIMARY KEY, name TEXT, age INTEGER)";
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
     let mut db = ormlite::sqlite::SqliteConnection::connect(":memory:").await.unwrap();
-    let migration = ormlite::__test::migrate_self(file!());
-    for s in migration.statements {
-        let sql = s.to_sql(sqlmo::Dialect::Sqlite);
-        ormlite::query(&sql)
-            .execute(&mut db)
-            .await?;
-    }
+    ormlite::query(CREATE_TABLE_SQL)
+        .execute(&mut db)
+        .await?;
 
     let p = Person {
         id: Uuid::new_v4(),
@@ -35,5 +34,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     assert_eq!(p.age, 100);
+
     Ok(())
 }

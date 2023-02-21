@@ -23,7 +23,8 @@ bootstrap:
     cargo install cargo-edit
 
 test *args:
-    cargo test --features runtime-tokio-rustls,sqlite,uuid {{args}}
+    cargo test --features sqlite,uuid {{args}}
+    # cargo test --features sqlite,postgres,uuid {{args}}
 
 check:
     cargo check
@@ -70,10 +71,10 @@ expand-run:
     printf '#![feature(fmt_helpers_for_derive)]\n' >> examples/expand.rs
     printf '#![feature(print_internals)]\n' >> examples/expand.rs
     printf '#![feature(core_panic)]\n' >> examples/expand.rs
-    cargo expand --example many-to-one --features sqlite,runtime-tokio-rustls,uuid >> examples/expand.rs
+    cargo +nightly expand --example 01-update-partial --features sqlite,runtime-tokio-rustls,uuid >> examples/expand.rs
     sd '::alloc::' '::std::' examples/expand.rs -f
     sd '# ?\[ormlite.*' '' examples/expand.rs -f
-    cargo run --example expand --features sqlite,runtime-tokio-rustls,uuid
+    cargo +nightly run --example expand --features sqlite,runtime-tokio-rustls,uuid
 alias er := expand-run
 
 rerun:

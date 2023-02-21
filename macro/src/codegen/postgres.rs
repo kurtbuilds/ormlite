@@ -8,23 +8,23 @@ use syn::DeriveInput;
 pub struct PostgresBackend {}
 
 impl OrmliteCodegen for PostgresBackend {
-    fn database() -> TokenStream {
+    fn database(&self) -> TokenStream {
         quote! { ::ormlite::postgres::Postgres }
     }
 
-    fn placeholder() -> TokenStream {
+    fn placeholder(&self) -> TokenStream {
         quote! {
             ::ormlite::query_builder::Placeholder::dollar_sign()
         }
     }
 
-    fn raw_placeholder() -> Placeholder {
+    fn raw_placeholder(&self) -> Placeholder {
         Placeholder::dollar_sign()
     }
 
-    fn impl_Model__select(_ast: &DeriveInput, attr: &TableMetadata) -> TokenStream {
+    fn impl_Model__select(&self, _ast: &DeriveInput, attr: &TableMetadata) -> TokenStream {
         let table_name = &attr.table_name;
-        let db = Self::database();
+        let db = self.database();
         quote! {
             fn select<'args>() -> ::ormlite::query_builder::SelectQueryBuilder<'args, #db, Self> {
                 ::ormlite::query_builder::SelectQueryBuilder::default()

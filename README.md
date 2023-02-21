@@ -182,7 +182,7 @@ To work around the autoincrement issue, you can use an insertion struct, shown h
 
 ```rust
 #[derive(Model, Debug)]
-#[ormlite(Insertable = InsertPerson)]
+#[ormlite(insertable = InsertPerson)]
 pub struct Person {
     pub id: i32,
     pub name: String,
@@ -298,7 +298,7 @@ This example shows them in action:
 
 ```rust
 #[derive(Model, Debug)]
-#[ormlite(table = "people", Insertable = InsertPerson)]
+#[ormlite(table = "people", insertable = InsertPerson)]
 pub struct Person {
     #[ormlite(primary_key)]
     pub id: i32,

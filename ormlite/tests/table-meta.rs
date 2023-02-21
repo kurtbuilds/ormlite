@@ -12,7 +12,6 @@ pub struct Person {
 #[derive(TableMeta, Serialize)]
 pub struct Person2 {
     id: Uuid,
-    // #[serde(rename = "old")]
     #[ormlite(column = "old")]
     age: u8,
 }

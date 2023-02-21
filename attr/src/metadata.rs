@@ -1,17 +1,193 @@
 use derive_builder::Builder;
-use syn::{DeriveInput, Field, Type};
+use syn::{DeriveInput, Field, PathArguments};
 use crate::{ColumnAttributes, ModelAttributes, SyndecodeError};
 use crate::DeriveInputExt;
 use convert_case::{Case, Casing};
+use proc_macro2::TokenStream;
+use quote::{TokenStreamExt};
+
+#[derive(Clone, Debug)]
+pub struct Ident(pub String);
+
+impl From<&proc_macro2::Ident> for Ident {
+    fn from(ident: &proc_macro2::Ident) -> Self {
+        Ident(ident.to_string())
+    }
+}
+
+impl quote::ToTokens for Ident {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        tokens.append(proc_macro2::Ident::new(&self.0, proc_macro2::Span::call_site()))
+    }
+}
+
+impl std::fmt::Display for Ident {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Segments {
+    pub segments: Vec<Ident>,
+}
+
+#[derive(Clone, Debug)]
+pub struct OtherType {
+    pub path: Vec<Ident>,
+    pub ident: Ident,
+    pub args: Option<Box<OtherType>>,
+}
+
+#[derive(Clone, Debug)]
+pub enum Type {
+    Option(Box<Type>),
+    Vec(Box<Type>),
+    /// Database primitive, includes DateTime, Jsonb, etc.
+    Primitive(OtherType),
+    Join(Box<Type>),
+}
+
+impl Type {
+    pub fn is_primitive(&self) -> bool {
+        match self {
+            Type::Primitive(_) => true,
+            Type::Option(ty) => ty.is_primitive(),
+            _ => false,
+        }
+
+    }
+
+    pub fn is_join(&self) -> bool {
+        matches!(self, Type::Join(_))
+    }
+
+    pub fn inner_type_name(&self) -> String {
+        match self {
+            Type::Primitive(ty) => ty.ident.0.to_string(),
+            Type::Option(ty) => ty.inner_type_name(),
+            Type::Vec(ty) => ty.inner_type_name(),
+            Type::Join(ty) => ty.inner_type_name(),
+        }
+    }
+
+    pub fn qualified_inner_name(&self) -> TokenStream {
+        match self {
+            Type::Primitive(ty) => {
+                let segments = ty.path.iter();
+                let ident = &ty.ident;
+                quote::quote! {
+                    #(#segments)::* #ident
+                }
+            },
+            Type::Option(ty) => ty.qualified_inner_name(),
+            Type::Vec(ty) => ty.qualified_inner_name(),
+            Type::Join(ty) => ty.qualified_inner_name(),
+        }
+    }
+}
+
+impl From<&syn::Path> for OtherType {
+    fn from(path: &syn::Path) -> Self {
+        let segment = path.segments.last().expect("path must have at least one segment");
+        let args: Option<Box<OtherType>> = if let PathArguments::AngleBracketed(args) = &segment.arguments {
+            let args = &args.args;
+            let syn::GenericArgument::Type(ty) = args.first().unwrap() else {
+                panic!("Option must have a type parameter");
+            };
+            let syn::Type::Path(path) = &ty else {
+                panic!("Option must have a type parameter");
+            };
+            Some(Box::new(OtherType::from(&path.path)))
+        } else {
+            None
+        };
+        let mut path = path.segments.iter().map(|s| Ident::from(&s.ident)).collect::<Vec<_>>();
+        let ident = path.pop().expect("path must have at least one segment");
+        OtherType {
+            path,
+            args,
+            ident,
+        }
+    }
+}
+
+impl From<OtherType> for Type {
+    fn from(value: OtherType) -> Self {
+        match value.ident.0.as_str() {
+            "Option" => {
+                let ty = value.args.unwrap();
+                Type::Option(Box::new(Type::from(*ty)))
+            }
+            "Vec" => {
+                let ty = value.args.unwrap();
+                Type::Vec(Box::new(Type::from(*ty)))
+            }
+            "Join" => {
+                let ty = value.args.unwrap();
+                Type::Join(Box::new(Type::from(*ty)))
+            }
+            _ => Type::Primitive(value),
+        }
+    }
+}
+
+impl From<&syn::Path> for Type {
+    fn from(path: &syn::Path) -> Self {
+        let other = OtherType::from(path);
+        Type::from(other)
+    }
+}
+
+impl quote::ToTokens for OtherType {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let args = if let Some(args) = &self.args {
+            quote::quote! { <#args> }
+        } else {
+            quote::quote! {}
+        };
+        let path = &self.path;
+        let ident = &self.ident;
+        tokens.append_all(quote::quote! { #(#path ::)* #ident #args });
+    }
+}
+
+impl quote::ToTokens for Type {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        match self {
+            Type::Option(ty) => {
+                tokens.append_all(quote::quote! { Option<#ty> });
+            }
+            Type::Vec(ty) => {
+                tokens.append_all(quote::quote! { Vec<#ty> });
+            }
+            Type::Primitive(ty) => {
+                ty.to_tokens(tokens);
+                // tokens.append_all(ty.toto)
+                // let args = if let Some(args) = &ty.args {
+                //     quote::quote! { <#args> }
+                // } else {
+                //     quote::quote! {}
+                // };
+                // let segments = &ty.segments;
+                // tokens.append_all(quote::quote! { #(#segments ::)* #args });
+            }
+            Type::Join(ty) => {
+                tokens.append_all(quote::quote! { ormlite::model::Join<#ty> });
+            }
+        }
+    }
+}
 
 /// All the metadata we can capture about a table
 #[derive(Builder, Debug)]
 pub struct TableMetadata {
     pub table_name: String,
-    pub struct_name: syn::Ident,
+    pub struct_name: Ident,
     pub primary_key: Option<String>,
     pub columns: Vec<ColumnMetadata>,
     pub insert_struct: Option<String>,
+    pub databases: Vec<String>,
 }
 
 impl TableMetadata {
@@ -22,17 +198,22 @@ impl TableMetadata {
     pub fn builder_from_struct_attributes(ast: &DeriveInput) -> Result<TableMetadataBuilder, SyndecodeError> {
         let mut builder = TableMetadata::builder();
         builder.insert_struct(None);
-        builder.struct_name(ast.ident.clone());
+        builder.struct_name(Ident::from(&ast.ident));
+        let mut databases = vec![];
         for attr in ast.attrs.iter().filter(|a| a.path.is_ident("ormlite")) {
             let args: ModelAttributes = attr.parse_args()
                 .map_err(|e| SyndecodeError(e.to_string()))?;
             if let Some(value) = args.table {
                 builder.table_name(value.value());
             }
-            if let Some(value) = args.Insertable {
+            if let Some(value) = args.insertable {
                 builder.insert_struct(Some(value.to_string()));
             }
+            if let Some(value) = args.database {
+                databases.push(value.value());
+            }
         }
+        builder.databases(databases);
         Ok(builder)
     }
 
@@ -83,6 +264,17 @@ impl TryFrom<&DeriveInput> for TableMetadata {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct ForeignKey {
+    pub model: String,
+    pub column: String,
+}
+
+impl From<&syn::Path> for ForeignKey {
+    fn from(_value: &syn::Path) -> Self {
+        unimplemented!()
+    }
+}
 
 /// All the metadata we can capture about a column
 #[derive(Clone, Debug, Builder)]
@@ -94,12 +286,12 @@ pub struct ColumnMetadata {
     pub marked_primary_key: bool,
     pub has_database_default: bool,
     /// Identifier used in Rust to refer to the column
-    pub identifier: syn::Ident,
+    pub identifier: Ident,
 
     // only for joins
-    pub many_to_one_key: Option<syn::Ident>,
-    pub many_to_many_table: Option<syn::Path>,
-    pub one_to_many_foreign_key: Option<syn::Path>,
+    pub many_to_one_key: Option<Ident>,
+    pub many_to_many_table: Option<String>,
+    pub one_to_many_foreign_key: Option<ForeignKey>,
 }
 
 impl ColumnMetadata {
@@ -108,55 +300,58 @@ impl ColumnMetadata {
     }
 
     pub fn is_join(&self) -> bool {
-        ty_is_join(&self.column_type)
+        matches!(self.column_type, Type::Join(_))
+    }
+
+    pub fn is_join_many(&self) -> bool {
+        let Type::Join(join) = &self.column_type else {
+            return false;
+        };
+        let Type::Primitive(o) = join.as_ref() else {
+            return false;
+        };
+        o.ident.0 == "Vec"
     }
 
     pub fn is_primitive(&self) -> bool {
-        ty_is_primitive(&self.column_type)
-    }
-    /// We expect this to only return a `Model` of some kind.
-    pub fn joined_struct_name(&self) -> Option<String> {
-        let Some(path) = self.joined_path() else {
-            return None;
-        };
-        let Some(segment) = path.segments.last() else {
-            return None;
-        };
-        let syn::PathArguments::AngleBracketed(args) = &segment.arguments else {
-            return Some(segment.ident.to_string());
-        };
-        let Some(arg) = args.args.last() else {
-            return None;
-        };
-        let syn::GenericArgument::Type(Type::Path(path)) = arg else {
-            return None;
-        };
-        path.path.segments.last().map(|s| s.ident.to_string())
+        self.column_type.is_primitive()
     }
 
-    /// Whatever is inside the `Join`. We're expecting a `Model` or a `Vec<Model>`.
-    pub fn joined_path(&self) -> Option<&syn::Path> {
-        let Type::Path(path) = &self.column_type else {
+    /// We expect this to only return a `Model` of some kind.
+    pub fn joined_struct_name(&self) -> Option<String> {
+        let Type::Join(join) = &self.column_type else {
             return None;
         };
-        let Some(segment) = path.path.segments.last() else {
-            return None;
-        };
-        if segment.ident != "Join" {
-            return None;
-        }
-        // go inside Join<...>
-        let syn::PathArguments::AngleBracketed(args) = &segment.arguments else {
-            return None;
-        };
-        let Some(arg) = args.args.last() else {
-            return None;
-        };
-        let syn::GenericArgument::Type(Type::Path(path)) = arg else {
-            return None;
-        };
-        Some(&path.path)
+        Some(join.inner_type_name())
     }
+
+    pub fn joined_model(&self) -> TokenStream {
+        self.column_type.qualified_inner_name()
+    }
+
+    // /// Whatever is inside the `Join`. We're expecting a `Model` or a `Vec<Model>`.
+    // pub fn joined_path(&self) -> Option<&syn::Path> {
+    //     let Type::Path(path) = &self.column_type else {
+    //         return None;
+    //     };
+    //     let Some(segment) = path.path.segments.last() else {
+    //         return None;
+    //     };
+    //     if segment.ident != "Join" {
+    //         return None;
+    //     }
+    //     // go inside Join<...>
+    //     let syn::PathArguments::AngleBracketed(args) = &segment.arguments else {
+    //         return None;
+    //     };
+    //     let Some(arg) = args.args.last() else {
+    //         return None;
+    //     };
+    //     let syn::GenericArgument::Type(Type::Path(path)) = arg else {
+    //         return None;
+    //     };
+    //     Some(&path.path)
+    // }
 }
 
 
@@ -166,10 +361,15 @@ impl TryFrom<&Field> for ColumnMetadata {
     fn try_from(f: &Field) -> Result<Self, Self::Error> {
         let mut builder = ColumnMetadata::builder();
         let ident = f.ident.as_ref().expect("No ident on field");
+        let syn::Type::Path(ty) = &f.ty else {
+            return Err(SyndecodeError(format!("No type on field {}", ident)));
+        };
+        let ty = Type::from(&ty.path);
+        let is_join = ty.is_join();
         builder
             .column_name(ident.to_string())
-            .identifier(ident.clone())
-            .column_type(f.ty.clone())
+            .identifier(Ident::from(ident))
+            .column_type(ty)
             .marked_primary_key(false)
             .has_database_default(false)
             .many_to_one_key(None)
@@ -191,66 +391,27 @@ impl TryFrom<&Field> for ColumnMetadata {
             }
             if let Some(value) = args.many_to_one_key {
                 let ident = value.segments.last().unwrap().ident.clone();
+                let ident = Ident::from(&ident);
                 builder.many_to_one_key(Some(ident));
                 has_join_directive = true;
             }
-            if let Some(value) = args.many_to_many_table {
+            if let Some(path) = args.many_to_many_table {
+                let value = path.to_string();
                 builder.many_to_many_table(Some(value));
                 has_join_directive = true;
             }
-            if let Some(value) = args.one_to_many_foreign_key {
-                builder.one_to_many_foreign_key(Some(value));
+            if let Some(path) = args.one_to_many_foreign_key {
+                builder.one_to_many_foreign_key(Some(ForeignKey::from(&path)));
                 has_join_directive = true;
             }
         }
-        if ty_is_join(&f.ty) && !has_join_directive {
+        if is_join && !has_join_directive {
             return Err(SyndecodeError(format!("Column {ident} is a Join. You must specify one of these attributes: many_to_one_key, many_to_many_table_name, or one_to_many_foreign_key")));
         }
         builder.build().map_err(|e| SyndecodeError(e.to_string()))
     }
 }
 
-/// bool whether the given type is `Join`
-fn ty_is_join(ty: &Type) -> bool {
-    let p = match ty {
-        Type::Path(p) => p,
-        _ => return false,
-    };
-    p.path.segments.last().map(|s| s.ident == "Join").unwrap_or(false)
-}
-
-/// bool whether the given type is primitive
-fn ty_is_primitive(ty: &Type) -> bool {
-    let Type::Path(p) = ty else {
-        return false;
-    };
-    let Some(s) = p.path.segments.last() else {
-        return false;
-    };
-    let ident = s.ident.to_string();
-    if ident == "Option" {
-        let syn::PathArguments::AngleBracketed(args) = &s.arguments else {
-            return false;
-        };
-        let Some(arg) = args.args.last() else {
-            return false;
-        };
-        let syn::GenericArgument::Type(ty) = arg else {
-            return false;
-        };
-        return ty_is_primitive(ty);
-    }
-    [
-        "i8", "i16", "i32", "i64", "i128", "isize",
-        "u8", "u16", "u32", "u64", "u128", "usize",
-        "f32", "f64",
-        "bool",
-        "String",
-        "str",
-        "DateTime", "NaiveDate", "NaiveTime", "NaiveDateTime",
-        "Decimal",
-    ].contains(&s.ident.to_string().as_str())
-}
 
 #[cfg(test)]
 mod test {
@@ -258,22 +419,34 @@ mod test {
 
     #[test]
     fn test_primitive() {
-        let ty = syn::parse_str::<Type>("i32").unwrap();
-        assert!(ty_is_primitive(&ty));
+        use syn::Path;
+        let ty = Type::from(&syn::parse_str::<Path>("i32").unwrap());
+        assert!(ty.is_primitive());
 
-        let ty = syn::parse_str::<Type>("NaiveDate").unwrap();
-        assert!(ty_is_primitive(&ty));
+        let ty = Type::from(&syn::parse_str::<Path>("NaiveDate").unwrap());
+        assert!(ty.is_primitive());
 
-        let ty = syn::parse_str::<Type>("Option<NaiveDate>").unwrap();
-        assert!(ty_is_primitive(&ty));
+        let ty = Type::from(&syn::parse_str::<Path>("Option<NaiveDate>").unwrap());
+        assert!(ty.is_primitive());
 
-        let ty = syn::parse_str::<Type>("User").unwrap();
-        assert!(!ty_is_primitive(&ty));
+        let ty = Type::from(&syn::parse_str::<Path>("Join<User>").unwrap());
+        assert!(!ty.is_primitive());
 
-        let ty = syn::parse_str::<Type>("Option<User>").unwrap();
-        assert!(!ty_is_primitive(&ty));
+        let ty = Type::from(&syn::parse_str::<Path>("rust_decimal::Decimal").unwrap());
+        assert!(ty.is_primitive());
+    }
 
-        let ty = syn::parse_str::<Type>("rust_decimal::Decimal").unwrap();
-        assert!(!ty_is_primitive(&ty));
+    #[test]
+    fn test_other_type_to_quote() {
+        use syn::Path;
+        let ty = Type::from(&syn::parse_str::<Path>("rust_decimal::Decimal").unwrap());
+        let Type::Primitive(ty) = &ty else {
+            panic!("expected primitive");
+        };
+        assert_eq!(ty.ident.0, "Decimal");
+        assert_eq!(ty.path.len(), 1);
+        assert_eq!(ty.path[0].0.as_str(), "rust_decimal");
+        let z = quote::quote!(#ty);
+        assert_eq!(z.to_string(), "rust_decimal :: Decimal");
     }
 }

@@ -28,15 +28,20 @@ pub fn load_from_project(paths: &[&Path], opts: &LoadOptions) -> anyhow::Result<
 
     let walk = walk.filter_map(|e| e.ok())
         .filter(|e| e.path().extension().map(|e| e == "rs")
-            .unwrap_or(false));
+            .unwrap_or(false))
+        .map(|e| e.into_path())
+        .chain(paths.iter()
+                   .filter(|p| p.ends_with(".rs"))
+                   .map(|p| p.to_path_buf())
+        );
 
     for entry in walk {
-        let contents = fs::read_to_string(entry.path())?;
+        let contents = fs::read_to_string(&entry)?;
         if !contents.contains("Model") {
             continue;
         }
         if opts.verbose {
-            eprintln!("{}: Checking for #[derive(Model)]", entry.path().display());
+            eprintln!("{}: Checking for #[derive(Model)]", entry.display());
         }
         let ast = syn::parse_file(&contents)?;
         let structs = ast.items.into_iter().filter_map(|item| match item {
@@ -49,7 +54,7 @@ pub fn load_from_project(paths: &[&Path], opts: &LoadOptions) -> anyhow::Result<
             })
             .inspect(|(s, attrs)| {
                 if opts.verbose {
-                    eprintln!("{}: Found struct {}. Detected derives: {:?}", entry.path().display(), s.ident, attrs.derives());
+                    eprintln!("{}: Found struct {}. Detected derives: {:?}", entry.display(), s.ident, attrs.derives());
                 }
             })
             .filter(|(_, attrs)| attrs.has_derive("Model"))
@@ -59,7 +64,7 @@ pub fn load_from_project(paths: &[&Path], opts: &LoadOptions) -> anyhow::Result<
             let table = TableMetadata::try_from(&derive)
                 .map_err(|e| SyndecodeError(format!(
                     "{}: Encountered an error while scanning for #[derive(Model)] structs: {}",
-                    entry.path().display(), e))
+                    entry.display(), e))
                 )?;
             results.push(table);
         }
