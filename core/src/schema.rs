@@ -86,9 +86,10 @@ impl std::fmt::Display for TypeTranslationError {
 impl SqlType {
     fn from_type(ty: &ormlite_attr::Type) -> Result<Option<Self>, TypeTranslationError> {
         use sqlmo::Type::*;
+        use ormlite_attr::Type;
         match ty {
-            ormlite_attr::Type::Vec(v) => {
-                let ormlite_attr::Type::Primitive(p) = v.as_ref() else {
+            Type::Vec(v) => {
+                let Type::Primitive(p) = v.as_ref() else {
                     return Err(TypeTranslationError(format!("Don't know how to convert Rust type to SQL: {:?}", ty)))
                 };
                 if p.ident.0 != "u8" {
@@ -99,7 +100,13 @@ impl SqlType {
                     nullable: false,
                 }))
             }
-            ormlite_attr::Type::Primitive(p) => {
+            Type::Foreign(_) => {
+                Ok(Some(SqlType {
+                    ty: Jsonb,
+                    nullable: false,
+                }))
+            }
+            Type::Primitive(p) => {
                 let ident = p.ident.0.as_str();
                 let ty = match ident {
                     "String" => Text,
@@ -121,14 +128,14 @@ impl SqlType {
                     nullable: false,
                 }))
             }
-            ormlite_attr::Type::Option(o) => {
+            Type::Option(o) => {
                 let inner = Self::from_type(o)?.unwrap();
                 Ok(Some(SqlType {
                     ty: inner.ty,
                     nullable: true,
                 }))
             }
-            ormlite_attr::Type::Join(_) => {
+            Type::Join(_) => {
                 Ok(None)
             }
         }

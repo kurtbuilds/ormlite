@@ -45,6 +45,7 @@ pub enum Type {
     Vec(Box<Type>),
     /// Database primitive, includes DateTime, Jsonb, etc.
     Primitive(OtherType),
+    Foreign(OtherType),
     Join(Box<Type>),
 }
 
@@ -64,7 +65,7 @@ impl Type {
 
     pub fn inner_type_name(&self) -> String {
         match self {
-            Type::Primitive(ty) => ty.ident.0.to_string(),
+            Type::Primitive(ty) | Type::Foreign(ty) => ty.ident.0.to_string(),
             Type::Option(ty) => ty.inner_type_name(),
             Type::Vec(ty) => ty.inner_type_name(),
             Type::Join(ty) => ty.inner_type_name(),
@@ -73,7 +74,7 @@ impl Type {
 
     pub fn qualified_inner_name(&self) -> TokenStream {
         match self {
-            Type::Primitive(ty) => {
+            Type::Primitive(ty) | Type::Foreign(ty) => {
                 let segments = ty.path.iter();
                 let ident = &ty.ident;
                 quote::quote! {
@@ -127,7 +128,17 @@ impl From<OtherType> for Type {
                 let ty = value.args.unwrap();
                 Type::Join(Box::new(Type::from(*ty)))
             }
-            _ => Type::Primitive(value),
+            x if [
+                "i8", "i16", "i32", "i64", "i128", "isize",
+                "u8", "u16", "u32", "u64", "u128", "usize",
+                "f32", "f64",
+                "bool",
+                "String",
+                "str",
+                "DateTime", "NaiveDate", "NaiveTime", "NaiveDateTime",
+                "Decimal",
+            ].contains(&x) => Type::Primitive(value),
+            _ => Type::Foreign(value),
         }
     }
 }
@@ -161,16 +172,8 @@ impl quote::ToTokens for Type {
             Type::Vec(ty) => {
                 tokens.append_all(quote::quote! { Vec<#ty> });
             }
-            Type::Primitive(ty) => {
+            Type::Primitive(ty) | Type::Foreign(ty) => {
                 ty.to_tokens(tokens);
-                // tokens.append_all(ty.toto)
-                // let args = if let Some(args) = &ty.args {
-                //     quote::quote! { <#args> }
-                // } else {
-                //     quote::quote! {}
-                // };
-                // let segments = &ty.segments;
-                // tokens.append_all(quote::quote! { #(#segments ::)* #args });
             }
             Type::Join(ty) => {
                 tokens.append_all(quote::quote! { ormlite::model::Join<#ty> });
