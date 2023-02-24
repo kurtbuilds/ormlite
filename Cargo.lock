@@ -1163,7 +1163,7 @@ checksum = "b7e5500299e16ebb147ae15a00a942af264cf3688f47923b8fc2cd5858f23ad3"
 
 [[package]]
 name = "ormlite"
-version = "0.10.1"
+version = "0.11.0"
 dependencies = [
  "env_logger",
  "ormlite-core",
@@ -1179,7 +1179,7 @@ dependencies = [
 
 [[package]]
 name = "ormlite-attr"
-version = "0.10.1"
+version = "0.11.0"
 dependencies = [
  "anyhow",
  "convert_case",
@@ -1194,7 +1194,7 @@ dependencies = [
 
 [[package]]
 name = "ormlite-cli"
-version = "0.10.1"
+version = "0.11.0"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -1215,7 +1215,7 @@ dependencies = [
 
 [[package]]
 name = "ormlite-core"
-version = "0.10.1"
+version = "0.11.0"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -1231,7 +1231,7 @@ dependencies = [
 
 [[package]]
 name = "ormlite-macro"
-version = "0.10.1"
+version = "0.11.0"
 dependencies = [
  "itertools",
  "lazy_static",
@@ -1987,9 +1987,9 @@ checksum = "6bdef32e8150c2a081110b42772ffe7d7c9032b606bc226c8260fd97e0976601"
 
 [[package]]
 name = "syn"
-version = "1.0.108"
+version = "1.0.109"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d56e159d99e6c2b93995d171050271edb50ecc5288fbc7cc17de8fdce4e58c14"
+checksum = "72b64191b275b66ffe2469e8af2c1cfe3bafa67b529ead792a6d0160888b4237"
 dependencies = [
  "proc-macro2",
  "quote",
