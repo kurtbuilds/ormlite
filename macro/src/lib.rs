@@ -106,7 +106,7 @@ pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
     let Data::Struct(data) = &ast.data else { panic!("Only structs can derive Model"); };
 
-    let table_meta = TableMetadata::try_from(&ast).unwrap();
+    let table_meta = TableMetadata::try_from(&ast).expect("Failed to parse table metadata");
     if table_meta.primary_key.is_none() {
         panic!("No column marked with #[ormlite(primary_key)], and no column named id, uuid, {0}_id, or {0}_uuid", table_meta.table_name);
     }
@@ -193,9 +193,9 @@ pub fn expand_derive_table_meta(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
     let Data::Struct(data) = &ast.data else { panic!("Only structs can derive Model"); };
 
-    let table_meta = TableMetadata::try_from(&ast).unwrap();
+    let table_meta = TableMetadata::try_from(&ast).expect("Failed to parse table metadata");
     let databases = get_databases(&table_meta);
-    let db = databases.first().unwrap();
+    let db = databases.first().expect("No database configured");
 
     let impl_TableMeta = db.impl_TableMeta(&table_meta);
     TokenStream::from(impl_TableMeta)

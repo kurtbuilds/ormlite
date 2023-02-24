@@ -29,4 +29,5 @@ ormlite-attr = { version = "0.10.1", path = "../attr" }
 sqlx = { version = "0.6.0" }
 lazy_static = "1.4.0"
 once_cell = "1.17.1"
+itertools = "0.10.5"
 #sqlx-macros = { version = "0.6.0" , default-features = false }

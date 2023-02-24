@@ -13,9 +13,8 @@ pub struct Person {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    env_logger::init();
     let mut db = ormlite::sqlite::SqliteConnection::connect(":memory:").await.unwrap();
-    let migration = ormlite::__test::migrate_self(file!());
+    let migration = ormlite::__private::migrate_self(&[file!()]);
     for s in migration.statements {
         let sql = s.to_sql(sqlmo::Dialect::Sqlite);
         ormlite::query(&sql)

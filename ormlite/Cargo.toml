@@ -13,11 +13,23 @@ readme = "../README.md"
 autoexamples = false
 
 [package.metadata.docs.rs]
-features = ["postgres", "runtime-tokio-rustls"]
+features = ["postgres", "sqlite", "mysql", "runtime-tokio-rustls"]
+rustdoc-args = ["--cfg", "docsrs"]
 
 [[test]]
-name = "tests"
-path = "tests/suite.rs"
+name = "sqlite"
+path = "tests/sqlite.rs"
+required-features = ["sqlite"]
+
+[[test]]
+name = "multifile"
+path = "tests/multifile/main.rs"
+required-features = ["sqlite"]
+
+[[test]]
+name = "multiple-databases"
+path = "tests/multiple-databases.rs"
+required-features = ["sqlite", "postgres"]
 
 [features]
 mysql = ["sqlx/mysql", "ormlite-macro/mysql"]

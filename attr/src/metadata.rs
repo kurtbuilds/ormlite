@@ -6,8 +6,14 @@ use convert_case::{Case, Casing};
 use proc_macro2::TokenStream;
 use quote::{TokenStreamExt};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Ident(pub String);
+
+impl Ident {
+    pub fn new(ident: &str) -> Self {
+        Ident(ident.to_string())
+    }
+}
 
 impl From<&proc_macro2::Ident> for Ident {
     fn from(ident: &proc_macro2::Ident) -> Self {
@@ -32,14 +38,24 @@ pub struct Segments {
     pub segments: Vec<Ident>,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct OtherType {
     pub path: Vec<Ident>,
     pub ident: Ident,
     pub args: Option<Box<OtherType>>,
 }
 
-#[derive(Clone, Debug)]
+impl OtherType {
+    pub fn new(ident: &str) -> Self {
+        Self {
+            path: vec![],
+            ident: Ident::new(ident),
+            args: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Hash)]
 pub enum Type {
     Option(Box<Type>),
     Vec(Box<Type>),
@@ -137,6 +153,7 @@ impl From<OtherType> for Type {
                 "str",
                 "DateTime", "NaiveDate", "NaiveTime", "NaiveDateTime",
                 "Decimal",
+                "Uuid",
             ].contains(&x) => Type::Primitive(value),
             _ => Type::Foreign(value),
         }
@@ -183,7 +200,7 @@ impl quote::ToTokens for Type {
 }
 
 /// All the metadata we can capture about a table
-#[derive(Builder, Debug)]
+#[derive(Builder, Debug, Clone)]
 pub struct TableMetadata {
     pub table_name: String,
     pub struct_name: Ident,
@@ -193,7 +210,31 @@ pub struct TableMetadata {
     pub databases: Vec<String>,
 }
 
+impl Default for TableMetadata {
+    fn default() -> Self {
+        TableMetadata {
+            table_name: String::new(),
+            struct_name: Ident::new(""),
+            primary_key: None,
+            columns: vec![],
+            insert_struct: None,
+            databases: vec![],
+        }
+    }
+}
+
 impl TableMetadata {
+    pub fn new(name: &str, columns: Vec<ColumnMetadata>) -> Self {
+        TableMetadata {
+            table_name: name.to_string(),
+            struct_name: Ident(name.to_case(Case::Pascal)),
+            primary_key: None,
+            columns,
+            insert_struct: None,
+            databases: vec![],
+        }
+    }
+
     pub fn builder() -> TableMetadataBuilder {
         TableMetadataBuilder::default()
     }
@@ -297,7 +338,38 @@ pub struct ColumnMetadata {
     pub one_to_many_foreign_key: Option<ForeignKey>,
 }
 
+impl Default for ColumnMetadata {
+    fn default() -> Self {
+        Self {
+            column_name: String::new(),
+            column_type: Type::Primitive(OtherType::new("String")),
+            marked_primary_key: false,
+            has_database_default: false,
+            identifier: Ident::new("column"),
+            many_to_one_key: None,
+            many_to_many_table: None,
+            one_to_many_foreign_key: None,
+        }
+    }
+}
+
 impl ColumnMetadata {
+    pub fn new(name: &str, ty: &str) -> Self {
+        Self {
+            column_name: name.to_string(),
+            column_type: Type::Primitive(OtherType::new(ty)),
+            ..Self::default()
+        }
+    }
+
+    pub fn new_join(name: &str, join_model: &str) -> Self {
+        Self {
+            column_name: name.to_string(),
+            column_type: Type::Join(Box::new(Type::Foreign(OtherType::new(join_model)))),
+            ..Self::default()
+        }
+    }
+
     pub fn builder() -> ColumnMetadataBuilder {
         ColumnMetadataBuilder::default()
     }
@@ -331,30 +403,6 @@ impl ColumnMetadata {
     pub fn joined_model(&self) -> TokenStream {
         self.column_type.qualified_inner_name()
     }
-
-    // /// Whatever is inside the `Join`. We're expecting a `Model` or a `Vec<Model>`.
-    // pub fn joined_path(&self) -> Option<&syn::Path> {
-    //     let Type::Path(path) = &self.column_type else {
-    //         return None;
-    //     };
-    //     let Some(segment) = path.path.segments.last() else {
-    //         return None;
-    //     };
-    //     if segment.ident != "Join" {
-    //         return None;
-    //     }
-    //     // go inside Join<...>
-    //     let syn::PathArguments::AngleBracketed(args) = &segment.arguments else {
-    //         return None;
-    //     };
-    //     let Some(arg) = args.args.last() else {
-    //         return None;
-    //     };
-    //     let syn::GenericArgument::Type(Type::Path(path)) = arg else {
-    //         return None;
-    //     };
-    //     Some(&path.path)
-    // }
 }
 
 

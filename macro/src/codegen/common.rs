@@ -8,8 +8,9 @@ use syn::token::{Comma, Token};
 use syn::{DeriveInput, Field};
 use syn::spanned::Spanned;
 use attr::TableMetadata;
-use ormlite_attr::{DeriveInputExt, FieldExt};
+use ormlite_attr::{DeriveInputExt, FieldExt, Type};
 use crate::MetadataCache;
+use itertools::Itertools;
 
 /// Given the fields of a ModelBuilder struct, return the quoted code.
 fn generate_query_binding_code_for_partial_model(
@@ -52,14 +53,46 @@ fn from_row_for_column(get_value: proc_macro2::TokenStream, col: &attr::ColumnMe
     }
 }
 
-fn from_row_bounds(attr: &TableMetadata) -> impl Iterator<Item=proc_macro2::TokenStream> + '_ {
-    attr.columns.iter()
-        .filter(|c| !c.is_join())
+fn recursive_primitive_types_ty<'a>(ty: &'a attr::Type, cache: &'a MetadataCache) -> Vec<&'a attr::OtherType> {
+    match ty {
+        attr::Type::Option(ty) | attr::Type::Vec(ty) => {
+            recursive_primitive_types_ty(ty, cache)
+        }
+        attr::Type::Primitive(p) => vec![p],
+        attr::Type::Foreign(_) => {
+            panic!("Type::Foreign should not be in a table's columns. Wrap it in `ormlite::postgres::Json`?")
+        }
+        attr::Type::Join(j) => {
+            let joined = cache.get(&j.inner_type_name()).expect("Join type not found");
+            recursive_primitive_types(joined, cache)
+        }
+    }
+}
+
+fn recursive_primitive_types<'a>(table: &'a attr::TableMetadata, cache: &'a MetadataCache) -> Vec<&'a attr::OtherType> {
+    table.columns.iter()
         .map(|c| {
-            let ty = &c.column_type;
+            recursive_primitive_types_ty(&c.column_type, cache)
+        })
+        .flatten()
+        .collect()
+}
+
+fn table_primitive_types<'a>(attr: &'a TableMetadata, cache: &'a MetadataCache) -> Vec<&'a attr::OtherType> {
+    attr.columns.iter()
+        .map(|c| recursive_primitive_types_ty(&c.column_type, cache))
+        .flatten()
+        .unique()
+        .collect()
+}
+
+fn from_row_bounds<'a>(attr: &'a TableMetadata, cache: &'a MetadataCache) -> impl Iterator<Item=proc_macro2::TokenStream> + 'a {
+    table_primitive_types(attr, cache)
+        .into_iter()
+        .map(|ty| {
             quote! {
-                    #ty: ::ormlite::decode::Decode<'a, R::Database>,
-                    #ty: ::ormlite::types::Type<R::Database>,
+                #ty: ::ormlite::decode::Decode<'a, R::Database>,
+                #ty: ::ormlite::types::Type<R::Database>,
             }
         })
 }
@@ -80,7 +113,7 @@ pub trait OrmliteCodegen {
         let span = ast.span();
         let model = &ast.ident;
 
-        let bounds = from_row_bounds(attr);
+        let bounds = from_row_bounds(attr, cache);
 
         let columns = attr.columns.iter()
             .map(|c| {
@@ -117,7 +150,6 @@ pub trait OrmliteCodegen {
                     model.#iden = ::ormlite::model::Join::_query_result(#result);
                 }
             }
-
         });
 
         let field_names = attr.columns.iter()
@@ -171,7 +203,7 @@ pub trait OrmliteCodegen {
         let span = ast.span();
         let model = &ast.ident;
         let fields = attr.all_fields(span);
-        let bounds = from_row_bounds(attr);
+        let bounds = from_row_bounds(attr, &metadata_cache);
         let mut incrementer = 0usize..;
         let columns = attr.columns.iter()
             .map(|c| {
@@ -844,5 +876,36 @@ pub trait OrmliteCodegen {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use ormlite_attr::*;
+
+    #[test]
+    fn test_all_bounds() {
+        let mut cache = MetadataCache::new();
+        let table = TableMetadata::new("user", vec![
+            ColumnMetadata::new("id", "u32"),
+            ColumnMetadata::new("name", "String"),
+            ColumnMetadata::new("organization_id", "u32"),
+            ColumnMetadata::new_join("organization", "Organization"),
+        ]);
+        cache.insert("User".to_string(), table.clone());
+        let table = TableMetadata::new("organization", vec![
+            ColumnMetadata::new("id", "u32"),
+            ColumnMetadata::new("name", "String"),
+            ColumnMetadata::new("is_active", "bool"),
+        ]);
+        cache.insert("Organization".to_string(), table.clone());
+
+        let types_for_bound = table_primitive_types(&table, &cache);
+        assert_eq!(types_for_bound, vec![
+            &OtherType::new("u32"),
+            &OtherType::new("String"),
+            &OtherType::new("bool"),
+        ]);
     }
 }

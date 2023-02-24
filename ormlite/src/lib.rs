@@ -33,14 +33,9 @@ pub mod __private {
     pub use ormlite_core::join::{JoinDescription, SemanticJoinType};
     pub use ormlite_core::insert::Insertion;
     pub use sqlmo::Insert;
+
 }
 
-#[deprecated(note = "Most objects in ormlite::export:: are directly in ormlite::* now.")]
-pub mod export {
-    #[cfg(feature = "postgres")]
-    #[doc(hidden)]
-    pub use sqlx::postgres::{PgConnectOptions, PgConnection, PgPool, PgPoolOptions};
-}
 
 #[cfg(feature = "postgres")]
 #[cfg_attr(docsrs, doc(cfg(feature = "postgres")))]
@@ -52,17 +47,4 @@ pub mod postgres {
 #[cfg_attr(docsrs, doc(cfg(feature = "sqlite")))]
 pub mod sqlite {
     pub use sqlx::sqlite::*;
-}
-
-
-pub mod __test {
-    pub fn migrate_self(file: &str) -> sqlmo::Migration {
-        use ormlite_core::schema::TryFromOrmlite;
-        let file = std::path::Path::new(file);
-        let paths = vec![file];
-        let options = ormlite_core::schema::Options { verbose: false };
-        let schema: sqlmo::Schema = TryFromOrmlite::try_from_ormlite_project(&paths, &options).unwrap();
-        let migration = sqlmo::Schema::default().migrate_to(schema, &sqlmo::MigrationOptions::default()).unwrap();
-        migration
-    }
 }
