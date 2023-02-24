@@ -1,6 +1,6 @@
 use ormlite::types::Uuid;
 use ormlite::model::*;
-use crate::Organization;
+use crate::organization::Organization;
 
 #[derive(Debug, Model)]
 pub struct User {

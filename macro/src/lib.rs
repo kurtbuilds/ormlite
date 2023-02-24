@@ -32,6 +32,7 @@ fn get_tables() -> &'static MetadataCache {
 // }
 
 fn load_project() -> MetadataCache {
+    println!("Loading project models...");
     let mut tables = HashMap::new();
     let paths = get_var_model_folders();
     let paths = paths.iter().map(|p| p.as_path()).collect::<Vec<_>>();

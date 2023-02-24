@@ -1,3 +1,6 @@
+#[path = "../setup.rs"]
+mod setup;
+
 use ormlite::model::*;
 use ormlite::Connection;
 use sqlmo::ToSql;
@@ -14,7 +17,7 @@ pub struct Person {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut db = ormlite::sqlite::SqliteConnection::connect(":memory:").await.unwrap();
-    let migration = ormlite::__private::migrate_self(&[file!()]);
+    let migration = setup::migrate_self(&[file!()]);
     for s in migration.statements {
         let sql = s.to_sql(sqlmo::Dialect::Sqlite);
         ormlite::query(&sql)

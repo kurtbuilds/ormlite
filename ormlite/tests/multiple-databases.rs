@@ -1,3 +1,6 @@
+#[path = "./setup.rs"]
+mod setup;
+
 use ormlite::model::*;
 use ormlite::Connection;
 use sqlmo::ToSql;

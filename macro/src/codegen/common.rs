@@ -261,7 +261,8 @@ pub trait OrmliteCodegen {
             } else {
                 panic!("Unknown join type");
             };
-            let joined_table = metadata_cache.get(&c.joined_struct_name().unwrap()).expect("Did not find metadata for joined struct");
+            let struct_name = c.joined_struct_name().unwrap();
+            let joined_table = metadata_cache.get(&struct_name).expect(&format!("Did not find metadata for joined struct: {}", struct_name));
             let table_name = &joined_table.table_name;
             let columns = joined_table.columns.iter().filter(|c| !c.is_join()).map(|c| {
                 c.identifier.to_string()
@@ -907,5 +908,20 @@ mod test {
             &OtherType::new("String"),
             &OtherType::new("bool"),
         ]);
+        let bounds = from_row_bounds(&table, &cache);
+        let bounds = quote! {
+            #(#bounds)*
+        };
+        assert_eq!(
+            bounds.to_string(),
+            "u32 : :: ormlite :: decode :: Decode < 'a , R :: Database > , ".to_owned() +
+                "u32 : :: ormlite :: types :: Type < R :: Database > , " +
+
+                "String : :: ormlite :: decode :: Decode < 'a , R :: Database > , " +
+                "String : :: ormlite :: types :: Type < R :: Database > , " +
+
+                "bool : :: ormlite :: decode :: Decode < 'a , R :: Database > , " +
+                "bool : :: ormlite :: types :: Type < R :: Database > ,"
+        );
     }
 }

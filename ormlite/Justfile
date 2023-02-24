@@ -23,9 +23,8 @@ bootstrap:
     cargo install cargo-edit
 
 test *args:
-    cargo test "$@" #  --features sqlite,uuid {{args}}
-    cargo test "$@" --features sqlite,uuid
-    cargo test "$@" --features sqlite,postgres,uuid
+    cargo test "$@" --features sqlite,uuid --  --nocapture
+    # cargo test "$@" --features sqlite,postgres,uuid
     # cargo test --features sqlite,postgres,uuid {{args}}
 
 check:

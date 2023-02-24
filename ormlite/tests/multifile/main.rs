@@ -10,14 +10,20 @@ use uuid::Uuid;
 use ormlite::model::*;
 use ormlite::sqlite::SqliteConnection;
 use ormlite::Connection;
+use sqlmo::ToSql;
 
-#[tokio::test]
+#[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut conn = SqliteConnection::connect(":memory:").await?;
     let migration = setup::migrate_self(&[
-        concat!(env!("CARGO_MANIFEST_DIR"), "tests/multifile/organization.rs"),
-        concat!(env!("CARGO_MANIFEST_DIR"), "tests/multifile/user.rs"),
+        &std::path::Path::new(file!()).parent().unwrap().display().to_string(),
     ]);
+    for s in migration.statements {
+        let sql = s.to_sql(sqlmo::Dialect::Sqlite);
+        ormlite::query(&sql)
+            .execute(&mut conn)
+            .await?;
+    }
 
     let org_id = Uuid::new_v4();
     let org = Organization {

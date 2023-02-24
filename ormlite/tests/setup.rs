@@ -1,11 +1,4 @@
-
-pub fn set_path_and_run(path: &str, t: &trybuild::TestCases) {
-    static DIR: &str = env!("CARGO_MANIFEST_DIR");
-    let p = std::path::Path::new(DIR).join(path);
-    std::env::set_var("MODEL_FOLDERS", p.display().to_string());
-    t.pass(path);
-}
-
+#[allow(dead_code)]
 pub fn migrate_self(files: &[&str]) -> sqlmo::Migration {
     use ormlite_core::schema::TryFromOrmlite;
     let paths = files.iter().map(std::path::Path::new).collect::<Vec<_>>();
