@@ -1,3 +1,9 @@
+/// This is a helper function to run migrations for tests.
+/// Import it from within a buildable test (i.e. a test built by trybuild) like so:
+/// ```
+/// #[path = "setup.rs"]
+/// mod setup;
+///
 #[allow(dead_code)]
 pub fn migrate_self(files: &[&str]) -> sqlmo::Migration {
     use ormlite_core::schema::TryFromOrmlite;

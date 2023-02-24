@@ -1,7 +1,11 @@
 set dotenv-load := true
 
 test:
-    just ormlite/test # --features runtime-tokio-rustls,sqlite
+    just attr/test
+    just core/test
+    just macro/test
+    just ormlite/test
+    just cli/build
 
 # Bump version. level=major,minor,patch
 version level:
@@ -26,13 +30,13 @@ version level:
 
 publish:
    cd attr && cargo publish
-   cd core && cargo publish --features runtime-tokio-rustls,sqlite
-   cd macro && cargo publish --features runtime-tokio-rustls,sqlite
-   cd ormlite && cargo publish --features runtime-tokio-rustls,sqlite
+   cd core && cargo publish --features sqlite,postgres,mysql
+   cd macro && cargo publish --features sqlite,postgres,mysql
+   cd ormlite && cargo publish --features sqlite,postgres,mysql
    cd cli && cargo publish
 
 doc:
-   cd ormlite && cargo doc --features runtime-tokio-rustls,sqlite --open -p ormlite --no-deps
+   cd ormlite && cargo doc --all-features --open -p ormlite --no-deps
 
 install:
     @just cli/install

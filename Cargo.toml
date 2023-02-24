@@ -1,2 +1,7 @@
 [workspace]
-members = ["macro", "core", "ormlite", "cli"]
+members = [
+    "macro",
+    "core",
+    "ormlite",
+    "cli"
+]

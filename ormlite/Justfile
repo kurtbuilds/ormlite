@@ -11,8 +11,6 @@ build:
     cargo build
 alias b := build
 
-
-
 release:
     cargo build --release
 
@@ -23,9 +21,15 @@ bootstrap:
     cargo install cargo-edit
 
 test *args:
-    cargo test "$@" --features sqlite,uuid --  --nocapture
-    # cargo test "$@" --features sqlite,postgres,uuid
-    # cargo test --features sqlite,postgres,uuid {{args}}
+    echo Running sqlite tests
+    # Because trybuild doesn't support passing environment directly, tests are dependent on state, namely the state of the MODEL_FOLDERS
+    # var in the test runner's process environment.
+    # To solve that dependence, we need to set --test-threads=1.
+    # If trybuild was modified to allow passing env for a test run, then
+
+    cargo test "$@" --features sqlite,uuid -- --test-threads=1
+    # cargo test "$@" --features sqlite,postgres,uuid -- --test-threads=1
+    @# cargo test --features sqlite,postgres,uuid {{args}}
 
 check:
     cargo check

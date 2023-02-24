@@ -27,13 +27,9 @@ fn get_tables() -> &'static MetadataCache {
     TABLES.get_or_init(|| load_project())
 }
 
-// thread_local! {
-//     static TABLES: RwLock<MetadataCache> = RwLock::new(HashMap::new());
-// }
-
 fn load_project() -> MetadataCache {
-    println!("Loading project models...");
     let mut tables = HashMap::new();
+    let var = std::env::var("MODEL_FOLDERS").expect("MODEL_FOLDERS is not set");
     let paths = get_var_model_folders();
     let paths = paths.iter().map(|p| p.as_path()).collect::<Vec<_>>();
     let vec_meta = load_from_project(&paths, &LoadOptions::default()).expect("Failed to preload models");

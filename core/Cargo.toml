@@ -11,7 +11,6 @@ repository = "https://github.com/kurtbuilds/ormlite"
 mysql = ["sqlx/mysql"]
 sqlite = ["sqlx/sqlite"]
 postgres = ["sqlx/postgres"]
-
 runtime-tokio-rustls = ["sqlx/runtime-tokio-rustls"]
 
 [dependencies]
@@ -23,3 +22,7 @@ thiserror = "1.0.30"
 sqlmo = "0.10"
 ormlite-attr = { path = "../attr", version = "0.10.1" }
 anyhow = "1.0.69"
+
+[dev-dependencies]
+syn = "1.0.108"
+assert_matches = "1.5.0"
