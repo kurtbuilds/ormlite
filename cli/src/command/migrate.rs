@@ -8,7 +8,7 @@ use std::path::{Path};
 use clap::Parser;
 use anyhow::{anyhow, Context, Error, Result};
 use sqlmo::{Migration, Schema, Dialect, ToSql, migrate::Statement};
-use ormlite::FromRow;
+use ormlite::{FromRow, Row};
 use tokio::runtime::Runtime;
 use ormlite_core::schema::TryFromOrmlite;
 use ormlite::{Acquire};
@@ -27,8 +27,10 @@ FROM _sqlx_migrations
 ORDER BY version ASC
 ";
 
+// Not using FromRow because ormlite requires MODEL_FOLDERS to be set when compiling macros,
+// and it's not set if we're compiling the CLI.
 /// Compare migrations using version (see PartialEq).
-#[derive(FromRow, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct MigrationMetadata {
     pub version: i64,
     /// For fs migrations, the name will be a file stem (for reversible, it'll be `<version>_<description>.<up/down>`).
@@ -103,8 +105,18 @@ fn create_migration(folder: &Path, file_name: String, migration: MigrationType, 
 
 /// Migrations are sorted asc. Last is most recent.
 pub fn get_executed_migrations(runtime: &Runtime, conn: &mut PgConnection) -> Result<Vec<MigrationMetadata>> {
-    let migrations = runtime.block_on(ormlite::query_as::<_, MigrationMetadata>(GET_MIGRATIONS_QUERY)
+    let migrations = runtime.block_on(ormlite::query(GET_MIGRATIONS_QUERY)
         .fetch_all(conn))?;
+    let migrations = migrations.into_iter().map(|m: ormlite::postgres::PgRow| {
+        let name: String = m.get("name");
+        let version: i64 = m.get("version");
+        let description: String = m.get("description");
+        MigrationMetadata {
+            name: name.to_string(),
+            version,
+            description,
+        }
+    }).collect();
     Ok(migrations)
 }
 
