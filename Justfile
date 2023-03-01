@@ -30,8 +30,8 @@ version level:
 
 publish:
    cd attr && cargo publish
-   cd core && cargo publish --features sqlite,postgres,mysql
-   cd macro && cargo publish --features sqlite,postgres,mysql
+   cd core && cargo publish --features sqlite,postgres,mysql,runtime-tokio-rustls
+   cd macro && cargo publish --features sqlite,postgres,mysql,runtime-tokio-rustls
    cd ormlite && cargo publish --features sqlite,postgres,mysql
    cd cli && cargo publish
 
