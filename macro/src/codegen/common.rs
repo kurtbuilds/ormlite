@@ -59,8 +59,8 @@ fn recursive_primitive_types_ty<'a>(ty: &'a attr::Type, cache: &'a MetadataCache
             recursive_primitive_types_ty(ty, cache)
         }
         attr::Type::Primitive(p) => vec![p],
-        attr::Type::Foreign(_) => {
-            panic!("Type::Foreign should not be in a table's columns. Wrap it in `ormlite::postgres::Json`?")
+        attr::Type::Foreign(f) => {
+            panic!("Type::Foreign should not be in a table's columns. Wrap it in `ormlite::postgres::Json`?: {:?}", f)
         }
         attr::Type::Join(j) => {
             let joined = cache.get(&j.inner_type_name()).expect("Join type not found");

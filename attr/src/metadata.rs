@@ -154,6 +154,7 @@ impl From<OtherType> for Type {
                 "DateTime", "NaiveDate", "NaiveTime", "NaiveDateTime",
                 "Decimal",
                 "Uuid",
+                "Json",
             ].contains(&x) => Type::Primitive(value),
             _ => Type::Foreign(value),
         }
