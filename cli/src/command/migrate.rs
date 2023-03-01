@@ -8,7 +8,7 @@ use std::path::{Path};
 use clap::Parser;
 use anyhow::{anyhow, Context, Error, Result};
 use sqlmo::{Migration, Schema, Dialect, ToSql, migrate::Statement};
-use ormlite::{FromRow, Row};
+use ormlite::{Row};
 use tokio::runtime::Runtime;
 use ormlite_core::schema::TryFromOrmlite;
 use ormlite::{Acquire};
