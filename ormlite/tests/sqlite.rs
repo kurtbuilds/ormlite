@@ -1,10 +1,10 @@
-use trybuild::TestCases;
-
-const FOO: &str = env!("CARGO_MANIFEST_DIR");
+#[path = "./run.rs"]
+mod run;
 
 #[cfg(not(any(feature = "postgres", feature = "mysql")))]
 mod test {
-    use crate::setup::*;
+
+    use super::run::*;
 
     #[test]
     fn test_sqlite() {

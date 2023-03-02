@@ -1,15 +1,14 @@
-
 use std::fmt::Formatter;
 
 use std::path::Path;
 use anyhow::Result;
 use sqlmo::{Schema, Table, schema::Column};
-use ormlite_attr::{ColumnMetadata, TableMetadata};
-use ormlite_attr::{load_from_project, LoadOptions};
+use ormlite_attr::{ColumnMetadata, Ident, TableMetadata};
+use ormlite_attr::{schema_from_filepaths, LoadOptions};
 
 #[derive(Debug)]
 pub struct Options {
-    pub verbose: bool
+    pub verbose: bool,
 }
 
 pub trait TryFromOrmlite: Sized {
@@ -33,7 +32,7 @@ impl SqlDiffTableExt for Table {
                 Ok(Some(col))
             })
                 .filter_map(|c| c.transpose())
-                .collect::<Result<Vec<_>,_>>()?,
+                .collect::<Result<Vec<_>, _>>()?,
             indexes: vec![],
         })
     }
@@ -45,8 +44,8 @@ trait SqlDiffColumnExt {
 
 impl SqlDiffColumnExt for Column {
     fn from_metadata(metadata: &ColumnMetadata) -> Result<Option<Column>, TypeTranslationError> {
-        let Some(ty) = SqlType::from_type(&metadata.column_type)? else {
-            return Ok(None)
+        let Some(ty) = SqlType::from_type(&metadata.column_type) else {
+            return Ok(None);
         };
         Ok(Some(Self {
             name: metadata.column_name.clone(),
@@ -84,59 +83,78 @@ impl std::fmt::Display for TypeTranslationError {
 }
 
 impl SqlType {
-    fn from_type(ty: &ormlite_attr::Type) -> Result<Option<Self>, TypeTranslationError> {
+    fn from_type(ty: &ormlite_attr::Type) -> Option<Self> {
         use sqlmo::Type::*;
         use ormlite_attr::Type;
         match ty {
             Type::Vec(v) => {
-                let Type::Primitive(p) = v.as_ref() else {
-                    return Err(TypeTranslationError(format!("Don't know how to convert Rust type to SQL: {:?}", ty)))
-                };
-                if p.ident.0 != "u8" {
-                    return Err(TypeTranslationError(format!("Don't know how to convert Rust type to SQL: {:?}", ty)))
+                if let Type::Inner(p) = v.as_ref() {
+                    if p.ident.0 == "u8" {
+                        return Some(SqlType {
+                            ty: Bytes,
+                            nullable: false,
+                        });
+                    }
                 }
-                Ok(Some(SqlType {
-                    ty: Bytes,
-                    nullable: false,
-                }))
+                let v = Self::from_type(v.as_ref())?;
+                Some(SqlType {
+                    ty: Array(Box::new(v.ty)),
+                    nullable: true,
+                })
             }
-            Type::Foreign(_) => {
-                Ok(Some(SqlType {
-                    ty: Jsonb,
-                    nullable: false,
-                }))
-            }
-            Type::Primitive(p) => {
+            Type::Inner(p) => {
                 let ident = p.ident.0.as_str();
                 let ty = match ident {
-                    "String" => Text,
-                    "u8" => SmallInt,
-                    "u32" => Integer,
-                    "u64" => Integer,
-                    "i32" => Integer,
-                    "i64" => Integer,
-                    "f32" => Float64,
-                    "f64" => Float64,
+                    // signed
+                    "i8" => I16,
+                    "i16" => I16,
+                    "i32" => I32,
+                    "i64" => I64,
+                    "i128" => Decimal,
+                    "isize" => I64,
+                    // unsigned
+                    "u8" => I16,
+                    "u16" => I32,
+                    "u32" => I64,
+                    // Turns out postgres doesn't support u64.
+                    "u64" => Decimal,
+                    "u128" => Decimal,
+                    "usize" => Decimal,
+                    // float
+                    "f32" => F32,
+                    "f64" => F64,
+                    // bool
                     "bool" => Boolean,
-                    "Uuid" => Uuid,
-                    "Json" => Jsonb,
+                    // string
+                    "String" => Text,
+                    "str" => Text,
+                    // date
                     "DateTime" => DateTime,
-                    _ => return Err(TypeTranslationError(format!("Don't know how to convert Rust type to SQL: {:?}", ty)))
+                    "NaiveDate" => Date,
+                    "NaiveTime" => DateTime,
+                    "NaiveDateTime" => DateTime,
+                    // decimal
+                    "Decimal" => Decimal,
+                    // uuid
+                    "Uuid" => Uuid,
+                    // json
+                    "Json" => Jsonb,
+                    z => Other(z.to_string()),
                 };
-                Ok(Some(SqlType {
+                Some(SqlType {
                     ty,
                     nullable: false,
-                }))
+                })
             }
             Type::Option(o) => {
-                let inner = Self::from_type(o)?.unwrap();
-                Ok(Some(SqlType {
+                let inner = Self::from_type(o)?;
+                Some(SqlType {
                     ty: inner.ty,
                     nullable: true,
-                }))
+                })
             }
             Type::Join(_) => {
-                Ok(None)
+                None
             }
         }
     }
@@ -145,8 +163,17 @@ impl SqlType {
 impl TryFromOrmlite for Schema {
     fn try_from_ormlite_project(paths: &[&Path], opts: &Options) -> Result<Self> {
         let mut schema = Self::default();
-        let tables = load_from_project(paths, &LoadOptions { verbose: opts.verbose })?;
-        for table in tables {
+        let mut fs_schema = schema_from_filepaths(paths, &LoadOptions { verbose: opts.verbose })?;
+        for t in &mut fs_schema.tables {
+            for c in &mut t.columns {
+                let inner = c.column_type.inner_type_mut();
+                if let Some(f) = fs_schema.type_reprs.get(&inner.ident.0) {
+                    inner.ident = Ident(f.clone());
+                }
+            }
+
+        }
+        for table in fs_schema.tables {
             let table = Table::from_metadata(&table)?;
             schema.tables.push(table);
         }
@@ -166,11 +193,11 @@ mod tests {
         use sqlmo::Type;
 
         let s = ormlite_attr::Type::from(&parse_str::<syn::Path>("String").unwrap());
-        assert_matches!(SqlType::from_type(&s)?.unwrap().ty, Type::Text);
+        assert_matches!(SqlType::from_type(&s).unwrap().ty, Type::Text);
         let s = ormlite_attr::Type::from(&parse_str::<syn::Path>("u32").unwrap());
-        assert_matches!(SqlType::from_type(&s)?.unwrap().ty, Type::Integer);
+        assert_matches!(SqlType::from_type(&s).unwrap().ty, Type::I64);
         let s = ormlite_attr::Type::from(&parse_str::<syn::Path>("Option<String>").unwrap());
-        let s = SqlType::from_type(&s)?.unwrap();
+        let s = SqlType::from_type(&s).unwrap();
         assert_matches!(s.ty, Type::Text);
         assert!(s.nullable);
         Ok(())

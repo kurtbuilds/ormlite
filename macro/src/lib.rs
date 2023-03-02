@@ -1,7 +1,7 @@
 #![allow(unused)]
 #![allow(non_snake_case)]
 
-use ormlite_attr::{ColumnAttributes, ColumnMetadata, TableMetadata, TableMetadataBuilder, ColumnMetadataBuilder, ModelAttributes, SyndecodeError, load_from_project, LoadOptions};
+use ormlite_attr::{ColumnAttributes, ColumnMetadata, TableMetadata, TableMetadataBuilder, ColumnMetadataBuilder, ModelAttributes, SyndecodeError, schema_from_filepaths, LoadOptions};
 use ormlite_core::config::get_var_model_folders;
 use crate::codegen::common::OrmliteCodegen;
 use proc_macro::TokenStream;
@@ -24,16 +24,16 @@ pub(crate) type MetadataCache = HashMap<String, TableMetadata>;
 static TABLES: OnceCell<MetadataCache> = OnceCell::new();
 
 fn get_tables() -> &'static MetadataCache {
-    TABLES.get_or_init(|| load_project())
+    TABLES.get_or_init(|| load_metadata_cache())
 }
 
-fn load_project() -> MetadataCache {
+fn load_metadata_cache() -> MetadataCache {
     let mut tables = HashMap::new();
     let var = std::env::var("MODEL_FOLDERS").expect("MODEL_FOLDERS is not set");
     let paths = get_var_model_folders();
     let paths = paths.iter().map(|p| p.as_path()).collect::<Vec<_>>();
-    let vec_meta = load_from_project(&paths, &LoadOptions::default()).expect("Failed to preload models");
-    for meta in vec_meta {
+    let schema = schema_from_filepaths(&paths, &LoadOptions::default()).expect("Failed to preload models");
+    for meta in schema.tables {
         let name = meta.struct_name.to_string();
         tables.insert(name, meta);
     }

@@ -4,3 +4,4 @@ expanded.rs
 .env*
 !.env.example
 expand.rs
+.cargo

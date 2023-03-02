@@ -37,6 +37,10 @@ impl TryFrom<&syn::Attribute> for ArgsAttribute {
                 }
             }
         }
+
+        if let Some(current) = current {
+            args.push(current)
+        }
         Ok(Self {
             name,
             args,

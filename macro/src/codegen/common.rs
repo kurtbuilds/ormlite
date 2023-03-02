@@ -53,15 +53,12 @@ fn from_row_for_column(get_value: proc_macro2::TokenStream, col: &attr::ColumnMe
     }
 }
 
-fn recursive_primitive_types_ty<'a>(ty: &'a attr::Type, cache: &'a MetadataCache) -> Vec<&'a attr::OtherType> {
+fn recursive_primitive_types_ty<'a>(ty: &'a attr::Type, cache: &'a MetadataCache) -> Vec<&'a attr::InnerType> {
     match ty {
         attr::Type::Option(ty) | attr::Type::Vec(ty) => {
             recursive_primitive_types_ty(ty, cache)
         }
-        attr::Type::Primitive(p) => vec![p],
-        attr::Type::Foreign(f) => {
-            panic!("Type::Foreign should not be in a table's columns. Wrap it in `ormlite::postgres::Json`?: {:?}", f)
-        }
+        attr::Type::Inner(p) => vec![p],
         attr::Type::Join(j) => {
             let joined = cache.get(&j.inner_type_name()).expect("Join type not found");
             recursive_primitive_types(joined, cache)
@@ -69,7 +66,7 @@ fn recursive_primitive_types_ty<'a>(ty: &'a attr::Type, cache: &'a MetadataCache
     }
 }
 
-fn recursive_primitive_types<'a>(table: &'a attr::TableMetadata, cache: &'a MetadataCache) -> Vec<&'a attr::OtherType> {
+fn recursive_primitive_types<'a>(table: &'a attr::TableMetadata, cache: &'a MetadataCache) -> Vec<&'a attr::InnerType> {
     table.columns.iter()
         .map(|c| {
             recursive_primitive_types_ty(&c.column_type, cache)
@@ -78,7 +75,7 @@ fn recursive_primitive_types<'a>(table: &'a attr::TableMetadata, cache: &'a Meta
         .collect()
 }
 
-fn table_primitive_types<'a>(attr: &'a TableMetadata, cache: &'a MetadataCache) -> Vec<&'a attr::OtherType> {
+fn table_primitive_types<'a>(attr: &'a TableMetadata, cache: &'a MetadataCache) -> Vec<&'a attr::InnerType> {
     attr.columns.iter()
         .map(|c| recursive_primitive_types_ty(&c.column_type, cache))
         .flatten()
@@ -362,10 +359,10 @@ pub trait OrmliteCodegen {
             .filter(|c| !c.is_join())
             .map(|c| {
                 let field = &c.identifier;
-                let value = if c.is_primitive() {
-                    quote! { self.#field }
-                } else {
+                let value = if c.is_json() {
                     quote! { ::ormlite::types::Json(self.#field) }
+                } else {
+                    quote! { self.#field }
                 };
                 quote! { ::ormlite::Arguments::add(&mut args, #value); }
             });
@@ -904,9 +901,9 @@ mod test {
 
         let types_for_bound = table_primitive_types(&table, &cache);
         assert_eq!(types_for_bound, vec![
-            &OtherType::new("u32"),
-            &OtherType::new("String"),
-            &OtherType::new("bool"),
+            &InnerType::new("u32"),
+            &InnerType::new("String"),
+            &InnerType::new("bool"),
         ]);
         let bounds = from_row_bounds(&table, &cache);
         let bounds = quote! {

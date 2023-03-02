@@ -1,5 +1,5 @@
 #[path = "../setup.rs"]
-mod migrate;
+mod setup;
 
 mod user;
 mod organization;

@@ -39,13 +39,13 @@ pub struct Segments {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub struct OtherType {
+pub struct InnerType {
     pub path: Vec<Ident>,
     pub ident: Ident,
-    pub args: Option<Box<OtherType>>,
+    pub args: Option<Box<InnerType>>,
 }
 
-impl OtherType {
+impl InnerType {
     pub fn new(ident: &str) -> Self {
         Self {
             path: vec![],
@@ -60,19 +60,17 @@ pub enum Type {
     Option(Box<Type>),
     Vec(Box<Type>),
     /// Database primitive, includes DateTime, Jsonb, etc.
-    Primitive(OtherType),
-    Foreign(OtherType),
+    Inner(InnerType),
     Join(Box<Type>),
 }
 
 impl Type {
-    pub fn is_primitive(&self) -> bool {
+    pub fn is_json(&self) -> bool {
         match self {
-            Type::Primitive(_) => true,
-            Type::Option(ty) => ty.is_primitive(),
+            Type::Inner(ty) => ty.ident.0 == "Json",
+            Type::Option(ty) => ty.is_json(),
             _ => false,
         }
-
     }
 
     pub fn is_join(&self) -> bool {
@@ -81,16 +79,25 @@ impl Type {
 
     pub fn inner_type_name(&self) -> String {
         match self {
-            Type::Primitive(ty) | Type::Foreign(ty) => ty.ident.0.to_string(),
+            Type::Inner(ty) => ty.ident.0.to_string(),
             Type::Option(ty) => ty.inner_type_name(),
             Type::Vec(ty) => ty.inner_type_name(),
             Type::Join(ty) => ty.inner_type_name(),
         }
     }
 
+    pub fn inner_type_mut(&mut self) -> &mut InnerType {
+        match self {
+            Type::Inner(ty) => ty,
+            Type::Option(ty) => ty.inner_type_mut(),
+            Type::Vec(ty) => ty.inner_type_mut(),
+            Type::Join(ty) => ty.inner_type_mut(),
+        }
+    }
+
     pub fn qualified_inner_name(&self) -> TokenStream {
         match self {
-            Type::Primitive(ty) | Type::Foreign(ty) => {
+            Type::Inner(ty) => {
                 let segments = ty.path.iter();
                 let ident = &ty.ident;
                 quote::quote! {
@@ -104,10 +111,10 @@ impl Type {
     }
 }
 
-impl From<&syn::Path> for OtherType {
+impl From<&syn::Path> for InnerType {
     fn from(path: &syn::Path) -> Self {
         let segment = path.segments.last().expect("path must have at least one segment");
-        let args: Option<Box<OtherType>> = if let PathArguments::AngleBracketed(args) = &segment.arguments {
+        let args: Option<Box<InnerType>> = if let PathArguments::AngleBracketed(args) = &segment.arguments {
             let args = &args.args;
             let syn::GenericArgument::Type(ty) = args.first().unwrap() else {
                 panic!("Option must have a type parameter");
@@ -115,13 +122,13 @@ impl From<&syn::Path> for OtherType {
             let syn::Type::Path(path) = &ty else {
                 panic!("Option must have a type parameter");
             };
-            Some(Box::new(OtherType::from(&path.path)))
+            Some(Box::new(InnerType::from(&path.path)))
         } else {
             None
         };
         let mut path = path.segments.iter().map(|s| Ident::from(&s.ident)).collect::<Vec<_>>();
         let ident = path.pop().expect("path must have at least one segment");
-        OtherType {
+        InnerType {
             path,
             args,
             ident,
@@ -129,8 +136,8 @@ impl From<&syn::Path> for OtherType {
     }
 }
 
-impl From<OtherType> for Type {
-    fn from(value: OtherType) -> Self {
+impl From<InnerType> for Type {
+    fn from(value: InnerType) -> Self {
         match value.ident.0.as_str() {
             "Option" => {
                 let ty = value.args.unwrap();
@@ -144,31 +151,19 @@ impl From<OtherType> for Type {
                 let ty = value.args.unwrap();
                 Type::Join(Box::new(Type::from(*ty)))
             }
-            x if [
-                "i8", "i16", "i32", "i64", "i128", "isize",
-                "u8", "u16", "u32", "u64", "u128", "usize",
-                "f32", "f64",
-                "bool",
-                "String",
-                "str",
-                "DateTime", "NaiveDate", "NaiveTime", "NaiveDateTime",
-                "Decimal",
-                "Uuid",
-                "Json",
-            ].contains(&x) => Type::Primitive(value),
-            _ => Type::Foreign(value),
+            _ => Type::Inner(value),
         }
     }
 }
 
 impl From<&syn::Path> for Type {
     fn from(path: &syn::Path) -> Self {
-        let other = OtherType::from(path);
+        let other = InnerType::from(path);
         Type::from(other)
     }
 }
 
-impl quote::ToTokens for OtherType {
+impl quote::ToTokens for InnerType {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let args = if let Some(args) = &self.args {
             quote::quote! { <#args> }
@@ -190,7 +185,7 @@ impl quote::ToTokens for Type {
             Type::Vec(ty) => {
                 tokens.append_all(quote::quote! { Vec<#ty> });
             }
-            Type::Primitive(ty) | Type::Foreign(ty) => {
+            Type::Inner(ty) => {
                 ty.to_tokens(tokens);
             }
             Type::Join(ty) => {
@@ -343,7 +338,7 @@ impl Default for ColumnMetadata {
     fn default() -> Self {
         Self {
             column_name: String::new(),
-            column_type: Type::Primitive(OtherType::new("String")),
+            column_type: Type::Inner(InnerType::new("String")),
             marked_primary_key: false,
             has_database_default: false,
             identifier: Ident::new("column"),
@@ -358,7 +353,7 @@ impl ColumnMetadata {
     pub fn new(name: &str, ty: &str) -> Self {
         Self {
             column_name: name.to_string(),
-            column_type: Type::Primitive(OtherType::new(ty)),
+            column_type: Type::Inner(InnerType::new(ty)),
             ..Self::default()
         }
     }
@@ -366,7 +361,7 @@ impl ColumnMetadata {
     pub fn new_join(name: &str, join_model: &str) -> Self {
         Self {
             column_name: name.to_string(),
-            column_type: Type::Join(Box::new(Type::Foreign(OtherType::new(join_model)))),
+            column_type: Type::Join(Box::new(Type::Inner(InnerType::new(join_model)))),
             ..Self::default()
         }
     }
@@ -383,14 +378,14 @@ impl ColumnMetadata {
         let Type::Join(join) = &self.column_type else {
             return false;
         };
-        let Type::Primitive(o) = join.as_ref() else {
+        let Type::Inner(o) = join.as_ref() else {
             return false;
         };
         o.ident.0 == "Vec"
     }
 
-    pub fn is_primitive(&self) -> bool {
-        self.column_type.is_primitive()
+    pub fn is_json(&self) -> bool {
+        self.column_type.is_json()
     }
 
     /// We expect this to only return a `Model` of some kind.
@@ -473,26 +468,17 @@ mod test {
     fn test_primitive() {
         use syn::Path;
         let ty = Type::from(&syn::parse_str::<Path>("i32").unwrap());
-        assert!(ty.is_primitive());
+        assert!(!ty.is_json());
 
-        let ty = Type::from(&syn::parse_str::<Path>("NaiveDate").unwrap());
-        assert!(ty.is_primitive());
-
-        let ty = Type::from(&syn::parse_str::<Path>("Option<NaiveDate>").unwrap());
-        assert!(ty.is_primitive());
-
-        let ty = Type::from(&syn::parse_str::<Path>("Join<User>").unwrap());
-        assert!(!ty.is_primitive());
-
-        let ty = Type::from(&syn::parse_str::<Path>("rust_decimal::Decimal").unwrap());
-        assert!(ty.is_primitive());
+        let ty = Type::from(&syn::parse_str::<Path>("Json<User>").unwrap());
+        assert!(ty.is_json());
     }
 
     #[test]
     fn test_other_type_to_quote() {
         use syn::Path;
         let ty = Type::from(&syn::parse_str::<Path>("rust_decimal::Decimal").unwrap());
-        let Type::Primitive(ty) = &ty else {
+        let Type::Inner(ty) = &ty else {
             panic!("expected primitive");
         };
         assert_eq!(ty.ident.0, "Decimal");
