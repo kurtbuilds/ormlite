@@ -911,10 +911,11 @@ mod test {
         cache.insert("Organization".to_string(), table.clone());
 
         let types_for_bound = table_primitive_types(&table, &cache);
+        let types_for_bound = types_for_bound.into_iter().map(|c| c.into_owned()).collect::<Vec<_>>();
         assert_eq!(types_for_bound, vec![
-            &InnerType::new("u32"),
-            &InnerType::new("String"),
-            &InnerType::new("bool"),
+            InnerType::new("u32"),
+            InnerType::new("String"),
+            InnerType::new("bool"),
         ]);
         let bounds = from_row_bounds(&table, &cache);
         let bounds = quote! {
