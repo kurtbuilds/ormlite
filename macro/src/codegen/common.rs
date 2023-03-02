@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::HashMap;
 use ormlite_attr as attr;
 use ormlite_core::query_builder::Placeholder;
@@ -8,7 +9,7 @@ use syn::token::{Comma, Token};
 use syn::{DeriveInput, Field};
 use syn::spanned::Spanned;
 use attr::TableMetadata;
-use ormlite_attr::{DeriveInputExt, FieldExt, Type};
+use ormlite_attr::{DeriveInputExt, FieldExt, InnerType, Type};
 use crate::MetadataCache;
 use itertools::Itertools;
 
@@ -53,12 +54,22 @@ fn from_row_for_column(get_value: proc_macro2::TokenStream, col: &attr::ColumnMe
     }
 }
 
-fn recursive_primitive_types_ty<'a>(ty: &'a attr::Type, cache: &'a MetadataCache) -> Vec<&'a attr::InnerType> {
+fn recursive_primitive_types_ty<'a>(ty: &'a attr::Type, cache: &'a MetadataCache) -> Vec<Cow<'a, attr::InnerType>> {
     match ty {
-        attr::Type::Option(ty) | attr::Type::Vec(ty) => {
+        attr::Type::Option(ty) => {
             recursive_primitive_types_ty(ty, cache)
         }
-        attr::Type::Inner(p) => vec![p],
+        attr::Type::Vec(ty) => {
+            let inner = recursive_primitive_types_ty(ty, cache);
+            let inner = inner.into_iter().next().expect("Vec must have inner type");
+            let inner: attr::InnerType = inner.into_owned();
+            vec![Cow::Owned(attr::InnerType {
+                path: vec![],
+                ident: attr::Ident("Vec".to_string()),
+                args: Some(Box::new(inner)),
+            })]
+        }
+        attr::Type::Inner(p) => vec![Cow::Borrowed(p)],
         attr::Type::Join(j) => {
             let joined = cache.get(&j.inner_type_name()).expect("Join type not found");
             recursive_primitive_types(joined, cache)
@@ -66,7 +77,7 @@ fn recursive_primitive_types_ty<'a>(ty: &'a attr::Type, cache: &'a MetadataCache
     }
 }
 
-fn recursive_primitive_types<'a>(table: &'a attr::TableMetadata, cache: &'a MetadataCache) -> Vec<&'a attr::InnerType> {
+fn recursive_primitive_types<'a>(table: &'a attr::TableMetadata, cache: &'a MetadataCache) -> Vec<Cow<'a, attr::InnerType>> {
     table.columns.iter()
         .map(|c| {
             recursive_primitive_types_ty(&c.column_type, cache)
@@ -75,7 +86,7 @@ fn recursive_primitive_types<'a>(table: &'a attr::TableMetadata, cache: &'a Meta
         .collect()
 }
 
-fn table_primitive_types<'a>(attr: &'a TableMetadata, cache: &'a MetadataCache) -> Vec<&'a attr::InnerType> {
+fn table_primitive_types<'a>(attr: &'a TableMetadata, cache: &'a MetadataCache) -> Vec<Cow<'a, attr::InnerType>> {
     attr.columns.iter()
         .map(|c| recursive_primitive_types_ty(&c.column_type, cache))
         .flatten()
