@@ -25,6 +25,9 @@ impl SqlDiffTableExt for Table {
             schema: None,
             name: metadata.table_name.clone(),
             columns: metadata.columns.iter().map(|c| {
+                if c.skip {
+                    return Ok(None);
+                }
                 let Some(mut col) = Column::from_metadata(c)? else {
                     return Ok(None);
                 };
@@ -171,7 +174,6 @@ impl TryFromOrmlite for Schema {
                     inner.ident = Ident(f.clone());
                 }
             }
-
         }
         for table in fs_schema.tables {
             let table = Table::from_metadata(&table)?;

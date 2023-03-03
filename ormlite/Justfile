@@ -25,7 +25,8 @@ test *args:
     # var in the test runner's process environment.
     # To solve that dependence, we need to set --test-threads=1.
     # If trybuild was modified to allow passing env for a test run, then
-    cargo test --all-features -- --test-threads=1
+    cargo test --features sqlite,uuid -- --test-threads=1
+    cargo test --features postgres,uuid,chrono -- --test-threads=1
 
 check:
     cargo check
@@ -72,14 +73,15 @@ expand-run:
     printf '#![feature(fmt_helpers_for_derive)]\n' >> examples/expand.rs
     printf '#![feature(print_internals)]\n' >> examples/expand.rs
     printf '#![feature(core_panic)]\n' >> examples/expand.rs
-    cargo expand --example 01-update-partial --features sqlite,runtime-tokio-rustls,uuid >> examples/expand.rs
+    cargo expand --example complex --features postgres,uuid >> examples/expand.rs
     sd '::alloc::' '::std::' examples/expand.rs -f
     sd '# ?\[ormlite.*' '' examples/expand.rs -f
-    cargo +nightly run --example expand --features sqlite,runtime-tokio-rustls,uuid
+    sd -s '#[rustc_box]' '' examples/expand.rs -f
+    @just rerun
 alias er := expand-run
 
 rerun:
-    cargo run --example expand --features sqlite,runtime-tokio-rustls,uuid
+    cargo +nightly run --example expand --features postgres,uuid
 alias rr := expand-run
 
 backtrace:

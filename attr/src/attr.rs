@@ -1,4 +1,4 @@
-use structmeta::StructMeta;
+use structmeta::{Flag, StructMeta};
 use syn::{Ident, LitStr, Path};
 
 /// Available attributes on a struct
@@ -75,6 +75,10 @@ pub struct ColumnAttributes {
     /// The name of the column in the database. Defaults to the field name.
     pub column: Option<LitStr>,
 
-    // /// Skip serializing this field to/from the database.
-    // pub skip: bool,
+    /// Skip serializing this field to/from the database. Note the field must implement `Default`.
+    pub skip: Flag,
+
+    /// Experimental: Encode this field as JSON in the database.
+    /// Only applies to `derive(IntoArguments)`. For Model structs, wrap the object in `Json<..>`.
+    pub experimental_encode_as_json: Flag,
 }

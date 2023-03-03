@@ -261,6 +261,11 @@ impl TableMetadata {
         self.columns.iter()
             .map(move |c| syn::Ident::new(&c.column_name, span))
     }
+
+    pub fn database_columns(&self) -> impl Iterator<Item=&ColumnMetadata> + '_ {
+        self.columns.iter()
+            .filter(|c| !c.skip && !c.is_join())
+    }
 }
 
 
@@ -332,6 +337,9 @@ pub struct ColumnMetadata {
     pub many_to_one_key: Option<Ident>,
     pub many_to_many_table: Option<String>,
     pub one_to_many_foreign_key: Option<ForeignKey>,
+
+    pub skip: bool,
+    pub experimental_encode_as_json: bool,
 }
 
 impl Default for ColumnMetadata {
@@ -345,6 +353,8 @@ impl Default for ColumnMetadata {
             many_to_one_key: None,
             many_to_many_table: None,
             one_to_many_foreign_key: None,
+            skip: false,
+            experimental_encode_as_json: false,
         }
     }
 }
@@ -422,6 +432,8 @@ impl TryFrom<&Field> for ColumnMetadata {
             .many_to_one_key(None)
             .many_to_many_table(None)
             .one_to_many_foreign_key(None)
+            .skip(false)
+            .experimental_encode_as_json(false)
         ;
         let mut has_join_directive = false;
         for attr in f.attrs.iter().filter(|a| a.path.is_ident("ormlite")) {
@@ -450,6 +462,12 @@ impl TryFrom<&Field> for ColumnMetadata {
             if let Some(path) = args.one_to_many_foreign_key {
                 builder.one_to_many_foreign_key(Some(ForeignKey::from(&path)));
                 has_join_directive = true;
+            }
+            if args.skip.value() {
+                builder.skip(true);
+            }
+            if args.experimental_encode_as_json.value() {
+                builder.experimental_encode_as_json(true);
             }
         }
         if is_join && !has_join_directive {

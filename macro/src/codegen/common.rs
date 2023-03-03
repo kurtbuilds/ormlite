@@ -17,8 +17,7 @@ use itertools::Itertools;
 fn generate_query_binding_code_for_partial_model(
     attr: &TableMetadata,
 ) -> impl Iterator<Item=TokenStream> + '_ {
-    attr.columns.iter()
-        .filter(|c| !c.is_join())
+    attr.database_columns()
         .map(|c| {
             let name = &c.identifier;
             quote! {
@@ -43,7 +42,11 @@ fn ty_is_string(ty: &syn::Type) -> bool {
 fn from_row_for_column(get_value: proc_macro2::TokenStream, col: &attr::ColumnMetadata) -> proc_macro2::TokenStream {
     let id = &col.identifier;
     let ty = &col.column_type;
-    if col.is_join() {
+    if col.skip {
+        quote! {
+            let #id = Default::default();
+        }
+    } else if col.is_join() {
         quote! {
             let #id = ::ormlite::model::Join::default();
         }
@@ -88,6 +91,7 @@ fn recursive_primitive_types<'a>(table: &'a attr::TableMetadata, cache: &'a Meta
 
 fn table_primitive_types<'a>(attr: &'a TableMetadata, cache: &'a MetadataCache) -> Vec<Cow<'a, attr::InnerType>> {
     attr.columns.iter()
+        .filter(|c| !c.skip)
         .map(|c| recursive_primitive_types_ty(&c.column_type, cache))
         .flatten()
         .unique()
@@ -130,7 +134,7 @@ pub trait OrmliteCodegen {
             })
             .collect::<Vec<_>>()
             ;
-        let fields = attr.all_fields(span);
+        // let fields = attr.all_fields(span);
 
         let prefix_branches = attr.columns.iter().filter(|c| c.is_join()).map(|c| {
             let name = &c.identifier.to_string();
@@ -160,8 +164,7 @@ pub trait OrmliteCodegen {
             }
         });
 
-        let field_names = attr.columns.iter()
-            .filter(|c| !c.is_join())
+        let field_names = attr.database_columns()
             .map(|c| c.identifier.to_string());
 
         quote! {
@@ -341,8 +344,7 @@ pub trait OrmliteCodegen {
             Some(id) => quote! { Some(#id) },
             None => quote! { None },
         };
-        let field_names = attr.columns.iter()
-            .filter(|c| !c.is_join())
+        let field_names = attr.database_columns()
             .map(|c| c.column_name.to_string());
 
         quote! {
@@ -366,11 +368,10 @@ pub trait OrmliteCodegen {
         let db = self.database();
         let model = &attr.struct_name;
         let mut placeholder = self.raw_placeholder();
-        let params = attr.columns.iter()
-            .filter(|c| !c.is_join())
+        let params = attr.database_columns()
             .map(|c| {
                 let field = &c.identifier;
-                let value = if c.is_json() {
+                let value = if c.is_json() || c.experimental_encode_as_json {
                     quote! { ::ormlite::types::Json(self.#field) }
                 } else {
                     quote! { self.#field }
@@ -396,8 +397,7 @@ pub trait OrmliteCodegen {
         let db = self.database();
         let table = &attr.table_name;
         let mut placeholder = self.raw_placeholder();
-        let params = attr.columns.iter()
-            .filter(|c| !c.is_join())
+        let params = attr.database_columns()
             .map(|_| placeholder.next().unwrap());
 
         let query_bindings = attr.columns.iter().filter(|c| !c.is_join()).map(|c| {
@@ -720,7 +720,6 @@ pub trait OrmliteCodegen {
 
     fn impl_ModelBuilder__update(&self, ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
         let span = ast.span();
-        let fields = ast.fields();
 
         let query = format!(
             "UPDATE \"{}\" SET {{}} WHERE {} = {{}} RETURNING *",
