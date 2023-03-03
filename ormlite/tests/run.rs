@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 /// This is a utils mod for the test suite.
 /// Import it from a test like so:
 /// ```
