@@ -213,3 +213,12 @@ pub fn expand_derive_into_arguments(input: TokenStream) -> TokenStream {
         #(#expanded)*
     })
 }
+
+/// This is a no-op marker trait that allows the migration tool to know when a user has
+/// manually implemented a type.
+///
+/// This is useful for having data that's a string in the database, but a strum::EnumString in code.
+#[proc_macro_derive(ManualType)]
+pub fn expand_derive_manual_type(input: TokenStream) -> TokenStream {
+    TokenStream::new()
+}

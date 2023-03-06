@@ -86,12 +86,12 @@ impl std::fmt::Display for TypeTranslationError {
 }
 
 impl SqlType {
-    fn from_type(ty: &ormlite_attr::Type) -> Option<Self> {
+    fn from_type(ty: &ormlite_attr::TType) -> Option<Self> {
         use sqlmo::Type::*;
-        use ormlite_attr::Type;
+        use ormlite_attr::TType;
         match ty {
-            Type::Vec(v) => {
-                if let Type::Inner(p) = v.as_ref() {
+            TType::Vec(v) => {
+                if let TType::Inner(p) = v.as_ref() {
                     if p.ident.0 == "u8" {
                         return Some(SqlType {
                             ty: Bytes,
@@ -105,7 +105,7 @@ impl SqlType {
                     nullable: true,
                 })
             }
-            Type::Inner(p) => {
+            TType::Inner(p) => {
                 let ident = p.ident.0.as_str();
                 let ty = match ident {
                     // signed
@@ -149,14 +149,14 @@ impl SqlType {
                     nullable: false,
                 })
             }
-            Type::Option(o) => {
+            TType::Option(o) => {
                 let inner = Self::from_type(o)?;
                 Some(SqlType {
                     ty: inner.ty,
                     nullable: true,
                 })
             }
-            Type::Join(_) => {
+            TType::Join(_) => {
                 None
             }
         }
@@ -189,19 +189,30 @@ mod tests {
     use super::*;
     use syn::{parse_str};
     use assert_matches::assert_matches;
+    use ormlite_attr::TType;
+    use sqlmo::Type;
 
     #[test]
     fn test_convert_type() -> Result<()> {
-        use sqlmo::Type;
 
-        let s = ormlite_attr::Type::from(&parse_str::<syn::Path>("String").unwrap());
+        let s = TType::from(&parse_str::<syn::Path>("String").unwrap());
         assert_matches!(SqlType::from_type(&s).unwrap().ty, Type::Text);
-        let s = ormlite_attr::Type::from(&parse_str::<syn::Path>("u32").unwrap());
+        let s = TType::from(&parse_str::<syn::Path>("u32").unwrap());
         assert_matches!(SqlType::from_type(&s).unwrap().ty, Type::I64);
-        let s = ormlite_attr::Type::from(&parse_str::<syn::Path>("Option<String>").unwrap());
+        let s = TType::from(&parse_str::<syn::Path>("Option<String>").unwrap());
         let s = SqlType::from_type(&s).unwrap();
         assert_matches!(s.ty, Type::Text);
         assert!(s.nullable);
         Ok(())
+    }
+
+    #[test]
+    fn test_support_vec() {
+        let s = TType::from(&parse_str::<syn::Path>("Vec<Uuid>").unwrap());
+        let Type::Array(inner) = SqlType::from_type(&s).unwrap().ty else {
+            panic!("Expected array");
+        };
+        assert_eq!(*inner, Type::Uuid);
+
     }
 }

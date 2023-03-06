@@ -15,6 +15,7 @@ pub mod query_builder {
 
 pub mod types {
     pub use sqlx::types::*;
+    pub use ormlite_macro::ManualType;
 }
 
 pub mod decode {

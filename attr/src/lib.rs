@@ -62,6 +62,8 @@ impl Intermediate {
                         model_structs.push((s, attrs));
                     } else if attrs.has_derive("Type") {
                         type_structs.push((s, attrs));
+                    } else if attrs.has_derive("ManualType") {
+                        type_structs.push((s, attrs));
                     }
                 }
                 Item::Enum(e) => {
@@ -69,7 +71,7 @@ impl Intermediate {
                     if opts.verbose {
                         eprintln!("Found struct: {}. Attributes: {}", e.ident, attrs);
                     }
-                    if attrs.has_derive("Type") {
+                    if attrs.has_derive("Type") || attrs.has_derive("ManualType") {
                         type_enums.push((e, attrs));
                     }
                 }

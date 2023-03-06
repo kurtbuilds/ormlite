@@ -55,58 +55,59 @@ impl InnerType {
     }
 }
 
+/// Token type. A rust AST token, representing a type.
 #[derive(Clone, Debug, PartialEq, Hash)]
-pub enum Type {
-    Option(Box<Type>),
-    Vec(Box<Type>),
+pub enum TType {
+    Option(Box<TType>),
+    Vec(Box<TType>),
     /// Database primitive, includes DateTime, Jsonb, etc.
     Inner(InnerType),
-    Join(Box<Type>),
+    Join(Box<TType>),
 }
 
-impl Type {
+impl TType {
     pub fn is_json(&self) -> bool {
         match self {
-            Type::Inner(ty) => ty.ident.0 == "Json",
-            Type::Option(ty) => ty.is_json(),
+            TType::Inner(ty) => ty.ident.0 == "Json",
+            TType::Option(ty) => ty.is_json(),
             _ => false,
         }
     }
 
     pub fn is_join(&self) -> bool {
-        matches!(self, Type::Join(_))
+        matches!(self, TType::Join(_))
     }
 
     pub fn inner_type_name(&self) -> String {
         match self {
-            Type::Inner(ty) => ty.ident.0.to_string(),
-            Type::Option(ty) => ty.inner_type_name(),
-            Type::Vec(ty) => ty.inner_type_name(),
-            Type::Join(ty) => ty.inner_type_name(),
+            TType::Inner(ty) => ty.ident.0.to_string(),
+            TType::Option(ty) => ty.inner_type_name(),
+            TType::Vec(ty) => ty.inner_type_name(),
+            TType::Join(ty) => ty.inner_type_name(),
         }
     }
 
     pub fn inner_type_mut(&mut self) -> &mut InnerType {
         match self {
-            Type::Inner(ty) => ty,
-            Type::Option(ty) => ty.inner_type_mut(),
-            Type::Vec(ty) => ty.inner_type_mut(),
-            Type::Join(ty) => ty.inner_type_mut(),
+            TType::Inner(ty) => ty,
+            TType::Option(ty) => ty.inner_type_mut(),
+            TType::Vec(ty) => ty.inner_type_mut(),
+            TType::Join(ty) => ty.inner_type_mut(),
         }
     }
 
     pub fn qualified_inner_name(&self) -> TokenStream {
         match self {
-            Type::Inner(ty) => {
+            TType::Inner(ty) => {
                 let segments = ty.path.iter();
                 let ident = &ty.ident;
                 quote::quote! {
                     #(#segments)::* #ident
                 }
             },
-            Type::Option(ty) => ty.qualified_inner_name(),
-            Type::Vec(ty) => ty.qualified_inner_name(),
-            Type::Join(ty) => ty.qualified_inner_name(),
+            TType::Option(ty) => ty.qualified_inner_name(),
+            TType::Vec(ty) => ty.qualified_inner_name(),
+            TType::Join(ty) => ty.qualified_inner_name(),
         }
     }
 }
@@ -136,30 +137,30 @@ impl From<&syn::Path> for InnerType {
     }
 }
 
-impl From<InnerType> for Type {
+impl From<InnerType> for TType {
     fn from(value: InnerType) -> Self {
         match value.ident.0.as_str() {
             "Option" => {
                 let ty = value.args.unwrap();
-                Type::Option(Box::new(Type::from(*ty)))
+                TType::Option(Box::new(TType::from(*ty)))
             }
             "Vec" => {
                 let ty = value.args.unwrap();
-                Type::Vec(Box::new(Type::from(*ty)))
+                TType::Vec(Box::new(TType::from(*ty)))
             }
             "Join" => {
                 let ty = value.args.unwrap();
-                Type::Join(Box::new(Type::from(*ty)))
+                TType::Join(Box::new(TType::from(*ty)))
             }
-            _ => Type::Inner(value),
+            _ => TType::Inner(value),
         }
     }
 }
 
-impl From<&syn::Path> for Type {
+impl From<&syn::Path> for TType {
     fn from(path: &syn::Path) -> Self {
         let other = InnerType::from(path);
-        Type::from(other)
+        TType::from(other)
     }
 }
 
@@ -176,19 +177,19 @@ impl quote::ToTokens for InnerType {
     }
 }
 
-impl quote::ToTokens for Type {
+impl quote::ToTokens for TType {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match self {
-            Type::Option(ty) => {
+            TType::Option(ty) => {
                 tokens.append_all(quote::quote! { Option<#ty> });
             }
-            Type::Vec(ty) => {
+            TType::Vec(ty) => {
                 tokens.append_all(quote::quote! { Vec<#ty> });
             }
-            Type::Inner(ty) => {
+            TType::Inner(ty) => {
                 ty.to_tokens(tokens);
             }
-            Type::Join(ty) => {
+            TType::Join(ty) => {
                 tokens.append_all(quote::quote! { ormlite::model::Join<#ty> });
             }
         }
@@ -326,7 +327,7 @@ impl From<&syn::Path> for ForeignKey {
 pub struct ColumnMetadata {
     /// Name of the column in the database
     pub column_name: String,
-    pub column_type: Type,
+    pub column_type: TType,
     /// Only says whether the primary key is marked (with an attribute). Use table_metadata.primary_key to definitively know the primary key.
     pub marked_primary_key: bool,
     pub has_database_default: bool,
@@ -346,7 +347,7 @@ impl Default for ColumnMetadata {
     fn default() -> Self {
         Self {
             column_name: String::new(),
-            column_type: Type::Inner(InnerType::new("String")),
+            column_type: TType::Inner(InnerType::new("String")),
             marked_primary_key: false,
             has_database_default: false,
             identifier: Ident::new("column"),
@@ -363,7 +364,7 @@ impl ColumnMetadata {
     pub fn new(name: &str, ty: &str) -> Self {
         Self {
             column_name: name.to_string(),
-            column_type: Type::Inner(InnerType::new(ty)),
+            column_type: TType::Inner(InnerType::new(ty)),
             ..Self::default()
         }
     }
@@ -371,7 +372,7 @@ impl ColumnMetadata {
     pub fn new_join(name: &str, join_model: &str) -> Self {
         Self {
             column_name: name.to_string(),
-            column_type: Type::Join(Box::new(Type::Inner(InnerType::new(join_model)))),
+            column_type: TType::Join(Box::new(TType::Inner(InnerType::new(join_model)))),
             ..Self::default()
         }
     }
@@ -381,14 +382,14 @@ impl ColumnMetadata {
     }
 
     pub fn is_join(&self) -> bool {
-        matches!(self.column_type, Type::Join(_))
+        matches!(self.column_type, TType::Join(_))
     }
 
     pub fn is_join_many(&self) -> bool {
-        let Type::Join(join) = &self.column_type else {
+        let TType::Join(join) = &self.column_type else {
             return false;
         };
-        let Type::Inner(o) = join.as_ref() else {
+        let TType::Inner(o) = join.as_ref() else {
             return false;
         };
         o.ident.0 == "Vec"
@@ -400,7 +401,7 @@ impl ColumnMetadata {
 
     /// We expect this to only return a `Model` of some kind.
     pub fn joined_struct_name(&self) -> Option<String> {
-        let Type::Join(join) = &self.column_type else {
+        let TType::Join(join) = &self.column_type else {
             return None;
         };
         Some(join.inner_type_name())
@@ -421,7 +422,7 @@ impl TryFrom<&Field> for ColumnMetadata {
         let syn::Type::Path(ty) = &f.ty else {
             return Err(SyndecodeError(format!("No type on field {}", ident)));
         };
-        let ty = Type::from(&ty.path);
+        let ty = TType::from(&ty.path);
         let is_join = ty.is_join();
         builder
             .column_name(ident.to_string())
@@ -485,18 +486,18 @@ mod test {
     #[test]
     fn test_primitive() {
         use syn::Path;
-        let ty = Type::from(&syn::parse_str::<Path>("i32").unwrap());
+        let ty = TType::from(&syn::parse_str::<Path>("i32").unwrap());
         assert!(!ty.is_json());
 
-        let ty = Type::from(&syn::parse_str::<Path>("Json<User>").unwrap());
+        let ty = TType::from(&syn::parse_str::<Path>("Json<User>").unwrap());
         assert!(ty.is_json());
     }
 
     #[test]
     fn test_other_type_to_quote() {
         use syn::Path;
-        let ty = Type::from(&syn::parse_str::<Path>("rust_decimal::Decimal").unwrap());
-        let Type::Inner(ty) = &ty else {
+        let ty = TType::from(&syn::parse_str::<Path>("rust_decimal::Decimal").unwrap());
+        let TType::Inner(ty) = &ty else {
             panic!("expected primitive");
         };
         assert_eq!(ty.ident.0, "Decimal");
