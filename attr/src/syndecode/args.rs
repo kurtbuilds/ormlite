@@ -1,5 +1,5 @@
-use syn::__private::quote::__private::TokenTree;
 use crate::SyndecodeError;
+use proc_macro2::TokenTree;
 
 #[derive(Debug)]
 pub struct ArgsAttribute {

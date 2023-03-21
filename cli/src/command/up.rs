@@ -31,11 +31,11 @@ impl Up {
         let folder = get_var_migration_folder();
         let runtime = create_runtime();
         let url = get_var_database_url();
-        let mut conn = create_connection(&url, &runtime)?;
-        let conn = runtime.block_on(conn.acquire())?;
+        let mut conn = create_connection(&url, &runtime).unwrap();
+        let conn = runtime.block_on(conn.acquire()).unwrap();
 
-        let executed = get_executed_migrations(&runtime, &mut *conn)?;
-        let pending = get_pending_migrations(&folder)?
+        let executed = get_executed_migrations(&runtime, &mut *conn).unwrap();
+        let pending = get_pending_migrations(&folder).unwrap()
             .into_iter()
             .filter(|m| m.migration_type() != MigrationType::Down)
             .collect::<Vec<_>>();
@@ -50,7 +50,7 @@ impl Up {
         {
             eprintln!("Creating snapshot...");
             let snapshot_folder = get_var_snapshot_folder();
-            fs::create_dir_all(&snapshot_folder)?;
+            fs::create_dir_all(&snapshot_folder).unwrap();
             let file_stem = executed.last().map(|m| m.name.clone()).unwrap_or("0_empty".to_string());
             let file_path = snapshot_folder.join(format!("{file_stem}.sql.bak"));
             let backup_file = File::create(&file_path)?;
