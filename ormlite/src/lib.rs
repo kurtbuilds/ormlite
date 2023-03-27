@@ -1,3 +1,4 @@
+#![cfg_attr(docsrs, feature(doc_cfg))]
 pub use ormlite_core::BoxFuture;
 pub use ormlite_core::{Error, Result};
 pub use model::{Model, FromRow, TableMeta, IntoArguments};
@@ -36,7 +37,6 @@ pub mod __private {
     pub use sqlmo::Insert;
 
 }
-
 
 #[cfg(feature = "postgres")]
 #[cfg_attr(docsrs, doc(cfg(feature = "postgres")))]

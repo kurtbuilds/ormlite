@@ -13,7 +13,8 @@ readme = "../README.md"
 autoexamples = false
 
 [package.metadata.docs.rs]
-rustdoc-args = ["--cfg", "docsrs", "--all-features"]
+rustdoc-args = ["--cfg", "docsrs"]
+all-features = true
 
 [[test]]
 name = "sqlite"

@@ -36,7 +36,7 @@ publish:
    cd cli && cargo publish
 
 doc:
-   cd ormlite && cargo doc --all-features --open -p ormlite --no-deps
+   cd ormlite && RUSTDOCFLAGS="--cfg docsrs" cargo +nightly doc --all-features --open -p ormlite --no-deps
 
 install:
     @just cli/install
