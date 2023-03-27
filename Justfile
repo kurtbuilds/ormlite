@@ -28,6 +28,10 @@ version level:
    git tag v$VERSION
    git push
 
+patch:
+    just version patch
+    just publish
+
 publish:
    cd attr && cargo publish
    cd core && cargo publish --features sqlite,postgres,mysql,runtime-tokio-rustls
