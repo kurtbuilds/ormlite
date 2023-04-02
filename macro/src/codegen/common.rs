@@ -213,7 +213,7 @@ pub trait OrmliteCodegen {
     fn impl_from_row_using_aliases(&self, ast: &DeriveInput, attr: &TableMetadata, metadata_cache: &MetadataCache) -> TokenStream {
         let span = ast.span();
         let model = &ast.ident;
-        let fields = attr.all_fields(span);
+        let fields = attr.all_fields();
         let bounds = from_row_bounds(attr, &metadata_cache);
         let mut incrementer = 0usize..;
         let columns = attr.columns.iter()
@@ -767,15 +767,13 @@ pub trait OrmliteCodegen {
     fn impl_ModelBuilder__build(&self, ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
         let span = ast.span();
 
-        let unpack = attr.columns.iter()
-            .map(|c| syn::Ident::new(c.column_name.as_str(), span))
+        let unpack = attr.all_fields()
             .map(|c| {
                 let msg = format!("Tried to build a model, but the field `{c}` was not set.");
                 quote! { let #c = self.#c.expect(#msg); }
             });
 
-        let fields = attr.columns.iter()
-            .map(|c| syn::Ident::new(c.column_name.as_str(), span));
+        let fields = attr.all_fields();
 
         quote! {
             fn build(self) -> Self::Model {

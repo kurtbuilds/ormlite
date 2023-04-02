@@ -258,9 +258,9 @@ impl TableMetadata {
         Ok(builder)
     }
 
-    pub fn all_fields(&self, span: proc_macro2::Span) -> impl Iterator<Item=syn::Ident> + '_ {
+    pub fn all_fields(&self) -> impl Iterator<Item=Ident> + '_ {
         self.columns.iter()
-            .map(move |c| syn::Ident::new(&c.column_name, span))
+            .map(|c| c.identifier.clone())
     }
 
     pub fn database_columns(&self) -> impl Iterator<Item=&ColumnMetadata> + '_ {

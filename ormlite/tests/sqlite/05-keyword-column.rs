@@ -9,6 +9,6 @@ pub struct User {
 }
 
 fn main() {
-    assert_eq!(User::table_name(), "person");
+    assert_eq!(User::table_name(), "user");
     assert_eq!(User::table_columns(), &["id", "type"]);
 }
