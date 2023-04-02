@@ -1,3 +1,4 @@
+#![allow(unused)]
 use uuid::Uuid;
 use ormlite::TableMeta;
 use serde::Serialize;
