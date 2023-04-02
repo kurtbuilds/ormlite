@@ -15,27 +15,32 @@ pub struct Person {
 
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut db = ormlite::sqlite::SqliteConnection::connect(":memory:").await.unwrap();
+async fn main() {
+    let mut db = ormlite::sqlite::SqliteConnection::connect(":memory:")
+        .await
+        .unwrap();
     let migration = setup::migrate_self(&[file!()]);
     for s in migration.statements {
         let sql = s.to_sql(sqlmo::Dialect::Sqlite);
         ormlite::query(&sql)
             .execute(&mut db)
-            .await?;
+            .await
+            .unwrap();
     }
 
     let p = Person {
         id: Uuid::new_v4(),
         name: "John".to_string(),
         age: 99,
-    }.insert(&mut db).await?;
+    }.insert(&mut db)
+        .await
+        .unwrap();
 
     let p = p.update_partial()
         .age(100)
         .update(&mut db)
-        .await?;
+        .await
+        .unwrap();
 
     assert_eq!(p.age, 100);
-    Ok(())
 }

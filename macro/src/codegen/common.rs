@@ -165,7 +165,7 @@ pub trait OrmliteCodegen {
         });
 
         let field_names = attr.database_columns()
-            .map(|c| c.identifier.to_string());
+            .map(|c| &c.column_name);
 
         quote! {
             impl<'a, R: ::ormlite::Row> ::ormlite::model::FromRow<'a, R> for #model
