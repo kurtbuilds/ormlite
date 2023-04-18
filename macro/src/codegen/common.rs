@@ -609,7 +609,7 @@ pub trait OrmliteCodegen {
             }
     }
 
-    fn struct_ModelBuilder(&self, ast: &DeriveInput, _attr: &attr::TableMetadata) -> TokenStream {
+    fn struct_ModelBuilder(&self, ast: &DeriveInput, attr: &attr::TableMetadata) -> TokenStream {
         let model = &ast.ident;
         let model_builder = quote::format_ident!("{}Builder", model.to_string());
         let pub_marker = &ast.vis;
@@ -640,9 +640,9 @@ pub trait OrmliteCodegen {
             }
         });
 
-        let build_modified_fields = ast.fields().map(|f| {
-            let name = &f.ident.as_ref().unwrap();
-            let name_str = name.to_string();
+        let build_modified_fields = attr.database_columns().map(|f| {
+            let name = &f.identifier;
+            let name_str = &f.column_name;
             quote! {
                 if self.#name.is_some() {
                     ret.push(#name_str);
