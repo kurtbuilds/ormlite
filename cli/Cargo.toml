@@ -1,6 +1,6 @@
 [package]
 name = "ormlite-cli"
-version = "0.12.3"
+version = "0.12.4"
 edition = "2021"
 description = "An ORM for people who love SQL. Use the `ormlite` crate, not this one."
 authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
@@ -22,9 +22,9 @@ default = ["ormlite/postgres", "ormlite/uuid", "ormlite/time", "ormlite/json", "
 anyhow = "1.0.68"
 time = { version = "0.3.5", features = ["formatting"] }
 clap = { version = "4.0.32", features = ["derive"] }
-ormlite = { version = "0.12.3", path = "../ormlite" }
-ormlite-core = { version = "0.12.3", path = "../core" }
-ormlite-attr = { version = "0.12.3", path = "../attr" }
+ormlite = { version = "0.12.4", path = "../ormlite" }
+ormlite-core = { version = "0.12.4", path = "../core" }
+ormlite-attr = { version = "0.12.4", path = "../attr" }
 tokio = { version = "1", features = ["full"] }
 sqlmo = { version = "0.11.0", features = ["sqlx"] }
 syn = "1.0.107"
