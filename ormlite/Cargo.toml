@@ -10,7 +10,7 @@ homepage = "https://github.com/kurtbuilds/ormlite"
 documentation = "https://docs.rs/ormlite"
 autotests = false
 readme = "../README.md"
-autoexamples = false
+autoexamples = true
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]

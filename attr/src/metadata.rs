@@ -265,7 +265,7 @@ impl TableMetadata {
 
     pub fn database_columns(&self) -> impl Iterator<Item=&ColumnMetadata> + '_ {
         self.columns.iter()
-            .filter(|c| !c.skip && !c.is_join())
+            .filter(|c| !c.skip)
     }
 }
 
@@ -335,7 +335,7 @@ pub struct ColumnMetadata {
     pub identifier: Ident,
 
     // only for joins
-    pub many_to_one_key: Option<Ident>,
+    pub many_to_one_key: Option<String>,
     pub many_to_many_table: Option<String>,
     pub one_to_many_foreign_key: Option<ForeignKey>,
 
@@ -458,10 +458,9 @@ impl TryFrom<&Field> for ColumnMetadata {
             if let Some(column_name) = args.column {
                 builder.column_name(column_name.value());
             }
-            if let Some(value) = args.many_to_one_key {
-                let ident = value.segments.last().unwrap().ident.clone();
-                let ident = Ident::from(&ident);
-                builder.many_to_one_key(Some(ident));
+            if let Some(value) = args.join_column {
+                builder.many_to_one_key(Some(value.value()));
+                builder.column_name(value.value());
                 has_join_directive = true;
             }
             if let Some(path) = args.many_to_many_table {

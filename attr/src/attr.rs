@@ -47,13 +47,13 @@ pub struct ColumnAttributes {
     /// Specify a default value on the Rust side.
     pub default_value: Option<NameValue<LitStr>>,
 
+    /// Note this column is not expected to exist on the model, but needs to exist in the database.
     /// Example:
     /// pub struct User {
-    ///     pub org_id: i32,
-    ///     #[ormlite(many_to_one_key = org_id)]
+    ///     #[ormlite(join_column = "organization_id")]
     ///     pub organization: Join<Organization>,
     /// }
-    pub many_to_one_key: Option<Path>,
+    pub join_column: Option<LitStr>,
 
     /// Example:
     /// pub struct User {

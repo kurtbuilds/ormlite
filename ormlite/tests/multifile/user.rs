@@ -7,6 +7,6 @@ pub struct User {
     pub id: Uuid,
     pub name: String,
     pub age: u8,
-    #[ormlite(many_to_one_key = organization_id)]
+    #[ormlite(join_column = "organization_id")]
     pub organization: Join<Organization>,
 }

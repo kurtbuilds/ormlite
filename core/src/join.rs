@@ -4,53 +4,70 @@ use sqlmo::query::SelectColumn;
 
 pub trait JoinMeta {
     type IdType: Clone;
-    fn id(&self) -> Self::IdType;
+    fn _id(&self) -> Self::IdType;
 }
 
 impl<T: JoinMeta> JoinMeta for Option<T> {
     type IdType = Option<T::IdType>;
 
-    fn id(&self) -> Self::IdType {
-        self.as_ref().map(|x| x.id())
+    fn _id(&self) -> Self::IdType {
+        self.as_ref().map(|x| x._id())
     }
+}
+
+impl<T: JoinMeta> JoinMeta for Join<T> {
+    type IdType = T::IdType;
+
+    fn _id(&self) -> Self::IdType {
+        self.id.clone()
+    }
+}
+
+#[derive(Debug)]
+pub struct Join<T: JoinMeta> {
+    pub id: T::IdType,
+    data: JoinData<T>,
 }
 
 /// Only represents a many-to-one relationship.
 #[derive(Debug)]
-pub enum Join<T: JoinMeta> {
-    InsertById(T::IdType),
-    NotQueried(T::IdType),
+pub enum JoinData<T: JoinMeta> {
+    NotQueried,
     QueryResult(T),
     Modified(T),
 }
 
 
 impl<T: JoinMeta> Join<T> {
-    /// To load data for insertion, use `new`.
-    pub fn id(&self) -> T::IdType {
-        match self {
-            Join::InsertById(id) => id.clone(),
-            Join::NotQueried(id) => id.clone(),
-            Join::QueryResult(obj) => obj.id(),
-            Join::Modified(obj) => obj.id(),
+
+    pub fn new_with_id(id: T::IdType) -> Self {
+        Self {
+            id,
+            data: JoinData::NotQueried,
         }
     }
 
-    pub fn new_by_id(id: T::IdType) -> Self {
-        Join::InsertById(id)
-    }
-
     pub fn new(obj: T) -> Self {
-        Join::Modified(obj)
+        Self {
+            id: obj._id(),
+            data: JoinData::Modified(obj),
+        }
     }
 
     /// Whether join data has been loaded into memory.
     pub fn loaded(&self) -> bool {
-        match self {
-            Join::InsertById(_) => false,
-            Join::NotQueried(_) => false,
-            Join::QueryResult(_) => true,
-            Join::Modified(_) => true,
+        match &self.data {
+            JoinData::NotQueried => false,
+            JoinData::QueryResult(_) => true,
+            JoinData::Modified(_) => true,
+        }
+    }
+
+    pub fn is_modified(&self) -> bool {
+        match &self.data {
+            JoinData::NotQueried => false,
+            JoinData::QueryResult(_) => false,
+            JoinData::Modified(_) => true,
         }
     }
 
@@ -61,39 +78,39 @@ impl<T: JoinMeta> Join<T> {
     /// Takes ownership and return any modified data. Leaves the Join in a NotQueried state.
     #[doc(hidden)]
     pub fn _take_modification(&mut self) -> Option<T> {
-        let id = self.id();
-        let owned = std::mem::replace(self, Join::NotQueried(id));
+        let owned = std::mem::replace(&mut self.data, JoinData::NotQueried);
         match owned {
-            Join::InsertById(_) => None,
-            Join::NotQueried(_) => None,
-            Join::QueryResult(_) => None,
-            Join::Modified(obj) => {
+            JoinData::NotQueried => None,
+            JoinData::QueryResult(_) => None,
+            JoinData::Modified(obj) => {
                 Some(obj)
             }
         }
     }
 
     fn transition_to_modified(&mut self) -> &mut T {
-        let id = self.id();
-        let owned = std::mem::replace(self, Join::NotQueried(id));
+        let owned = std::mem::replace(&mut self.data, JoinData::NotQueried);
         match owned {
-            Join::NotQueried(_) | Join::InsertById(_) => panic!("Tried to deref_mut a joined object, but it has not been queried."),
-            Join::QueryResult(r) => {
-                *self = Join::Modified(r);
+            JoinData::NotQueried => panic!("Tried to deref_mut a joined object, but it has not been queried."),
+            JoinData::QueryResult(r) => {
+                self.data = JoinData::Modified(r);
             }
-            Join::Modified(r) => {
-                *self = Join::Modified(r);
+            JoinData::Modified(r) => {
+                self.data = JoinData::Modified(r);
             }
         }
-        match self {
-            Join::Modified(r) => r,
+        match &mut self.data {
+            JoinData::Modified(r) => r,
             _ => unreachable!(),
         }
     }
 
     #[doc(hidden)]
     pub fn _query_result(obj: T) -> Self {
-        Join::QueryResult(obj)
+        Self {
+            id: obj._id(),
+            data: JoinData::QueryResult(obj),
+        }
     }
 }
 
@@ -161,10 +178,10 @@ impl<T: JoinMeta> Deref for Join<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        match self {
-            Join::NotQueried(_) | Join::InsertById(_) => panic!("Tried to deref a joined object, but it has not been queried."),
-            Join::QueryResult(r) => r,
-            Join::Modified(r) => r,
+        match &self.data {
+            JoinData::NotQueried => panic!("Tried to deref a joined object, but it has not been queried."),
+            JoinData::QueryResult(r) => r,
+            JoinData::Modified(r) => r,
         }
     }
 }
@@ -241,7 +258,7 @@ mod test {
 
     impl JoinMeta for Org {
         type IdType = Uuid;
-        fn id(&self) -> Self::IdType {
+        fn _id(&self) -> Self::IdType {
             self.id.clone()
         }
     }

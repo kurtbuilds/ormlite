@@ -7,7 +7,7 @@ pub struct Person {
     id: Uuid,
     name: String,
     age: u8,
-    #[ormlite(many_to_one_key = org_id)]
+    #[ormlite(join_column = "org_id")]
     organization: Join<Organization>,
 }
 
@@ -21,7 +21,7 @@ pub struct Organization {
 impl JoinMeta for Organization {
     type IdType = Uuid;
 
-    fn id(&self) -> Self::IdType {
+    fn _id(&self) -> Self::IdType {
         self.id.clone()
     }
 }
@@ -54,7 +54,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         organization: Join::new(org.clone()),
     }.insert(&mut db).await.unwrap();
     assert_eq!(p1.organization.id, org.id, "setting the org object should overwrite the org_id field on insert.");
-    assert_eq!(p1.organization.id(), org.id);
+    assert_eq!(p1.organization._id(), org.id);
 
     let org = Organization::select()
         .where_bind("id = ?", &org.id)
@@ -87,7 +87,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(people.len(), 2, "exactly 2 people");
     for person in &people {
         assert_eq!(person.organization.name, "my org", "we can join on the org");
-        assert!(matches!(person.organization, Join::QueryResult(_)), "Join results are returned as Join::QueryResult");
     }
     Ok(())
 }

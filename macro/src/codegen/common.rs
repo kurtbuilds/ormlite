@@ -20,9 +20,17 @@ fn generate_query_binding_code_for_partial_model(
     attr.database_columns()
         .map(|c| {
             let name = &c.identifier;
-            quote! {
-                if let Some(value) = self.#name {
-                    q = q.bind(value);
+            if c.is_join() {
+                quote! {
+                    if let Some(value) = self.#name {
+                        q = q.bind(value._id());
+                    }
+                }
+            } else {
+                quote! {
+                    if let Some(value) = self.#name {
+                        q = q.bind(value);
+                    }
                 }
             }
         })
@@ -48,7 +56,8 @@ fn from_row_for_column(get_value: proc_macro2::TokenStream, col: &attr::ColumnMe
         }
     } else if col.is_join() {
         quote! {
-            let #id = ::ormlite::model::Join::default();
+            let id: <#ty as ::ormlite::model::JoinMeta>::IdType = row.try_get(#get_value)?;
+            let #id = ::ormlite::model::Join::new_with_id(id);
         }
     } else {
         quote! {
@@ -218,13 +227,9 @@ pub trait OrmliteCodegen {
         let mut incrementer = 0usize..;
         let columns = attr.columns.iter()
             .map(|c| {
-                if c.is_join() {
-                    from_row_for_column(proc_macro2::TokenStream::new(), c)
-                } else {
-                    let index = incrementer.next().unwrap();
-                    let get = quote! { aliases[#index] };
-                    from_row_for_column(get, c)
-                }
+                let index = incrementer.next().unwrap();
+                let get = quote! { aliases[#index] };
+                from_row_for_column(get, c)
             })
             .collect::<Vec<_>>()
             ;
@@ -400,32 +405,46 @@ pub trait OrmliteCodegen {
         let params = attr.database_columns()
             .map(|_| placeholder.next().unwrap());
 
-        let query_bindings = attr.columns.iter().filter(|c| !c.is_join()).map(|c| {
+        let query_bindings = attr.database_columns().map(|c| {
             let name = &c.identifier;
-            quote! {
-                q = q.bind(model.#name);
+            if c.is_join() {
+                quote! {
+                    q = q.bind(#name._id());
+                }
+            } else {
+                quote! {
+                    q = q.bind(model.#name);
+                }
             }
         });
 
-        let rebind = attr.columns.iter().filter(|c| c.is_join() && c.many_to_one_key.is_some()).map(|c| {
+        let insert_join = attr.columns.iter().filter(|c| c.is_join() && c.many_to_one_key.is_some()).map(|c| {
             let name = &c.identifier;
-            let column = c.many_to_one_key.as_ref().unwrap();
             let joined_struct = c.joined_struct_name().unwrap();
             let joined_meta = metadata_cache.get(&joined_struct).unwrap_or_else(|| panic!("On {}, tried to define join, but failed to find a Model for {}", attr.struct_name, joined_struct));
             let joined_pkey = joined_meta.primary_key.as_ref().expect("Joined struct must have a primary key");
             let joined_pkey = syn::Ident::new(joined_pkey, Span::call_site());
             quote! {
-                if let Some(modification) = model.#name._take_modification() {
-                    model.#column = modification.#joined_pkey;
+                let #name = if let Some(modification) = model.#name._take_modification() {
                     match modification
+                        .clone()
                         .insert(&mut *conn)
                         .on_conflict(::ormlite::query_builder::OnConflict::Ignore)
                         .await {
-                        Ok(_) => (),
-                        Err(::ormlite::Error::SqlxError(::ormlite::SqlxError::RowNotFound)) => (),
+                        Ok(model) => Join::_query_result(model),
+                        Err(::ormlite::Error::SqlxError(::ormlite::SqlxError::RowNotFound)) => Join::_query_result(modification),
                         Err(e) => return Err(e),
                     }
-                }
+                } else {
+                    model.#name
+                };
+            }
+        });
+
+        let late_bind = attr.columns.iter().filter(|c| c.is_join() && c.many_to_one_key.is_some()).map(|c| {
+            let name = &c.identifier;
+            quote! {
+                r.#name = #name;
             }
         });
 
@@ -441,15 +460,19 @@ pub trait OrmliteCodegen {
                         Box::pin(async move {
                             let mut conn = conn.acquire().await?;
                             #(
-                                #rebind
+                                #insert_join
                             )*
                             let mut q = ::ormlite::query_as(&query);
                             #(
                                 #query_bindings
                             )*
-                            q.fetch_one(&mut *conn)
+                            let mut r: Self = q.fetch_one(&mut *conn)
                                 .await
-                                .map_err(::ormlite::Error::from)
+                                .map_err(::ormlite::Error::from)?;
+                            #(
+                                #late_bind
+                            )*
+                            Ok(r)
                         })
                     }),
                     insert: ::ormlite::__private::Insert::new(#table)

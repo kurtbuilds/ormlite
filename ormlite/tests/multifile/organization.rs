@@ -10,7 +10,7 @@ pub struct Organization {
 
 impl JoinMeta for Organization {
     type IdType = Uuid;
-    fn id(&self) -> Self::IdType {
+    fn _id(&self) -> Self::IdType {
         self.id.clone()
     }
 }

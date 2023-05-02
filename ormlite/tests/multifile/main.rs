@@ -35,7 +35,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         id: Uuid::new_v4(),
         name: "John".to_string(),
         age: 99,
-        organization_id: Uuid::default(),
         organization: Join::new(org),
     };
     let user = user.insert(&mut conn).await?;

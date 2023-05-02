@@ -5,6 +5,7 @@ pub use sqlmo::query::OnConflict;
 use crate::Result;
 
 /// Represents an insert query.
+/// We had to turn this into a model because we need to pass in the on_conflict configuration.
 pub struct Insertion<'a, Acquire, Model, DB: sqlx::Database> {
     pub acquire: Acquire,
     pub model: Model,
@@ -16,9 +17,6 @@ pub struct Insertion<'a, Acquire, Model, DB: sqlx::Database> {
 
 impl<'a, Acquire, Model, DB: sqlx::Database> Insertion<'a, Acquire, Model, DB> {
     pub fn on_conflict(mut self, c: OnConflict) -> Self {
-        if c == OnConflict::Ignore {
-            self.insert.returning = Vec::new();
-        }
         self.insert.on_conflict = c;
         self
     }

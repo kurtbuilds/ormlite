@@ -73,7 +73,7 @@ expand-run:
     printf '#![feature(fmt_helpers_for_derive)]\n' >> examples/expand.rs
     printf '#![feature(print_internals)]\n' >> examples/expand.rs
     printf '#![feature(core_panic)]\n' >> examples/expand.rs
-    cargo expand --example complex --features postgres,uuid >> examples/expand.rs
+    cargo expand --example many-to-one --features sqlite,uuid >> examples/expand.rs
     sd '::alloc::' '::std::' examples/expand.rs -f
     sd '# ?\[ormlite.*' '' examples/expand.rs -f
     sd -s '#[rustc_box]' '' examples/expand.rs -f
@@ -81,7 +81,7 @@ expand-run:
 alias er := expand-run
 
 rerun:
-    cargo +nightly run --example expand --features postgres,uuid
+    cargo +nightly run --example expand --features sqlite,uuid
 alias rr := expand-run
 
 backtrace:
