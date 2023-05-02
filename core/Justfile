@@ -26,7 +26,7 @@ bootstrap:
     cargo install --git https://github.com/kurtbuilds/toml-cli
 
 test *args:
-    cargo test --features runtime-tokio-rustls -- "$@"
+    cargo test --features runtime-tokio-rustls,sqlx/uuid -- "$@"
 
 check:
     cargo check

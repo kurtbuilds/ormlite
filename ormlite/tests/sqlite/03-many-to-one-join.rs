@@ -7,7 +7,6 @@ pub struct Person {
     id: Uuid,
     name: String,
     age: u8,
-    org_id: Uuid,
     #[ormlite(many_to_one_key = org_id)]
     organization: Join<Organization>,
 }
@@ -19,6 +18,13 @@ pub struct Organization {
     name: String,
 }
 
+impl JoinMeta for Organization {
+    type IdType = Uuid;
+
+    fn id(&self) -> Self::IdType {
+        self.id.clone()
+    }
+}
 
 pub static CREATE_PERSON_SQL: &str =
     "CREATE TABLE person (id text PRIMARY KEY, name TEXT, age INTEGER, org_id text)";
@@ -45,10 +51,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         id: Uuid::new_v4(),
         name: "John".to_string(),
         age: 102,
-        org_id: Uuid::default(),
         organization: Join::new(org.clone()),
     }.insert(&mut db).await.unwrap();
-    assert_eq!(p1.org_id, org.id, "setting the org object should overwrite the org_id field on insert.");
+    assert_eq!(p1.organization.id, org.id, "setting the org object should overwrite the org_id field on insert.");
+    assert_eq!(p1.organization.id(), org.id);
 
     let org = Organization::select()
         .where_bind("id = ?", &org.id)
@@ -60,10 +66,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         id: Uuid::new_v4(),
         name: "p2".to_string(),
         age: 98,
-        org_id: Uuid::default(),
         organization: Join::new(org.clone()),
     }.insert(&mut db).await.unwrap();
-    assert_eq!(p2.org_id, org.id, "we can do insertion with an existing join obj, and it will pass the error.");
+    assert_eq!(p2.organization.id, org.id, "we can do insertion with an existing join obj, and it will pass the error.");
 
     let orgs = Organization::select()
         .fetch_all(&mut db)
@@ -84,6 +89,5 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         assert_eq!(person.organization.name, "my org", "we can join on the org");
         assert!(matches!(person.organization, Join::QueryResult(_)), "Join results are returned as Join::QueryResult");
     }
-    // println!("people: {:#?}", people);
     Ok(())
 }

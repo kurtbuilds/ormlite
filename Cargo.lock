@@ -1303,6 +1303,7 @@ dependencies = [
  "syn 1.0.109",
  "thiserror",
  "tokio",
+ "uuid",
 ]
 
 [[package]]

@@ -39,6 +39,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         organization: Join::new(org),
     };
     let user = user.insert(&mut conn).await?;
-    assert_eq!(user.organization_id, org_id);
+    assert_eq!(user.organization.id, org_id);
     Ok(())
 }
