@@ -811,7 +811,7 @@ pub trait OrmliteCodegen {
         let fields = ast.fields();
         let struct_fields = fields
             .zip(attr.columns.iter())
-            .filter(|(_f, col_meta)| !col_meta.has_database_default)
+            .filter(|(_f, col_meta)| !col_meta.is_default())
             .map(|(f, _)| {
                 let name = &f.ident;
                 let ty = &f.ty;
@@ -836,7 +836,7 @@ pub trait OrmliteCodegen {
         let fields = attr
             .columns
             .iter()
-            .filter(|col_meta| !col_meta.has_database_default)
+            .filter(|&col_meta| !col_meta.has_database_default)
             .map(|col_meta| col_meta.column_name.clone())
             .collect::<Vec<_>>()
             .join(",");
@@ -844,7 +844,7 @@ pub trait OrmliteCodegen {
         let placeholders = attr
             .columns
             .iter()
-            .filter(|col_meta| !col_meta.has_database_default)
+            .filter(|&col_meta| !col_meta.has_database_default)
             .map(|_| placeholder.next().unwrap())
             .collect::<Vec<_>>()
             .join(",");
@@ -859,8 +859,15 @@ pub trait OrmliteCodegen {
             .filter(|col_meta| !col_meta.has_database_default)
             .map(|f| {
                 let name = quote::format_ident!("{}", f.column_name);
-                quote! {
-                    q = q.bind(self.#name);
+                if let Some(rust_default) = &f.rust_default {
+                    let default: syn::Expr = syn::parse_str(&rust_default).expect("Failed to parse default_value");
+                    quote! {
+                        q = q.bind(#default);
+                    }
+                } else {
+                    quote! {
+                        q = q.bind(self.#name);
+                    }
                 }
             });
 

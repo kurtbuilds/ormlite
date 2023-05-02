@@ -341,6 +341,13 @@ pub struct ColumnMetadata {
 
     pub skip: bool,
     pub experimental_encode_as_json: bool,
+    pub rust_default: Option<String>,
+}
+
+impl ColumnMetadata {
+    pub fn is_default(&self) -> bool {
+        self.rust_default.is_some() || self.has_database_default
+    }
 }
 
 impl Default for ColumnMetadata {
@@ -356,6 +363,7 @@ impl Default for ColumnMetadata {
             one_to_many_foreign_key: None,
             skip: false,
             experimental_encode_as_json: false,
+            rust_default: None,
         }
     }
 }
@@ -435,15 +443,16 @@ impl TryFrom<&Field> for ColumnMetadata {
             .one_to_many_foreign_key(None)
             .skip(false)
             .experimental_encode_as_json(false)
+            .rust_default(None)
         ;
         let mut has_join_directive = false;
         for attr in f.attrs.iter().filter(|a| a.path.is_ident("ormlite")) {
             let args: ColumnAttributes = attr.parse_args().unwrap();
-            if args.primary_key {
+            if args.primary_key.value() {
                 builder.marked_primary_key(true);
                 builder.has_database_default(true);
             }
-            if args.default {
+            if args.default.value() {
                 builder.has_database_default(true);
             }
             if let Some(column_name) = args.column {
@@ -469,6 +478,9 @@ impl TryFrom<&Field> for ColumnMetadata {
             }
             if args.experimental_encode_as_json.value() {
                 builder.experimental_encode_as_json(true);
+            }
+            if let Some(default_value) = args.default_value {
+                builder.rust_default(Some(default_value.value.value()));
             }
         }
         if is_join && !has_join_directive {

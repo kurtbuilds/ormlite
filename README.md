@@ -181,18 +181,29 @@ method must update all columns.
 To work around the autoincrement issue, you can use an insertion struct, shown here, or a builder, shown below.
 
 ```rust
+use ormlite::types::Json;
+use serde_json::Value;
+
 #[derive(Model, Debug)]
 #[ormlite(insertable = InsertPerson)]
 pub struct Person {
     pub id: i32,
+    // Because the other fields are the primary key, and marked as default and default_value respectively,
+    // `name` is the only field in the InsertPerson struct.
     pub name: String,
-    pub age: i32,
+    // This field will not be part of the InsertPerson struct,
+    // and rows will take the database-level default upon insertion.
+    #[ormlite(default)]
+    pub archived_at: Option<DateTime<Utc>>,
+    // This field will not be part of the InsertPerson struct, 
+    // which will always pass the provided value when inserting.
+    #[ormlite(default_value = "serde_json::json!({})")]
+    pub metadata: Json<Value>,
 }
 
 async fn insertion_struct_example(conn: &mut SqliteConnection) {  
     let john: Person = InsertPerson {
         name: "John".to_string(),
-        age: 99,
     }.insert(&mut conn).await?;
     println!("{:?}", john);
 }

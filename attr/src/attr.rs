@@ -1,5 +1,6 @@
-use structmeta::{Flag, StructMeta};
+use structmeta::{Flag, NameValue, StructMeta};
 use syn::{Ident, LitStr, Path};
+
 
 /// Available attributes on a struct
 #[derive(StructMeta, Debug)]
@@ -40,8 +41,11 @@ pub struct ModelAttributes {
 /// Available attributes on a column (struct field)
 #[derive(StructMeta, Debug)]
 pub struct ColumnAttributes {
-    pub primary_key: bool,
-    pub default: bool,
+    pub primary_key: Flag,
+    /// Specifies that a default exists at the database level.
+    pub default: Flag,
+    /// Specify a default value on the Rust side.
+    pub default_value: Option<NameValue<LitStr>>,
 
     /// Example:
     /// pub struct User {
@@ -81,4 +85,27 @@ pub struct ColumnAttributes {
     /// Experimental: Encode this field as JSON in the database.
     /// Only applies to `derive(IntoArguments)`. For Model structs, wrap the object in `Json<..>`.
     pub experimental_encode_as_json: Flag,
+}
+
+impl ColumnAttributes {
+    pub fn is_default(&self) -> bool {
+        self.default.value() || self.default_value.is_some()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use syn::{parse_quote, Attribute};
+
+    #[test]
+    fn test_default() {
+        let attr: Attribute = parse_quote!(#[ormlite(default_value = "serde_json::Value::Null")]);
+        let args: ColumnAttributes = attr.parse_args().unwrap();
+        assert!(args.is_default());
+
+        let attr: Attribute = parse_quote!(#[ormlite(default)]);
+        let args: ColumnAttributes = attr.parse_args().unwrap();
+        assert!(args.is_default());
+    }
 }
