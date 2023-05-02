@@ -3,10 +3,13 @@ use ormlite::Connection;
 use uuid::Uuid;
 
 #[derive(Model, Debug)]
+#[ormlite(insertable = InsertPerson)]
 pub struct Person {
     id: Uuid,
     name: String,
     age: u8,
+    #[ormlite(column = "type")]
+    typ: u8,
     #[ormlite(join_column = "org_id")]
     organization: Join<Organization>,
 }
@@ -27,7 +30,7 @@ impl JoinMeta for Organization {
 }
 
 pub static CREATE_PERSON_SQL: &str =
-    "CREATE TABLE person (id text PRIMARY KEY, name TEXT, age INTEGER, org_id text)";
+    "CREATE TABLE person (id text PRIMARY KEY, name TEXT, age INTEGER, type INTEGER, org_id text)";
 
 pub static CREATE_ORG_SQL: &str =
     "CREATE TABLE orgs (id text PRIMARY KEY, name TEXT)";
@@ -51,6 +54,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         id: Uuid::new_v4(),
         name: "John".to_string(),
         age: 102,
+        typ: 0,
         organization: Join::new(org.clone()),
     }.insert(&mut db).await.unwrap();
     assert_eq!(p1.organization.id, org.id, "setting the org object should overwrite the org_id field on insert.");
@@ -66,6 +70,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         id: Uuid::new_v4(),
         name: "p2".to_string(),
         age: 98,
+        typ: 8,
         organization: Join::new(org.clone()),
     }.insert(&mut db)
         .await

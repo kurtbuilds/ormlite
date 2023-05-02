@@ -483,7 +483,7 @@ impl TryFrom<&Field> for ColumnMetadata {
             }
         }
         if is_join && !has_join_directive {
-            return Err(SyndecodeError(format!("Column {ident} is a Join. You must specify one of these attributes: many_to_one_key, many_to_many_table_name, or one_to_many_foreign_key")));
+            return Err(SyndecodeError(format!("Column {ident} is a Join. You must specify one of these attributes: join_column (for many to one), many_to_many_table_name, or one_to_many_foreign_key")));
         }
         builder.build().map_err(|e| SyndecodeError(e.to_string()))
     }

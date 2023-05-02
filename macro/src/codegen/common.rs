@@ -881,15 +881,19 @@ pub trait OrmliteCodegen {
             .iter()
             .filter(|col_meta| !col_meta.has_database_default)
             .map(|f| {
-                let name = quote::format_ident!("{}", f.column_name);
+                let ident = &f.identifier;
                 if let Some(rust_default) = &f.rust_default {
                     let default: syn::Expr = syn::parse_str(&rust_default).expect("Failed to parse default_value");
                     quote! {
                         q = q.bind(#default);
                     }
+                } else if f.is_join() {
+                    quote! {
+                        q = q.bind(self.#ident._id());
+                    }
                 } else {
                     quote! {
-                        q = q.bind(self.#name);
+                        q = q.bind(self.#ident);
                     }
                 }
             });
