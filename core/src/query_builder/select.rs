@@ -54,7 +54,7 @@ where
 
 impl<'args, DB, M> SelectQueryBuilder<'args, DB, M>
 where
-    M: Sized + Send + Sync + Unpin + for<'r> sqlx::FromRow<'r, DB::Row> + 'static + Model<'static, DB>,
+    M: Sized + Send + Sync + Unpin + for<'r> sqlx::FromRow<'r, DB::Row> + 'static + Model<DB>,
     DB: sqlx::Database + DatabaseMetadata,
     <DB as HasArguments<'args>>::Arguments: IntoArguments<'args, DB>,
 {
@@ -227,7 +227,7 @@ where
     }
 }
 
-impl<'args, DB: sqlx::Database + DatabaseMetadata, M: Model<'args, DB>> Default for SelectQueryBuilder<'args, DB, M> {
+impl<'args, DB: sqlx::Database + DatabaseMetadata, M: Model<DB>> Default for SelectQueryBuilder<'args, DB, M> {
     fn default() -> Self {
         Self {
             query: Select::default()

@@ -1,9 +1,12 @@
 use std::ops::{Deref, DerefMut};
+use async_trait::async_trait;
 use sqlmo::query::{Join as JoinQueryFragment};
 use sqlmo::query::SelectColumn;
+use sqlx::{Database, Decode, Encode, Type};
+use crate::model::Model;
 
 pub trait JoinMeta {
-    type IdType: Clone;
+    type IdType: Clone + Send;
     fn _id(&self) -> Self::IdType;
 }
 
@@ -23,6 +26,14 @@ impl<T: JoinMeta> JoinMeta for Join<T> {
     }
 }
 
+#[async_trait]
+pub trait Loadable<DB, T: JoinMeta> {
+    async fn load<'s, 'e, E>(&'s mut self, db: E) -> crate::error::Result<&'s T>
+        where
+            T::IdType: 'e + Send + Sync,
+            E: 'e + sqlx::Executor<'e, Database=DB>;
+}
+
 #[derive(Debug)]
 pub struct Join<T: JoinMeta> {
     pub id: T::IdType,
@@ -39,7 +50,6 @@ pub enum JoinData<T: JoinMeta> {
 
 
 impl<T: JoinMeta> Join<T> {
-
     pub fn new_with_id(id: T::IdType) -> Self {
         Self {
             id,
@@ -71,10 +81,6 @@ impl<T: JoinMeta> Join<T> {
         }
     }
 
-    pub async fn load<'a, A: sqlx::Acquire<'a>>(&mut self, _acq: A) -> Result<(), ()> {
-        unimplemented!()
-    }
-
     /// Takes ownership and return any modified data. Leaves the Join in a NotQueried state.
     #[doc(hidden)]
     pub fn _take_modification(&mut self) -> Option<T> {
@@ -87,7 +93,6 @@ impl<T: JoinMeta> Join<T> {
             }
         }
     }
-
     fn transition_to_modified(&mut self) -> &mut T {
         let owned = std::mem::replace(&mut self.data, JoinData::NotQueried);
         match owned {
@@ -114,65 +119,23 @@ impl<T: JoinMeta> Join<T> {
     }
 }
 
-// impl<T> Default for Join<T> {
-//     fn default() -> Self {
-//         Join::NotQueried
-//     }
-// }
-
-
-// impl<T> Join<Vec<T>> {
-//     pub fn new_only(obj: T) -> Self {
-//         Join::Modified(vec![obj])
-//     }
-//
-//     pub fn push(&mut self, obj: T) {
-//         match self {
-//             Join::QueryResult(t) => {
-//                 let mut inner = std::mem::take(t);
-//                 inner.push(obj);
-//                 *self = Join::Modified(inner);
-//             }
-//             Join::Modified(t) => {
-//                 t.push(obj);
-//             }
-//             Join::NotQueried => {
-//                 *self = Join::Modified(vec![obj]);
-//             }
-//         }
-//     }
-//
-//     pub fn iter(&self) -> core::slice::Iter<'_, T> {
-//         match self {
-//             Join::QueryResult(t) => t.iter(),
-//             Join::Modified(t) => t.iter(),
-//             Join::NotQueried => panic!("Tried to iterate over a joined collection, but it has not been queried."),
-//         }
-//     }
-// }
-
-// impl<T> Index<usize> for Join<Vec<T>> {
-//     type Output = T;
-//
-//     fn index(&self, index: usize) -> &Self::Output {
-//         match self {
-//             Join::NotQueried => panic!("Tried to index into a joined collection, but it has not been queried."),
-//             Join::QueryResult(r) => {
-//                 &r[index]
-//             }
-//             Join::Modified(r) => {
-//                 &r[index]
-//             }
-//         }
-//     }
-// }
-//
-// impl<T> IndexMut<usize> for Join<Vec<T>> {
-//     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-//         let inner = self.transition_to_modified();
-//         &mut inner[index]
-//     }
-// }
+#[async_trait]
+impl<DB, T> Loadable<DB, T> for Join<T>
+    where
+        DB: Database,
+        T: JoinMeta + Model<DB> + Send,
+        T::IdType: for<'a> Encode<'a, DB> + for<'a> Decode<'a, DB> + Type<DB>,
+{
+    async fn load<'s, 'e, E: sqlx::Executor<'e, Database=DB> + 'e>(&'s mut self, conn: E) -> crate::error::Result<&'s T>
+        where
+            T::IdType: 'e + Send + Sync,
+    {
+        let model = T::fetch_one(self.id.clone(), conn).await?;
+        self.data = JoinData::QueryResult(model);
+        let s = &*self;
+        Ok(s.deref())
+    }
+}
 
 impl<T: JoinMeta> Deref for Join<T> {
     type Target = T;
@@ -206,6 +169,7 @@ pub struct JoinDescription {
     pub joined_columns: &'static [&'static str],
     pub table_name: &'static str,
     pub relation: &'static str,
+    /// The column on the local table
     pub key: &'static str,
     pub foreign_key: &'static str,
     pub semantic_join_type: SemanticJoinType,
@@ -242,41 +206,5 @@ impl JoinDescription {
 
     pub fn alias(&self, column: &str) -> String {
         format!("__{}__{}", self.relation, column)
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use sqlx::types::Uuid;
-    use super::*;
-
-    #[derive(Debug)]
-    pub struct Org {
-        pub id: Uuid,
-        pub name: String,
-    }
-
-    impl JoinMeta for Org {
-        type IdType = Uuid;
-        fn _id(&self) -> Self::IdType {
-            self.id.clone()
-        }
-    }
-
-    #[derive(Debug)]
-    pub struct User {
-        pub id: Uuid,
-        pub name: String,
-        // #[ormlite(join_column = "org_id")]
-        pub org: Join<Org>,
-    }
-
-    #[test]
-    fn test_join() {
-        let _user = User {
-            id: Uuid::new_v4(),
-            name: "Alice".to_string(),
-            org: Join::new_with_id(Uuid::new_v4()),
-        };
     }
 }

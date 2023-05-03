@@ -22,7 +22,7 @@ impl From<&proc_macro2::Ident> for Ident {
 }
 
 impl quote::ToTokens for Ident {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
         tokens.append(proc_macro2::Ident::new(&self.0, proc_macro2::Span::call_site()))
     }
 }
@@ -70,6 +70,13 @@ impl TType {
         match &self {
             TType::Join(ty) => Some(ty.as_ref()),
             _ => None,
+        }
+    }
+
+    pub fn is_string(&self) -> bool {
+        match self {
+            TType::Inner(ty) => ty.ident.0 == "String",
+            _ => false,
         }
     }
 
@@ -221,7 +228,8 @@ impl quote::ToTokens for TType {
 pub struct TableMetadata {
     pub table_name: String,
     pub struct_name: Ident,
-    pub primary_key: Option<String>,
+    /// Database column of the primary key
+    pub pkey: ColumnMetadata,
     pub columns: Vec<ColumnMetadata>,
     pub insert_struct: Option<String>,
     pub databases: Vec<String>,
@@ -232,7 +240,7 @@ impl Default for TableMetadata {
         TableMetadata {
             table_name: String::new(),
             struct_name: Ident::new(""),
-            primary_key: None,
+            pkey: ColumnMetadata::default(),
             columns: vec![],
             insert_struct: None,
             databases: vec![],
@@ -245,11 +253,17 @@ impl TableMetadata {
         TableMetadata {
             table_name: name.to_string(),
             struct_name: Ident(name.to_case(Case::Pascal)),
-            primary_key: None,
+            pkey: ColumnMetadata::default(),
             columns,
             insert_struct: None,
             databases: vec![],
         }
+    }
+
+    pub fn builder_struct(&self) -> Ident {
+        let mut s = self.struct_name.0.clone();
+        s.push_str("Builder");
+        Ident(s)
     }
 
     pub fn builder() -> TableMetadataBuilder {
@@ -278,14 +292,25 @@ impl TableMetadata {
         Ok(builder)
     }
 
-    pub fn all_fields(&self) -> impl Iterator<Item=Ident> + '_ {
+    pub fn all_fields(&self) -> impl Iterator<Item=&Ident> + '_ {
         self.columns.iter()
-            .map(|c| c.identifier.clone())
+            .map(|c| &c.identifier)
     }
 
     pub fn database_columns(&self) -> impl Iterator<Item=&ColumnMetadata> + '_ {
         self.columns.iter()
-            .filter(|c| !c.skip)
+            .filter(|&c| !c.skip)
+    }
+
+    pub fn database_columns_except_pkey(&self) -> impl Iterator<Item=&ColumnMetadata> + '_ {
+        self.columns.iter()
+            .filter(|&c| !c.skip)
+            .filter(|&c| c.column_name != self.pkey.column_name)
+    }
+
+    pub fn many_to_one_joins(&self) -> impl Iterator<Item=&ColumnMetadata> + '_ {
+        self.columns.iter()
+            .filter(|&c| c.many_to_one_column_name.is_some())
     }
 }
 
@@ -299,22 +324,21 @@ impl TableMetadataBuilder {
         let mut cols = ast.fields()
             .map(ColumnMetadata::try_from)
             .collect::<Result<Vec<_>, _>>().unwrap();
-        let mut primary_key = cols
+        let mut pkey = cols
             .iter()
-            .filter(|c| c.marked_primary_key)
-            .map(|c| c.column_name.clone())
-            .next();
-        if primary_key.is_none() {
+            .find(|&c| c.marked_primary_key).map(|c| c.clone());
+        if pkey.is_none() {
             let candidates = sqlmo::util::pkey_column_names(&self.table_name.as_ref().unwrap());
             for c in &mut cols {
                 if candidates.contains(&c.column_name) {
-                    primary_key = Some(c.column_name.clone());
                     c.has_database_default = true;
+                    pkey = Some(c.clone());
                     break;
                 }
             }
         }
-        self.primary_key(primary_key);
+        let pkey = pkey.expect(&format!("No column marked with #[ormlite(primary_key)], and no column named id, uuid, {0}_id, or {0}_uuid", self.table_name.as_ref().unwrap()));
+        self.pkey(pkey);
         self.columns(cols);
         self.build().map_err(|e| SyndecodeError(e.to_string()))
     }
@@ -354,8 +378,8 @@ pub struct ColumnMetadata {
     /// Identifier used in Rust to refer to the column
     pub identifier: Ident,
 
-    // only for joins
-    pub many_to_one_key: Option<String>,
+    // only for joins. Database key
+    pub many_to_one_column_name: Option<String>,
     pub many_to_many_table: Option<String>,
     pub one_to_many_foreign_key: Option<ForeignKey>,
 
@@ -378,7 +402,7 @@ impl Default for ColumnMetadata {
             marked_primary_key: false,
             has_database_default: false,
             identifier: Ident::new("column"),
-            many_to_one_key: None,
+            many_to_one_column_name: None,
             many_to_many_table: None,
             one_to_many_foreign_key: None,
             skip: false,
@@ -458,7 +482,7 @@ impl TryFrom<&Field> for ColumnMetadata {
             .column_type(ty)
             .marked_primary_key(false)
             .has_database_default(false)
-            .many_to_one_key(None)
+            .many_to_one_column_name(None)
             .many_to_many_table(None)
             .one_to_many_foreign_key(None)
             .skip(false)
@@ -481,7 +505,7 @@ impl TryFrom<&Field> for ColumnMetadata {
             }
             if let Some(value) = args.join_column {
                 let value = value.value.value();
-                builder.many_to_one_key(Some(value.to_string()));
+                builder.many_to_one_column_name(Some(value.to_string()));
                 builder.column_name(value);
                 has_join_directive = true;
             }

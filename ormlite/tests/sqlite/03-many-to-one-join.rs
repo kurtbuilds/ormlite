@@ -18,14 +18,6 @@ pub struct Organization {
     name: String,
 }
 
-impl JoinMeta for Organization {
-    type IdType = Uuid;
-
-    fn _id(&self) -> Self::IdType {
-        self.id.clone()
-    }
-}
-
 pub static CREATE_PERSON_SQL: &str =
     "CREATE TABLE person (id text PRIMARY KEY, name TEXT, age INTEGER, org_id text)";
 

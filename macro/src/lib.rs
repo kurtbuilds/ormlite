@@ -15,9 +15,17 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use once_cell::sync::OnceCell;
 use ormlite_core::Error::OrmliteError;
+use codegen::into_arguments::impl_IntoArguments;
+use crate::codegen::from_row::{impl_from_row_using_aliases, impl_FromRow};
+use crate::codegen::insert::impl_InsertModel;
+use crate::codegen::insert_model::struct_InsertModel;
+use crate::codegen::join_description::static_join_descriptions;
+use crate::codegen::meta::{impl_JoinMeta, impl_TableMeta};
+use crate::codegen::model::{impl_HasModelBuilder, impl_Model};
+use crate::codegen::model_builder::{impl_ModelBuilder, struct_ModelBuilder};
 
-mod codegen;
 mod util;
+mod codegen;
 
 pub(crate) type MetadataCache = HashMap<String, TableMetadata>;
 
@@ -102,34 +110,36 @@ pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
     let Data::Struct(data) = &ast.data else { panic!("Only structs can derive Model"); };
 
-    let table_meta = TableMetadata::try_from(&ast).expect("Failed to parse table metadata");
-    if table_meta.primary_key.is_none() {
-        panic!("No column marked with #[ormlite(primary_key)], and no column named id, uuid, {0}_id, or {0}_uuid", table_meta.table_name);
-    }
+    let meta = TableMetadata::try_from(&ast).expect("Failed to parse table metadata");
 
-    let mut databases = get_databases(&table_meta);
+    let mut databases = get_databases(&meta);
     let tables = get_tables();
 
     let first = databases.remove(0);
 
     let primary = {
-        let db = first;
-        let impl_TableMeta = db.impl_TableMeta(&table_meta);
-        let static_join_descriptions = db.static_join_descriptions(&ast, &table_meta, &tables);
-        let impl_Model = db.impl_Model(&ast, &table_meta, tables);
-        let impl_FromRow = db.impl_FromRow(&ast, &table_meta, &tables);
-        let impl_from_row_using_aliases = db.impl_from_row_using_aliases(&ast, &table_meta, &tables);
+        let db = first.as_ref();
+        let impl_TableMeta = impl_TableMeta(&meta);
+        let impl_JoinMeta = impl_JoinMeta(&meta);
+        let static_join_descriptions = static_join_descriptions(&meta, &tables);
+        let impl_Model = impl_Model(db, &meta, tables);
+        let impl_HasModelBuilder = impl_HasModelBuilder(db, &meta);
+        let impl_FromRow = impl_FromRow(&meta, &tables);
+        let impl_from_row_using_aliases = impl_from_row_using_aliases(&meta, &tables);
 
-        let struct_ModelBuilder = db.struct_ModelBuilder(&ast, &table_meta);
-        let impl_ModelBuilder = db.impl_ModelBuilder(&ast, &table_meta);
+        let struct_ModelBuilder = struct_ModelBuilder(&ast, &meta);
+        let impl_ModelBuilder = impl_ModelBuilder(db, &meta);
 
-        let struct_InsertModel = db.struct_InsertModel(&ast, &table_meta);
-        let impl_InsertModel = db.impl_InsertModel(&ast, &table_meta);
+        let struct_InsertModel = struct_InsertModel(&ast, &meta);
+        let impl_InsertModel = impl_InsertModel(db, &meta);
 
         quote! {
             #impl_TableMeta
+            #impl_JoinMeta
+
             #static_join_descriptions
             #impl_Model
+            #impl_HasModelBuilder
             #impl_FromRow
             #impl_from_row_using_aliases
 
@@ -142,15 +152,9 @@ pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
     };
 
     let rest = databases.iter().map(|db| {
-        let impl_Model = db.impl_Model(&ast, &table_meta, tables);
-        // let impl_FromRow = db.impl_FromRow(&ast, &table_meta, &tables);
-        // TODO This should be in there, but we need to turn it into a trait tahts' generic on DB
-        // instead of being a method on impl #model
-        // let impl_from_row_using_aliases = db.impl_from_row_using_aliases(&ast, &table_meta, &tables);
+        let impl_Model = impl_Model(db.as_ref(), &meta, tables);
         quote! {
             #impl_Model
-            // #impl_FromRow
-            // #impl_from_row_using_aliases
         }
     });
 
@@ -165,14 +169,14 @@ pub fn expand_derive_fromrow(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
     let Data::Struct(data) = &ast.data else { panic!("Only structs can derive Model"); };
 
-    let table_meta = TableMetadata::try_from(&ast).unwrap();
+    let meta = TableMetadata::try_from(&ast).unwrap();
 
-    let databases = get_databases(&table_meta);
+    let databases = get_databases(&meta);
     let tables = get_tables();
 
     let expanded = databases.iter().map(|db| {
-        let impl_FromRow = db.impl_FromRow(&ast, &table_meta, &tables);
-        let impl_from_row_using_aliases = db.impl_from_row_using_aliases(&ast, &table_meta, &tables);
+        let impl_FromRow = impl_FromRow(&meta, &tables);
+        let impl_from_row_using_aliases = impl_from_row_using_aliases(&meta, &tables);
         quote! {
             #impl_FromRow
             #impl_from_row_using_aliases
@@ -193,7 +197,7 @@ pub fn expand_derive_table_meta(input: TokenStream) -> TokenStream {
     let databases = get_databases(&table_meta);
     let db = databases.first().expect("No database configured");
 
-    let impl_TableMeta = db.impl_TableMeta(&table_meta);
+    let impl_TableMeta = impl_TableMeta(&table_meta);
     TokenStream::from(impl_TableMeta)
 }
 
@@ -202,11 +206,11 @@ pub fn expand_derive_into_arguments(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
     let Data::Struct(data) = &ast.data else { panic!("Only structs can derive Model"); };
 
-    let table_meta = TableMetadata::try_from(&ast).unwrap();
-    let databases = get_databases(&table_meta);
+    let meta = TableMetadata::try_from(&ast).unwrap();
+    let databases = get_databases(&meta);
 
     let expanded = databases.iter().map(|db| {
-        let impl_IntoArguments = db.impl_IntoArguments(&table_meta);
+        let impl_IntoArguments = impl_IntoArguments(db.as_ref(), &meta);
         impl_IntoArguments
     });
     TokenStream::from(quote! {

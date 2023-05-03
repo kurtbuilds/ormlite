@@ -331,6 +331,8 @@ pub struct Person {
     pub name: String,
     pub age: i32,
     
+    // Note that we don't declare a separate field `pub organization_id: Uuid`.
+    // It is implicitly defined by the Join and the join_column attribute.
     #[ormlite(join_column = "organization_id")]
     pub organization: Join<Organization>,
 }
@@ -353,14 +355,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         id: Uuid::new_v4(),
         name: "John".to_string(),
         age: 99,
-        // Note we don't need to set this field. It'll be overwritten by the Join.
-        organization_id: Uuid::default(),
         organization: Join::new(org),
     };
     
     let mut conn = ormlite::SqliteConnection::connect(":memory:").await.unwrap();
     let user = user.insert(&mut conn).await?;
-    assert!(user.organization.loaded());
+    assert_eq!(user.organization.loaded(), true);
     println!("{:?}", user);
     
     // You can choose whether you want to load the relation or not. The value will be Join::NotQueried if you don't 

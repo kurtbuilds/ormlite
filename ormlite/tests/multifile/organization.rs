@@ -7,10 +7,3 @@ pub struct Organization {
     pub name: String,
     pub is_active: bool,
 }
-
-impl JoinMeta for Organization {
-    type IdType = Uuid;
-    fn _id(&self) -> Self::IdType {
-        self.id.clone()
-    }
-}

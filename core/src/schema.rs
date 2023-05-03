@@ -32,7 +32,7 @@ impl SqlDiffTableExt for Table {
                 let Some(mut col) = Column::from_metadata(c)? else {
                     return Ok(None);
                 };
-                col.primary_key = metadata.primary_key.as_ref().map(|c| c == col.name.as_str()).unwrap_or(false);
+                col.primary_key = metadata.pkey.column_name == col.name;
                 Ok(Some(col))
             })
                 .filter_map(|c| c.transpose())
@@ -168,11 +168,7 @@ impl TryFromOrmlite for Schema {
         let mut schema = Self::default();
         let mut fs_schema = schema_from_filepaths(paths, &LoadOptions { verbose: opts.verbose })?;
         let primary_key_type: BTreeMap<String, InnerType> = fs_schema.tables.iter().map(|t|  {
-            let pkey = t.primary_key.as_ref()
-                .expect(&format!("Could not determine primary key for table {}.", t.table_name));
-            let primary_key = t.columns.iter().find(|&c| &c.column_name == pkey)
-                .expect(&format!("Could not find primary key column {} for table {}", pkey, t.table_name));
-            let pkey_ty = primary_key.column_type.inner_type().clone();
+            let pkey_ty = t.pkey.column_type.inner_type().clone();
             (t.struct_name.to_string(), pkey_ty)
         }).collect();
         for t in &mut fs_schema.tables {

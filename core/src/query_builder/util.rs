@@ -65,7 +65,6 @@ where
     // know if the lifetime is covariant or contravariant, so it enforces equivalence. See: https://www.reddit.com/r/rust/comments/rox4j9/lifetime_inference_fails_when_lifetime_is_part_of/
     // But we know the trait is implemented by a struct, not a function, so we can do the downcast safely. Yay!
     let recast_args = unsafe { std::mem::transmute::<_, QueryBuilderArgs<'q, DB>>(args) };
-    // unimplemented!()
     sqlx::query_as_with(s, recast_args)
 }
 

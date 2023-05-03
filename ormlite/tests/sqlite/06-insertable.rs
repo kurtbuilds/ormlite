@@ -12,14 +12,6 @@ pub struct Organization {
     name: String,
 }
 
-impl JoinMeta for Organization {
-    type IdType = i32;
-
-    fn _id(&self) -> Self::IdType {
-        self.id
-    }
-}
-
 #[derive(Model)]
 #[ormlite(insertable = InsertUser)]
 pub struct User {

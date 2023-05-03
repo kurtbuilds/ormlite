@@ -31,9 +31,9 @@ pub trait Insertable<DB>
         DB: sqlx::Database,
 {
     type Model;
-    fn insert<'e, E>(self, db: E) -> BoxFuture<'e, Result<Self::Model>>
+    fn insert<'e, A>(self, conn: A) -> BoxFuture<'e, Result<Self::Model>>
         where
-            E: 'e + sqlx::Executor<'e, Database=DB>;
+            A: 'e + Send + sqlx::Acquire<'e, Database=DB>;
 }
 
 /// A struct that implements `ModelBuilder` implements the builder pattern for a model.
@@ -56,8 +56,7 @@ pub trait ModelBuilder<'a, DB>
     fn build(self) -> Self::Model;
 }
 
-/// The core trait. a struct that implements `Model` can also implement `HasModelBuilder`, (and is required to implement `Insertable`)
-pub trait Model<'slf, DB>
+pub trait HasModelBuilder<'slf, DB>
     where
         DB: sqlx::Database,
         Self: Sized + TableMeta,
@@ -67,6 +66,16 @@ pub trait Model<'slf, DB>
     /// Create a builder-pattern object to update one or more columns.
     /// You can also use `update_all_fields` to update all columns.
     fn update_partial(&'slf self) -> Self::ModelBuilder;
+
+    fn builder() -> Self::ModelBuilder;
+}
+
+/// The core trait. a struct that implements `Model` can also implement `HasModelBuilder`, (and is required to implement `Insertable`)
+pub trait Model<DB>
+    where
+        DB: sqlx::Database,
+        Self: Sized + TableMeta,
+{
     /// Insert the model into the database.
     fn insert<'a, A>(self, conn: A) -> crate::insert::Insertion<'a, A, Self, DB>
         where
@@ -77,7 +86,7 @@ pub trait Model<'slf, DB>
     /// If you want to update only some fields, use `update_partial` instead.
     fn update_all_fields<'e, E>(self, db: E) -> BoxFuture<'e, Result<Self>>
         where
-            E: 'e + sqlx::Executor<'e, Database=DB>;
+            E: 'e + Send + sqlx::Executor<'e, Database=DB>;
 
     fn delete<'e, E>(self, db: E) -> BoxFuture<'e, Result<()>>
         where
@@ -97,17 +106,6 @@ pub trait Model<'slf, DB>
 
     /// Create a `SelectQueryBuilder` to build a query.
     fn select<'args>() -> SelectQueryBuilder<'args, DB, Self>;
-
-    fn builder() -> Self::ModelBuilder;
-
-    #[deprecated(note = "Use `fetch_one` instead")]
-    fn get_one<'e, 'a, Arg, E>(_id: Arg, _db: E) -> BoxFuture<'e, Result<Self>>
-        where
-            'a: 'e,
-            E: 'e + sqlx::Executor<'e, Database=DB>,
-            Arg: 'a + Send + sqlx::Encode<'a, DB> + sqlx::Type<DB> {
-        unimplemented!("Use `fetch_one` instead")
-    }
 }
 
 pub trait TableMeta {

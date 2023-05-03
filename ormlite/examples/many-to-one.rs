@@ -6,14 +6,8 @@ use uuid::Uuid;
 pub struct Organization {
     id: i32,
     name: String,
-}
-
-impl JoinMeta for Organization {
-    type IdType = i32;
-
-    fn _id(&self) -> Self::IdType {
-        self.id
-    }
+    #[ormlite(skip)]
+    extension: Option<String>,
 }
 
 #[derive(Model)]
@@ -43,7 +37,7 @@ id INTEGER PRIMARY KEY
 "#;
 
 pub static CREATE_ORG_SQL: &str = r#"
-CREATE TABLE orgs (
+CREATE TABLE organization (
 id INTEGER PRIMARY KEY
 , name TEXT
 )
@@ -63,6 +57,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let org = Organization {
         id: 12321,
         name: "my org".to_string(),
+        extension: None,
     };
 
     let champ = InsertUser {
@@ -103,7 +98,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(enoki.secret, None);
     assert_eq!(enoki.number, 5);
     assert_eq!(enoki.organization.id, 12321);
-    assert_eq!(enoki.organization.name, "my org");
+    assert_eq!(enoki.organization.loaded(), false);
 
     Ok(())
 }
