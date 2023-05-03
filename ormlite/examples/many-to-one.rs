@@ -2,38 +2,52 @@ use ormlite::model::*;
 use ormlite::Connection;
 use uuid::Uuid;
 
-#[derive(Model, Debug)]
-#[ormlite(insertable = InsertPerson)]
-pub struct Person {
-    id: Uuid,
-    name: String,
-    age: u8,
-    #[ormlite(column = "type")]
-    typ: u8,
-    #[ormlite(join_column = "org_id")]
-    organization: Join<Organization>,
-}
-
-#[derive(Model, Clone, Debug)]
-#[ormlite(table = "orgs")]
+#[derive(Model, Clone)]
 pub struct Organization {
-    id: Uuid,
+    id: i32,
     name: String,
 }
 
 impl JoinMeta for Organization {
-    type IdType = Uuid;
+    type IdType = i32;
 
     fn _id(&self) -> Self::IdType {
-        self.id.clone()
+        self.id
     }
 }
 
-pub static CREATE_PERSON_SQL: &str =
-    "CREATE TABLE person (id text PRIMARY KEY, name TEXT, age INTEGER, type INTEGER, org_id text)";
+#[derive(Model)]
+#[ormlite(insertable = InsertUser)]
+pub struct User {
+    id: i32,
+    name: String,
+    #[ormlite(default)]
+    secret: Option<String>,
+    #[ormlite(default_value = "5")]
+    number: i32,
+    #[ormlite(column = "type")]
+    typ: i32,
+    #[ormlite(join_column = "org_id")]
+    organization: Join<Organization>,
+}
 
-pub static CREATE_ORG_SQL: &str =
-    "CREATE TABLE orgs (id text PRIMARY KEY, name TEXT)";
+pub static CREATE_PERSON_SQL: &str = r#"
+CREATE TABLE user (
+id INTEGER PRIMARY KEY
+, name TEXT NOT NULL
+, secret TEXT
+, number INTEGER
+, type INTEGER
+, org_id INTEGER
+)
+"#;
+
+pub static CREATE_ORG_SQL: &str = r#"
+CREATE TABLE orgs (
+id INTEGER PRIMARY KEY
+, name TEXT
+)
+"#;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -47,57 +61,49 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
     let org = Organization {
-        id: Uuid::new_v4(),
+        id: 12321,
         name: "my org".to_string(),
     };
-    let p1 = Person {
-        id: Uuid::new_v4(),
-        name: "John".to_string(),
-        age: 102,
-        typ: 0,
-        organization: Join::new(org.clone()),
-    }.insert(&mut db).await.unwrap();
-    assert_eq!(p1.organization.id, org.id, "setting the org object should overwrite the org_id field on insert.");
-    assert_eq!(p1.organization.loaded(), true);
 
-    let org = Organization::select()
-        .where_bind("id = ?", &org.id)
-        .fetch_one(&mut db)
-        .await.unwrap();
-    assert_eq!(org.name, "my org", "org gets inserted even though we didn't manually insert it.");
-
-    let p2 = Person {
-        id: Uuid::new_v4(),
-        name: "p2".to_string(),
-        age: 98,
-        typ: 8,
+    let champ = InsertUser {
+        name: "Champ".to_string(),
         organization: Join::new(org.clone()),
+        typ: 12,
     }.insert(&mut db)
         .await
         .unwrap();
-    assert_eq!(p2.organization.id, org.id, "we can do insertion with an existing join obj, and it will pass the error.");
 
-    let orgs = Organization::select()
-        .fetch_all(&mut db)
+    assert_eq!(champ.id, 1);
+    assert_eq!(champ.secret, None);
+    assert_eq!(champ.number, 5);
+    assert_eq!(champ.organization.id, 12321);
+    assert_eq!(champ.organization.name, "my org");
+
+    let millie = InsertUser {
+        name: "Millie".to_string(),
+        organization: Join::new(org),
+        typ: 3,
+    }.insert(&mut db)
         .await
         .unwrap();
-    assert_eq!(orgs.len(), 1, "exactly 1 orgs");
+    assert_eq!(millie.id, 2);
+    assert_eq!(millie.secret, None);
+    assert_eq!(millie.number, 5);
+    assert_eq!(millie.organization.id, 12321);
+    assert_eq!(millie.organization.name, "my org");
 
-    let people = Person::select()
-        .fetch_all(&mut db)
+    let enoki = InsertUser {
+        name: "Enoki".to_string(),
+        organization: Join::new_with_id(12321),
+        typ: 6,
+    }.insert(&mut db)
         .await
         .unwrap();
-    assert_eq!(people.len(), 2, "exactly 2 people");
+    assert_eq!(enoki.id, 3);
+    assert_eq!(enoki.secret, None);
+    assert_eq!(enoki.number, 5);
+    assert_eq!(enoki.organization.id, 12321);
+    assert_eq!(enoki.organization.name, "my org");
 
-    let people = Person::select()
-        .join(Person::organization())
-        .fetch_all(&mut db)
-        .await
-        .unwrap();
-    assert_eq!(people.len(), 2, "exactly 2 people");
-    for person in &people {
-        assert_eq!(person.organization.name, "my org", "we can join on the org");
-    }
-    println!("people: {:#?}", people);
     Ok(())
 }

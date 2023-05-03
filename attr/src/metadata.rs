@@ -66,6 +66,13 @@ pub enum TType {
 }
 
 impl TType {
+    pub fn joined_type(&self) -> Option<&TType> {
+        match &self {
+            TType::Join(ty) => Some(ty.as_ref()),
+            _ => None,
+        }
+    }
+
     pub fn is_json(&self) -> bool {
         match self {
             TType::Inner(ty) => ty.ident.0 == "Json",
@@ -76,6 +83,10 @@ impl TType {
 
     pub fn is_join(&self) -> bool {
         matches!(self, TType::Join(_))
+    }
+
+    pub fn is_option(&self) -> bool {
+        matches!(self, TType::Option(_))
     }
 
     pub fn inner_type_name(&self) -> String {
@@ -93,6 +104,15 @@ impl TType {
             TType::Option(ty) => ty.inner_type_mut(),
             TType::Vec(ty) => ty.inner_type_mut(),
             TType::Join(ty) => ty.inner_type_mut(),
+        }
+    }
+
+    pub fn inner_type(&self) -> &InnerType {
+        match self {
+            TType::Inner(ty) => ty,
+            TType::Option(ty) => ty.inner_type(),
+            TType::Vec(ty) => ty.inner_type(),
+            TType::Join(ty) => ty.inner_type(),
         }
     }
 
@@ -446,7 +466,7 @@ impl TryFrom<&Field> for ColumnMetadata {
             .rust_default(None)
         ;
         let mut has_join_directive = false;
-        for attr in f.attrs.iter().filter(|a| a.path.is_ident("ormlite")) {
+        for attr in f.attrs.iter().filter(|&a| a.path.is_ident("ormlite")) {
             let args: ColumnAttributes = attr.parse_args().unwrap();
             if args.primary_key.value() {
                 builder.marked_primary_key(true);
@@ -456,11 +476,13 @@ impl TryFrom<&Field> for ColumnMetadata {
                 builder.has_database_default(true);
             }
             if let Some(column_name) = args.column {
-                builder.column_name(column_name.value());
+                let column_name = column_name.value();
+                builder.column_name(column_name);
             }
             if let Some(value) = args.join_column {
-                builder.many_to_one_key(Some(value.value()));
-                builder.column_name(value.value());
+                let value = value.value.value();
+                builder.many_to_one_key(Some(value.to_string()));
+                builder.column_name(value);
                 has_join_directive = true;
             }
             if let Some(path) = args.many_to_many_table {
@@ -483,7 +505,7 @@ impl TryFrom<&Field> for ColumnMetadata {
             }
         }
         if is_join && !has_join_directive {
-            return Err(SyndecodeError(format!("Column {ident} is a Join. You must specify one of these attributes: join_column (for many to one), many_to_many_table_name, or one_to_many_foreign_key")));
+            return Err(SyndecodeError(format!("Column {ident} is a Join. You must specify one of these attributes: join_column (for many to one), many_to_many_table_name, or one_to_many_foreign_key {is_join} {has_join_directive} {f:?}")));
         }
         builder.build().map_err(|e| SyndecodeError(e.to_string()))
     }

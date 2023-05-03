@@ -1,16 +1,23 @@
 use ormlite::Model;
-use ormlite::model::Insertable;
-use ormlite::model::Join;
+use ormlite::model::{Insertable, Join, JoinMeta};
 use sqlmo::ToSql;
 
 use ormlite::Connection;
 #[path = "../setup.rs"]
 mod setup;
 
-#[derive(Model)]
+#[derive(Model, Clone)]
 pub struct Organization {
     id: i32,
     name: String,
+}
+
+impl JoinMeta for Organization {
+    type IdType = i32;
+
+    fn _id(&self) -> Self::IdType {
+        self.id
+    }
 }
 
 #[derive(Model)]
@@ -24,6 +31,7 @@ pub struct User {
     number: i32,
     #[ormlite(column = "type")]
     typ: i32,
+    #[ormlite(join_column = "org_id")]
     organization: Join<Organization>,
 }
 
@@ -49,19 +57,21 @@ async fn main() {
     let champ = InsertUser {
         name: "Champ".to_string(),
         organization: Join::new(org.clone()),
+        typ: 12,
     }.insert(&mut db)
         .await
         .unwrap();
 
-    assert_eq!(user.id, 1);
-    assert_eq!(user.secret, None);
-    assert_eq!(user.number, 5);
-    assert_eq!(user.organization.id, 12321);
-    assert_eq!(user.organization.name, "my org");
+    assert_eq!(champ.id, 1);
+    assert_eq!(champ.secret, None);
+    assert_eq!(champ.number, 5);
+    assert_eq!(champ.organization.id, 12321);
+    assert_eq!(champ.organization.name, "my org");
 
     let millie = InsertUser {
         name: "Millie".to_string(),
         organization: Join::new(org),
+        typ: 3,
     }.insert(&mut db)
         .await
         .unwrap();
@@ -74,6 +84,7 @@ async fn main() {
     let enoki = InsertUser {
         name: "Enoki".to_string(),
         organization: Join::new_with_id(12321),
+        typ: 6,
     }.insert(&mut db)
         .await
         .unwrap();
@@ -81,6 +92,6 @@ async fn main() {
     assert_eq!(enoki.secret, None);
     assert_eq!(enoki.number, 5);
     assert_eq!(enoki.organization.id, 12321);
-    assert_eq!(enoki.organization.name, "my org");
+    assert_eq!(enoki.organization.loaded(), false);
 
 }

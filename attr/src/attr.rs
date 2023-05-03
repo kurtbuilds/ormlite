@@ -53,7 +53,7 @@ pub struct ColumnAttributes {
     ///     #[ormlite(join_column = "organization_id")]
     ///     pub organization: Join<Organization>,
     /// }
-    pub join_column: Option<LitStr>,
+    pub join_column: Option<NameValue<LitStr>>,
 
     /// Example:
     /// pub struct User {
@@ -107,5 +107,12 @@ mod test {
         let attr: Attribute = parse_quote!(#[ormlite(default)]);
         let args: ColumnAttributes = attr.parse_args().unwrap();
         assert!(args.is_default());
+    }
+
+    #[test]
+    fn test_join_column() {
+        let attr: Attribute = parse_quote!(#[ormlite(join_column = "org_id")]);
+        let args: ColumnAttributes = attr.parse_args().unwrap();
+        assert!(args.join_column.is_some());
     }
 }

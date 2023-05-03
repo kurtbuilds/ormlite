@@ -23,6 +23,8 @@ pub struct LoadOptions {
     pub verbose: bool,
 }
 
+/// This is an intermediate representation of the schema.
+///
 pub struct OrmliteSchema {
     pub tables: Vec<TableMetadata>,
     // map of rust structs (e.g. enums) to database encodings.

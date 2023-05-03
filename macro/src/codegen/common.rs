@@ -9,7 +9,7 @@ use syn::token::{Comma, Token};
 use syn::{DeriveInput, Field};
 use syn::spanned::Spanned;
 use attr::TableMetadata;
-use ormlite_attr::{DeriveInputExt, FieldExt, InnerType, TType};
+use ormlite_attr::{DeriveInputExt, FieldExt, Ident, InnerType, TType};
 use crate::MetadataCache;
 use itertools::Itertools;
 
@@ -47,7 +47,7 @@ fn ty_is_string(ty: &syn::Type) -> bool {
 
 
 /// `name` renames the column. Can pass `col.column_name` if it's not renamed.
-fn from_row_for_column(get_value: proc_macro2::TokenStream, col: &attr::ColumnMetadata) -> proc_macro2::TokenStream {
+fn from_row_for_column(get_value: TokenStream, col: &attr::ColumnMetadata) -> TokenStream {
     let id = &col.identifier;
     let ty = &col.column_type;
     if col.skip {
@@ -55,9 +55,10 @@ fn from_row_for_column(get_value: proc_macro2::TokenStream, col: &attr::ColumnMe
             let #id = Default::default();
         }
     } else if col.is_join() {
+        let id_id = Ident::new(&format!("{}_id", id));
         quote! {
-            let id: <#ty as ::ormlite::model::JoinMeta>::IdType = row.try_get(#get_value)?;
-            let #id = ::ormlite::model::Join::new_with_id(id);
+            let #id_id: <#ty as ::ormlite::model::JoinMeta>::IdType = row.try_get(#get_value)?;
+            let #id = ::ormlite::model::Join::new_with_id(#id_id);
         }
     } else {
         quote! {
@@ -143,7 +144,6 @@ pub trait OrmliteCodegen {
             })
             .collect::<Vec<_>>()
             ;
-        // let fields = attr.all_fields(span);
 
         let prefix_branches = attr.columns.iter().filter(|c| c.is_join()).map(|c| {
             let name = &c.identifier.to_string();
@@ -424,15 +424,35 @@ pub trait OrmliteCodegen {
             let joined_meta = metadata_cache.get(&joined_struct).unwrap_or_else(|| panic!("On {}, tried to define join, but failed to find a Model for {}", attr.struct_name, joined_struct));
             let joined_pkey = joined_meta.primary_key.as_ref().expect("Joined struct must have a primary key");
             let joined_pkey = syn::Ident::new(joined_pkey, Span::call_site());
+            let joined_ty = c.column_type.joined_type().unwrap();
+            let preexisting = match joined_ty {
+                TType::Option(joined_ty) => {
+                    quote! {
+                        if let Some(id) = model.#name._id() {
+                            #joined_ty::fetch_one(id, &mut *conn).await?
+                        } else {
+                            None
+                        }
+                    }
+                },
+                joined_ty => {
+                    quote! {
+                        #joined_ty::fetch_one(model.#name._id(), &mut *conn).await?
+                    }
+                }
+            };
+            let join_ty = &c.column_type;
             quote! {
                 let #name = if let Some(modification) = model.#name._take_modification() {
                     match modification
-                        .clone()
                         .insert(&mut *conn)
                         .on_conflict(::ormlite::query_builder::OnConflict::Ignore)
                         .await {
                         Ok(model) => Join::_query_result(model),
-                        Err(::ormlite::Error::SqlxError(::ormlite::SqlxError::RowNotFound)) => Join::_query_result(modification),
+                        Err(::ormlite::Error::SqlxError(::ormlite::SqlxError::RowNotFound)) => {
+                            let preexisting = #preexisting;
+                            Join::_query_result(preexisting)
+                        },
                         Err(e) => return Err(e),
                     }
                 } else {

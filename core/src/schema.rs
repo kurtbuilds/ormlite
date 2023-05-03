@@ -1,9 +1,10 @@
+use std::collections::BTreeMap;
 use std::fmt::Formatter;
 
 use std::path::Path;
 use anyhow::Result;
 use sqlmo::{Schema, Table, schema::Column};
-use ormlite_attr::{ColumnMetadata, Ident, TableMetadata};
+use ormlite_attr::{ColumnMetadata, Ident, InnerType, TableMetadata, TType};
 use ormlite_attr::{schema_from_filepaths, LoadOptions};
 
 #[derive(Debug)]
@@ -86,9 +87,8 @@ impl std::fmt::Display for TypeTranslationError {
 }
 
 impl SqlType {
-    fn from_type(ty: &ormlite_attr::TType) -> Option<Self> {
+    fn from_type(ty: &TType) -> Option<Self> {
         use sqlmo::Type::*;
-        use ormlite_attr::TType;
         match ty {
             TType::Vec(v) => {
                 if let TType::Inner(p) = v.as_ref() {
@@ -167,11 +167,26 @@ impl TryFromOrmlite for Schema {
     fn try_from_ormlite_project(paths: &[&Path], opts: &Options) -> Result<Self> {
         let mut schema = Self::default();
         let mut fs_schema = schema_from_filepaths(paths, &LoadOptions { verbose: opts.verbose })?;
+        let primary_key_type: BTreeMap<String, InnerType> = fs_schema.tables.iter().map(|t|  {
+            let pkey = t.primary_key.as_ref()
+                .expect(&format!("Could not determine primary key for table {}.", t.table_name));
+            let primary_key = t.columns.iter().find(|&c| &c.column_name == pkey)
+                .expect(&format!("Could not find primary key column {} for table {}", pkey, t.table_name));
+            let pkey_ty = primary_key.column_type.inner_type().clone();
+            (t.struct_name.to_string(), pkey_ty)
+        }).collect();
         for t in &mut fs_schema.tables {
             for c in &mut t.columns {
+                // replace alias types with the real type.
                 let inner = c.column_type.inner_type_mut();
                 if let Some(f) = fs_schema.type_reprs.get(&inner.ident.0) {
                     inner.ident = Ident(f.clone());
+                }
+                // replace join types with the primary key type.
+                if c.column_type.is_join() {
+                    let model_name = c.column_type.inner_type_name();
+                    let pkey = primary_key_type.get(&model_name).expect(&format!("Could not find model {} for join", model_name));
+                    c.column_type = TType::Inner(pkey.clone());
                 }
             }
         }
@@ -182,7 +197,6 @@ impl TryFromOrmlite for Schema {
         Ok(schema)
     }
 }
-
 
 #[cfg(test)]
 mod tests {

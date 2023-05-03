@@ -1,4 +1,4 @@
-use std::ops::{Deref, DerefMut, Index, IndexMut};
+use std::ops::{Deref, DerefMut};
 use sqlmo::query::{Join as JoinQueryFragment};
 use sqlmo::query::SelectColumn;
 
@@ -252,8 +252,8 @@ mod test {
 
     #[derive(Debug)]
     pub struct Org {
-        id: Uuid,
-        name: String,
+        pub id: Uuid,
+        pub name: String,
     }
 
     impl JoinMeta for Org {
@@ -265,18 +265,18 @@ mod test {
 
     #[derive(Debug)]
     pub struct User {
-        id: Uuid,
-        name: String,
+        pub id: Uuid,
+        pub name: String,
         // #[ormlite(join_column = "org_id")]
-        org: Join<Org>,
+        pub org: Join<Org>,
     }
 
     #[test]
     fn test_join() {
-        let user = User {
+        let _user = User {
             id: Uuid::new_v4(),
             name: "Alice".to_string(),
-            org: Join::new_by_id(Uuid::new_v4()),
+            org: Join::new_with_id(Uuid::new_v4()),
         };
     }
 }
