@@ -137,25 +137,16 @@ pub trait OrmliteCodegen {
 
         let bounds = from_row_bounds(attr, cache);
 
-        let columns = attr.columns.iter()
-            .map(|c| {
-                let name = &c.column_name;
-                from_row_for_column(quote! { #name }, c)
-            })
-            .collect::<Vec<_>>()
-            ;
-
         let prefix_branches = attr.columns.iter().filter(|c| c.is_join()).map(|c| {
             let name = &c.identifier.to_string();
             let iden = &c.identifier;
             let meta = cache.get(c.joined_struct_name().unwrap().as_str())
                 .expect("Joined struct not found");
-            let relation = &c.identifier;
             let result = if c.is_join_many() {
                 unimplemented!("Join<Vec<...>> isn't supported quite yet...");
             } else {
                 let prefixed_columns = meta.columns.iter().map(|c| {
-                    format!("__{}__{}", relation, c.identifier)
+                    format!("__{}__{}", iden, c.identifier)
                 });
                 let path = c.joined_model();
                 quote! {
