@@ -527,6 +527,9 @@ impl TryFrom<&Field> for ColumnMetadata {
             if let Some(default_value) = args.default_value {
                 builder.rust_default(Some(default_value.value.value()));
             }
+            if args.insertable_primary_key.value() {
+                builder.marked_primary_key(true);
+            }
         }
         if is_join && !has_join_directive {
             return Err(SyndecodeError(format!("Column {ident} is a Join. You must specify one of these attributes: join_column (for many to one), many_to_many_table_name, or one_to_many_foreign_key {is_join} {has_join_directive} {f:?}")));

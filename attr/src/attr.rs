@@ -42,6 +42,8 @@ pub struct ModelAttributes {
 #[derive(StructMeta, Debug)]
 pub struct ColumnAttributes {
     pub primary_key: Flag,
+    /// Marks a primary key, but includes it in the Insertable struct.
+    pub insertable_primary_key: Flag,
     /// Specifies that a default exists at the database level.
     pub default: Flag,
     /// Specify a default value on the Rust side.
