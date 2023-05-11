@@ -19,6 +19,7 @@ pub fn struct_InsertModel(ast: &DeriveInput, attr: &TableMetadata) -> TokenStrea
             }
         });
     quote! {
+        #[derive(Debug)]
         #vis struct #insert_model {
             #(#struct_fields,)*
         }
