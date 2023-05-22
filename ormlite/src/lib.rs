@@ -35,7 +35,7 @@ pub mod __private {
     pub use ormlite_core::join::{JoinDescription, SemanticJoinType};
     pub use ormlite_core::insert::Insertion;
     pub use sqlmo::Insert;
-
+    pub use tokio_stream::StreamExt;
 }
 
 #[cfg(feature = "postgres")]

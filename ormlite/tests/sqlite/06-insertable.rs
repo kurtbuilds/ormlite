@@ -6,7 +6,7 @@ use ormlite::Connection;
 #[path = "../setup.rs"]
 mod setup;
 
-#[derive(Model, Clone)]
+#[derive(Debug, Model, Clone)]
 pub struct Organization {
     id: i32,
     name: String,
