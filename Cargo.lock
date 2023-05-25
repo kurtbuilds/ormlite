@@ -266,9 +266,9 @@ dependencies = [
 
 [[package]]
 name = "bumpalo"
-version = "3.12.2"
+version = "3.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c6ed94e98ecff0c12dd1b04c15ec0d7d9458ca8fe806cea6f12954efe74c63b"
+checksum = "a3e2c3daef883ecc1b5d58c15adae93470a91d425f3532ba1695849656af3fc1"
 
 [[package]]
 name = "bytecheck"
@@ -981,9 +981,9 @@ dependencies = [
 
 [[package]]
 name = "io-lifetimes"
-version = "1.0.10"
+version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c66c74d2ae7e79a5a8f7ac924adbe38ee42a859c6539ad869eb51f0b52dc220"
+checksum = "eae7b9aee968036d54dce06cebaefd919e4472e753296daccd6d344e3e2df0c2"
 dependencies = [
  "hermit-abi 0.3.1",
  "libc",
@@ -1203,7 +1203,7 @@ checksum = "b7e5500299e16ebb147ae15a00a942af264cf3688f47923b8fc2cd5858f23ad3"
 
 [[package]]
 name = "ormlite"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "chrono",
  "env_logger",
@@ -1221,7 +1221,7 @@ dependencies = [
 
 [[package]]
 name = "ormlite-attr"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "anyhow",
  "convert_case",
@@ -1236,7 +1236,7 @@ dependencies = [
 
 [[package]]
 name = "ormlite-cli"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -1257,7 +1257,7 @@ dependencies = [
 
 [[package]]
 name = "ormlite-core"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -1275,7 +1275,7 @@ dependencies = [
 
 [[package]]
 name = "ormlite-macro"
-version = "0.14.0"
+version = "0.14.1"
 dependencies = [
  "itertools",
  "lazy_static",
@@ -1528,9 +1528,9 @@ dependencies = [
 
 [[package]]
 name = "regex"
-version = "1.8.1"
+version = "1.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af83e617f331cc6ae2da5443c602dfa5af81e517212d9d611a5b3ba1777b5370"
+checksum = "d1a59b5d8e97dee33696bf13c5ba8ab85341c002922fba050069326b9c498974"
 dependencies = [
  "aho-corasick 1.0.1",
  "memchr",
@@ -1539,9 +1539,9 @@ dependencies = [
 
 [[package]]
 name = "regex-syntax"
-version = "0.7.1"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a5996294f19bd3aae0453a862ad728f60e6600695733dd5df01da90c54363a3c"
+checksum = "436b050e76ed2903236f032a59761c1eb99e1b0aead2c257922771dab1fc8c78"
 
 [[package]]
 name = "rend"
@@ -2215,9 +2215,9 @@ checksum = "92888ba5573ff080736b3648696b70cafad7d250551175acbaa4e0385b3e1460"
 
 [[package]]
 name = "unicode-ident"
-version = "1.0.8"
+version = "1.0.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5464a87b239f13a63a501f2701565754bae92d243d4bb7eb12f6d57d2269bf4"
+checksum = "b15811caf2415fb889178633e7724bad2509101cde276048e013b9def5e51fa0"
 
 [[package]]
 name = "unicode-normalization"
