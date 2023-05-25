@@ -1836,7 +1836,7 @@ dependencies = [
 
 [[package]]
 name = "sqlmo"
-version = "0.11.3"
+version = "0.11.4"
 dependencies = [
  "anyhow",
  "convert_case",
