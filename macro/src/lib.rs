@@ -1,31 +1,34 @@
 #![allow(unused)]
 #![allow(non_snake_case)]
 
-use ormlite_attr::{ColumnAttributes, ColumnMetadata, TableMetadata, TableMetadataBuilder, ColumnMetadataBuilder, ModelAttributes, SyndecodeError, schema_from_filepaths, LoadOptions};
-use ormlite_core::config::get_var_model_folders;
 use crate::codegen::common::OrmliteCodegen;
+use ormlite_attr::{
+    schema_from_filepaths, ColumnAttributes, ColumnMetadata, ColumnMetadataBuilder, LoadOptions,
+    ModelAttributes, SyndecodeError, TableMetadata, TableMetadataBuilder,
+};
+use ormlite_core::config::get_var_model_folders;
 use proc_macro::TokenStream;
 use std::borrow::Borrow;
 
-use quote::quote;
-use lazy_static::lazy_static;
-use syn::{Data, DeriveInput, Item, ItemStruct, parse_macro_input};
-use ormlite_attr::DeriveInputExt;
-use std::collections::HashMap;
-use std::ops::Deref;
-use once_cell::sync::OnceCell;
-use ormlite_core::Error::OrmliteError;
-use codegen::into_arguments::impl_IntoArguments;
-use crate::codegen::from_row::{impl_from_row_using_aliases, impl_FromRow};
+use crate::codegen::from_row::{impl_FromRow, impl_from_row_using_aliases};
 use crate::codegen::insert::impl_InsertModel;
 use crate::codegen::insert_model::struct_InsertModel;
 use crate::codegen::join_description::static_join_descriptions;
 use crate::codegen::meta::{impl_JoinMeta, impl_TableMeta};
 use crate::codegen::model::{impl_HasModelBuilder, impl_Model};
 use crate::codegen::model_builder::{impl_ModelBuilder, struct_ModelBuilder};
+use codegen::into_arguments::impl_IntoArguments;
+use lazy_static::lazy_static;
+use once_cell::sync::OnceCell;
+use ormlite_attr::DeriveInputExt;
+use ormlite_core::Error::OrmliteError;
+use quote::quote;
+use std::collections::HashMap;
+use std::ops::Deref;
+use syn::{parse_macro_input, Data, DeriveInput, Item, ItemStruct};
 
-mod util;
 mod codegen;
+mod util;
 
 pub(crate) type MetadataCache = HashMap<String, TableMetadata>;
 
@@ -39,7 +42,8 @@ fn load_metadata_cache() -> MetadataCache {
     let mut tables = HashMap::new();
     let paths = get_var_model_folders();
     let paths = paths.iter().map(|p| p.as_path()).collect::<Vec<_>>();
-    let schema = schema_from_filepaths(&paths, &LoadOptions::default()).expect("Failed to preload models");
+    let schema =
+        schema_from_filepaths(&paths, &LoadOptions::default()).expect("Failed to preload models");
     for meta in schema.tables {
         let name = meta.struct_name.to_string();
         tables.insert(name, meta);
@@ -67,7 +71,10 @@ fn get_databases(table_meta: &TableMetadata) -> Vec<Box<dyn OrmliteCodegen>> {
                 "postgres" => databases.push(Box::new(codegen::postgres::PostgresBackend {})),
                 #[cfg(feature = "mysql")]
                 "mysql" => databases.push(Box::new(codegen::mysql::MysqlBackend {})),
-                "sqlite" | "postgres" | "mysql" => panic!("Database {} is not enabled. Enable it with features = [\"{}\"]", db, db),
+                "sqlite" | "postgres" | "mysql" => panic!(
+                    "Database {} is not enabled. Enable it with features = [\"{}\"]",
+                    db, db
+                ),
                 _ => panic!("Unknown database: {}", db),
             }
         }

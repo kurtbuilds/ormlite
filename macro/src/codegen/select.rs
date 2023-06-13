@@ -1,7 +1,7 @@
+use crate::codegen::common::OrmliteCodegen;
+use ormlite_attr::TableMetadata;
 use proc_macro2::TokenStream;
 use quote::quote;
-use ormlite_attr::TableMetadata;
-use crate::codegen::common::OrmliteCodegen;
 
 pub fn impl_Model__select(db: &dyn OrmliteCodegen, attr: &TableMetadata) -> TokenStream {
     let table_name = &attr.table_name;

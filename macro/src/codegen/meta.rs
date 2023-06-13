@@ -1,15 +1,14 @@
+use crate::codegen::common::OrmliteCodegen;
+use ormlite_attr::TableMetadata;
 use proc_macro2::TokenStream;
 use quote::quote;
-use ormlite_attr::TableMetadata;
-use crate::codegen::common::OrmliteCodegen;
 
 pub fn impl_TableMeta(meta: &TableMetadata) -> TokenStream {
     let model = &meta.struct_name;
     let table_name = &meta.table_name;
     let id = &meta.pkey.column_name;
 
-    let field_names = meta.database_columns()
-        .map(|c| c.column_name.to_string());
+    let field_names = meta.database_columns().map(|c| c.column_name.to_string());
 
     quote! {
         impl ::ormlite::model::TableMeta for #model {

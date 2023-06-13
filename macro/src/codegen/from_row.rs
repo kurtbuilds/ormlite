@@ -1,8 +1,8 @@
-use proc_macro2::TokenStream;
-use quote::quote;
-use ormlite_attr::{ColumnMetadata, Ident, TableMetadata};
 use crate::codegen::common::from_row_bounds;
 use crate::MetadataCache;
+use ormlite_attr::{ColumnMetadata, Ident, TableMetadata};
+use proc_macro2::TokenStream;
+use quote::quote;
 
 pub fn impl_FromRow(attr: &TableMetadata, cache: &MetadataCache) -> TokenStream {
     let bounds = from_row_bounds(attr, cache);
@@ -10,14 +10,16 @@ pub fn impl_FromRow(attr: &TableMetadata, cache: &MetadataCache) -> TokenStream 
     let prefix_branches = attr.columns.iter().filter(|c| c.is_join()).map(|c| {
         let name = &c.identifier.to_string();
         let iden = &c.identifier;
-        let meta = cache.get(c.joined_struct_name().unwrap().as_str())
+        let meta = cache
+            .get(c.joined_struct_name().unwrap().as_str())
             .expect("Joined struct not found");
         let result = if c.is_join_many() {
             unimplemented!("Join<Vec<...>> isn't supported quite yet...");
         } else {
-            let prefixed_columns = meta.columns.iter().map(|c| {
-                format!("__{}__{}", iden, c.identifier)
-            });
+            let prefixed_columns = meta
+                .columns
+                .iter()
+                .map(|c| format!("__{}__{}", iden, c.identifier));
             let path = c.joined_model();
             quote! {
                 #path::from_row_using_aliases(row, &[
@@ -34,8 +36,7 @@ pub fn impl_FromRow(attr: &TableMetadata, cache: &MetadataCache) -> TokenStream 
         }
     });
 
-    let field_names = attr.database_columns()
-        .map(|c| &c.column_name);
+    let field_names = attr.database_columns().map(|c| &c.column_name);
 
     let map_join = if attr.columns.iter().any(|c| c.is_join()) {
         quote! {
@@ -88,12 +89,16 @@ pub fn impl_FromRow(attr: &TableMetadata, cache: &MetadataCache) -> TokenStream 
     }
 }
 
-
-pub fn impl_from_row_using_aliases(attr: &TableMetadata, metadata_cache: &MetadataCache) -> TokenStream {
+pub fn impl_from_row_using_aliases(
+    attr: &TableMetadata,
+    metadata_cache: &MetadataCache,
+) -> TokenStream {
     let fields = attr.all_fields();
     let bounds = from_row_bounds(attr, &metadata_cache);
     let mut incrementer = 0usize..;
-    let columns = attr.columns.iter()
+    let columns = attr
+        .columns
+        .iter()
         .map(|c| {
             let index = incrementer.next().unwrap();
             let get = quote! { aliases[#index] };
@@ -119,7 +124,6 @@ pub fn impl_from_row_using_aliases(attr: &TableMetadata, metadata_cache: &Metada
         }
     }
 }
-
 
 /// `name` renames the column. Can pass `col.column_name` if it's not renamed.
 pub fn from_row_for_column(get_value: TokenStream, col: &ColumnMetadata) -> TokenStream {

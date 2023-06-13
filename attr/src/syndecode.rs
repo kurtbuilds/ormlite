@@ -1,7 +1,7 @@
-use std::fmt::Display;
 pub use self::args::ArgsAttribute;
 use self::derive::DeriveAttribute;
 use self::properties::PropertiesAttribute;
+use std::fmt::Display;
 
 mod args;
 mod derive;
@@ -31,15 +31,15 @@ pub struct Attributes(Vec<Attribute>);
 
 impl Attributes {
     pub fn has_derive(&self, trait_name: &str) -> bool {
-        self.0.iter().any(|attr| {
-            matches!(attr, Attribute::Derive(a) if a.trait_name() == trait_name)
-        })
+        self.0
+            .iter()
+            .any(|attr| matches!(attr, Attribute::Derive(a) if a.trait_name() == trait_name))
     }
 
-    pub fn iter_args(&self) -> impl Iterator<Item=&ArgsAttribute> {
+    pub fn iter_args(&self) -> impl Iterator<Item = &ArgsAttribute> {
         self.0.iter().filter_map(|attr| match attr {
             Attribute::Args(a) => Some(a),
-            _ => None
+            _ => None,
         })
     }
 }
@@ -47,11 +47,17 @@ impl Attributes {
 impl Display for Attributes {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "(")?;
-        if self.0.iter().filter(|f| matches!(f, Attribute::Derive(_))).count() > 0 {
+        if self
+            .0
+            .iter()
+            .filter(|f| matches!(f, Attribute::Derive(_)))
+            .count()
+            > 0
+        {
             write!(f, "#[derive(")?;
             for attr in self.0.iter().filter_map(|f| match f {
                 Attribute::Derive(d) => Some(d),
-                _ => None
+                _ => None,
             }) {
                 write!(f, "{},", attr.trait_name())?;
             }
@@ -59,7 +65,7 @@ impl Display for Attributes {
         }
         for attr in self.0.iter() {
             match attr {
-                Attribute::Derive(_) => {},
+                Attribute::Derive(_) => {}
                 Attribute::Properties(attr) => write!(f, "{}({:?}), ", attr.name, attr.properties)?,
                 Attribute::Args(attr) => write!(f, "{}({}), ", attr.name, attr.args.join(", "))?,
                 Attribute::Flag(attr) => write!(f, "{}, ", attr)?,
@@ -84,10 +90,10 @@ impl From<&[syn::Attribute]> for Attributes {
                 let attr = if attr.tokens.is_empty() {
                     Attribute::Flag(name)
                 } else {
-                    PropertiesAttribute::try_from(attr).map(Attribute::Properties)
-                        .or_else(|_| {
-                            ArgsAttribute::try_from(attr).map(Attribute::Args)
-                        }).expect("Unknown attribute")
+                    PropertiesAttribute::try_from(attr)
+                        .map(Attribute::Properties)
+                        .or_else(|_| ArgsAttribute::try_from(attr).map(Attribute::Args))
+                        .expect("Unknown attribute")
                 };
                 attributes.push(attr);
             }
@@ -99,10 +105,10 @@ impl From<&[syn::Attribute]> for Attributes {
 impl Attributes {
     /// keeps all the derives, but filters the attributes for the word
     pub fn retain(&mut self, filter: &str) {
-        self.0.retain(|f| matches!(f, Attribute::Derive(_)) || f.name() == filter);
+        self.0
+            .retain(|f| matches!(f, Attribute::Derive(_)) || f.name() == filter);
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -110,9 +116,9 @@ mod tests {
 
     #[test]
     fn test_derives() {
-        let attrs = Attributes(vec![
-            Attribute::Derive(DeriveAttribute::new("ormlite::Model")),
-        ]);
+        let attrs = Attributes(vec![Attribute::Derive(DeriveAttribute::new(
+            "ormlite::Model",
+        ))]);
         assert!(attrs.has_derive("Model"));
     }
 

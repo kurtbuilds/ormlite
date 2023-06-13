@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use crate::SyndecodeError;
 use proc_macro2::TokenTree;
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct PropertiesAttribute {
@@ -12,8 +12,19 @@ impl TryFrom<&syn::Attribute> for PropertiesAttribute {
     type Error = SyndecodeError;
 
     fn try_from(attr: &syn::Attribute) -> Result<Self, Self::Error> {
-        let name = attr.path.segments.first().ok_or_else(|| SyndecodeError("Must have a segment.".to_string()))?.ident.to_string();
-        let group = attr.tokens.clone().into_iter().next().ok_or_else(|| SyndecodeError("Must have a token group.".to_string()))?;
+        let name = attr
+            .path
+            .segments
+            .first()
+            .ok_or_else(|| SyndecodeError("Must have a segment.".to_string()))?
+            .ident
+            .to_string();
+        let group = attr
+            .tokens
+            .clone()
+            .into_iter()
+            .next()
+            .ok_or_else(|| SyndecodeError("Must have a token group.".to_string()))?;
         let TokenTree::Group(group) = group else {
             return Err(SyndecodeError("Must have a token group.".to_string()));
         };
@@ -45,9 +56,6 @@ impl TryFrom<&syn::Attribute> for PropertiesAttribute {
                 }
             }
         }
-        Ok(Self {
-            name,
-            properties,
-        })
+        Ok(Self { name, properties })
     }
 }

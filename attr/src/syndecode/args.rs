@@ -11,8 +11,16 @@ impl TryFrom<&syn::Attribute> for ArgsAttribute {
     type Error = SyndecodeError;
 
     fn try_from(attr: &syn::Attribute) -> Result<Self, Self::Error> {
-        let name = attr.path.segments.first().ok_or_else(|| SyndecodeError("Must have a segment.".to_string()))?.ident.to_string();
-        let group = attr.tokens.clone().into_iter().next().ok_or_else(|| SyndecodeError("ArgAttributes must have at least one token group.".to_string()))?;
+        let name = attr
+            .path
+            .segments
+            .first()
+            .ok_or_else(|| SyndecodeError("Must have a segment.".to_string()))?
+            .ident
+            .to_string();
+        let group = attr.tokens.clone().into_iter().next().ok_or_else(|| {
+            SyndecodeError("ArgAttributes must have at least one token group.".to_string())
+        })?;
         let mut args = Vec::new();
         if let TokenTree::Group(group) = group {
             let group = group.stream().into_iter();
@@ -41,9 +49,6 @@ impl TryFrom<&syn::Attribute> for ArgsAttribute {
             }
         };
 
-        Ok(Self {
-            name,
-            args,
-        })
+        Ok(Self { name, args })
     }
 }

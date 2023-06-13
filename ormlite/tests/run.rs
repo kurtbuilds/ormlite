@@ -8,7 +8,6 @@ use trybuild::TestCases;
 
 const FOO: &str = env!("CARGO_MANIFEST_DIR");
 
-
 pub fn set_path_and_run(path: &str) {
     let t = TestCases::new();
     let p = std::path::Path::new(&FOO).join(path);

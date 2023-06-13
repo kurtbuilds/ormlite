@@ -1,15 +1,18 @@
-use proc_macro2::TokenStream;
-use quote::quote;
-use syn::DeriveInput;
-use ormlite_attr::{Ident, TableMetadata};
 use crate::codegen::common::{insertion_binding, OrmliteCodegen};
 use crate::codegen::insert::impl_Model__insert;
 use crate::codegen::select::impl_Model__select;
 use crate::codegen::update::impl_Model__update_all_fields;
 use crate::MetadataCache;
+use ormlite_attr::{Ident, TableMetadata};
+use proc_macro2::TokenStream;
+use quote::quote;
+use syn::DeriveInput;
 
-
-pub fn impl_Model(db: &dyn OrmliteCodegen, attr: &TableMetadata, metadata_cache: &MetadataCache) -> TokenStream {
+pub fn impl_Model(
+    db: &dyn OrmliteCodegen,
+    attr: &TableMetadata,
+    metadata_cache: &MetadataCache,
+) -> TokenStream {
     let model = &attr.struct_name;
     let partial_model = attr.builder_struct();
 
@@ -87,7 +90,6 @@ pub fn impl_Model__delete(db: &dyn OrmliteCodegen, attr: &TableMetadata) -> Toke
     }
 }
 
-
 pub fn impl_Model__fetch_one(db: &dyn OrmliteCodegen, attr: &TableMetadata) -> TokenStream {
     let mut placeholder = db.placeholder();
 
@@ -117,7 +119,6 @@ pub fn impl_Model__fetch_one(db: &dyn OrmliteCodegen, attr: &TableMetadata) -> T
         }
     }
 }
-
 
 pub fn impl_Model__builder(attr: &TableMetadata) -> TokenStream {
     let partial_model = &attr.builder_struct();

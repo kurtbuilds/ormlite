@@ -1,7 +1,7 @@
 use crate::query_builder::args::QueryBuilderArgs;
 use crate::{Error, Result};
 use sqlparser::dialect::GenericDialect;
-use sqlparser::tokenizer::{Tokenizer, Token};
+use sqlparser::tokenizer::{Token, Tokenizer};
 use sqlx::query::QueryAs;
 
 pub fn replace_placeholders<T: Iterator<Item = String>>(
@@ -50,7 +50,6 @@ pub fn replace_placeholders<T: Iterator<Item = String>>(
     Ok((buf, placeholder_count))
 }
 
-
 pub(super) fn query_as_with_recast_lifetime<'q, 'r, DB, Model>(
     s: &'q str,
     args: QueryBuilderArgs<'r, DB>,
@@ -68,14 +67,11 @@ where
     sqlx::query_as_with(s, recast_args)
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    
-    use crate::{Result};
-    
-    
+
+    use crate::Result;
 
     #[test]
     fn test_replace_placeholders() -> Result<()> {
@@ -84,7 +80,10 @@ mod tests {
             "SELECT * FROM users WHERE id = ? OR id = ? OR id = ?",
             &mut placeholder_generator,
         )?;
-        assert_eq!(sql, "SELECT * FROM users WHERE id = $1 OR id = $2 OR id = $3");
+        assert_eq!(
+            sql,
+            "SELECT * FROM users WHERE id = $1 OR id = $2 OR id = $3"
+        );
         assert_eq!(placeholder_count, 3);
         Ok(())
     }

@@ -1,11 +1,11 @@
 use std::collections::BTreeMap;
 use std::fmt::Formatter;
 
-use std::path::Path;
 use anyhow::Result;
-use sqlmo::{Schema, Table, schema::Column};
-use ormlite_attr::{ColumnMetadata, Ident, InnerType, TableMetadata, TType};
 use ormlite_attr::{schema_from_filepaths, LoadOptions};
+use ormlite_attr::{ColumnMetadata, Ident, InnerType, TType, TableMetadata};
+use sqlmo::{schema::Column, Schema, Table};
+use std::path::Path;
 
 #[derive(Debug)]
 pub struct Options {
@@ -17,7 +17,9 @@ pub trait TryFromOrmlite: Sized {
 }
 
 trait SqlDiffTableExt {
-    fn from_metadata(metadata: &TableMetadata) -> Result<Self, TypeTranslationError> where Self: Sized;
+    fn from_metadata(metadata: &TableMetadata) -> Result<Self, TypeTranslationError>
+    where
+        Self: Sized;
 }
 
 impl SqlDiffTableExt for Table {
@@ -25,16 +27,19 @@ impl SqlDiffTableExt for Table {
         Ok(Self {
             schema: None,
             name: metadata.table_name.clone(),
-            columns: metadata.columns.iter().map(|c| {
-                if c.skip {
-                    return Ok(None);
-                }
-                let Some(mut col) = Column::from_metadata(c)? else {
+            columns: metadata
+                .columns
+                .iter()
+                .map(|c| {
+                    if c.skip {
+                        return Ok(None);
+                    }
+                    let Some(mut col) = Column::from_metadata(c)? else {
                     return Ok(None);
                 };
-                col.primary_key = metadata.pkey.column_name == col.name;
-                Ok(Some(col))
-            })
+                    col.primary_key = metadata.pkey.column_name == col.name;
+                    Ok(Some(col))
+                })
                 .filter_map(|c| c.transpose())
                 .collect::<Result<Vec<_>, _>>()?,
             indexes: vec![],
@@ -156,9 +161,7 @@ impl SqlType {
                     nullable: true,
                 })
             }
-            TType::Join(_) => {
-                None
-            }
+            TType::Join(_) => None,
         }
     }
 }
@@ -166,11 +169,20 @@ impl SqlType {
 impl TryFromOrmlite for Schema {
     fn try_from_ormlite_project(paths: &[&Path], opts: &Options) -> Result<Self> {
         let mut schema = Self::default();
-        let mut fs_schema = schema_from_filepaths(paths, &LoadOptions { verbose: opts.verbose })?;
-        let primary_key_type: BTreeMap<String, InnerType> = fs_schema.tables.iter().map(|t|  {
-            let pkey_ty = t.pkey.column_type.inner_type().clone();
-            (t.struct_name.to_string(), pkey_ty)
-        }).collect();
+        let mut fs_schema = schema_from_filepaths(
+            paths,
+            &LoadOptions {
+                verbose: opts.verbose,
+            },
+        )?;
+        let primary_key_type: BTreeMap<String, InnerType> = fs_schema
+            .tables
+            .iter()
+            .map(|t| {
+                let pkey_ty = t.pkey.column_type.inner_type().clone();
+                (t.struct_name.to_string(), pkey_ty)
+            })
+            .collect();
         for t in &mut fs_schema.tables {
             for c in &mut t.columns {
                 // replace alias types with the real type.
@@ -181,7 +193,9 @@ impl TryFromOrmlite for Schema {
                 // replace join types with the primary key type.
                 if c.column_type.is_join() {
                     let model_name = c.column_type.inner_type_name();
-                    let pkey = primary_key_type.get(&model_name).expect(&format!("Could not find model {} for join", model_name));
+                    let pkey = primary_key_type
+                        .get(&model_name)
+                        .expect(&format!("Could not find model {} for join", model_name));
                     c.column_type = TType::Inner(pkey.clone());
                 }
             }
@@ -197,14 +211,13 @@ impl TryFromOrmlite for Schema {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use syn::{parse_str};
     use assert_matches::assert_matches;
     use ormlite_attr::TType;
     use sqlmo::Type;
+    use syn::parse_str;
 
     #[test]
     fn test_convert_type() -> Result<()> {
-
         let s = TType::from(&parse_str::<syn::Path>("String").unwrap());
         assert_matches!(SqlType::from_type(&s).unwrap().ty, Type::Text);
         let s = TType::from(&parse_str::<syn::Path>("u32").unwrap());
@@ -223,6 +236,5 @@ mod tests {
             panic!("Expected array");
         };
         assert_eq!(*inner, Type::Uuid);
-
     }
 }

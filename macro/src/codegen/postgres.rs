@@ -21,5 +21,4 @@ impl OrmliteCodegen for PostgresBackend {
     fn placeholder(&self) -> Placeholder {
         Placeholder::dollar_sign()
     }
-
 }

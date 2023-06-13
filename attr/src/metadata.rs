@@ -1,10 +1,10 @@
-use derive_builder::Builder;
-use syn::{DeriveInput, Field, PathArguments};
-use crate::{ColumnAttributes, ModelAttributes, SyndecodeError};
 use crate::DeriveInputExt;
+use crate::{ColumnAttributes, ModelAttributes, SyndecodeError};
 use convert_case::{Case, Casing};
+use derive_builder::Builder;
 use proc_macro2::TokenStream;
-use quote::{TokenStreamExt};
+use quote::TokenStreamExt;
+use syn::{DeriveInput, Field, PathArguments};
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Ident(pub String);
@@ -23,7 +23,10 @@ impl From<&proc_macro2::Ident> for Ident {
 
 impl quote::ToTokens for Ident {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        tokens.append(proc_macro2::Ident::new(&self.0, proc_macro2::Span::call_site()))
+        tokens.append(proc_macro2::Ident::new(
+            &self.0,
+            proc_macro2::Span::call_site(),
+        ))
     }
 }
 
@@ -131,7 +134,7 @@ impl TType {
                 quote::quote! {
                     #(#segments)::* #ident
                 }
-            },
+            }
             TType::Option(ty) => ty.qualified_inner_name(),
             TType::Vec(ty) => ty.qualified_inner_name(),
             TType::Join(ty) => ty.qualified_inner_name(),
@@ -141,26 +144,30 @@ impl TType {
 
 impl From<&syn::Path> for InnerType {
     fn from(path: &syn::Path) -> Self {
-        let segment = path.segments.last().expect("path must have at least one segment");
-        let args: Option<Box<InnerType>> = if let PathArguments::AngleBracketed(args) = &segment.arguments {
-            let args = &args.args;
-            let syn::GenericArgument::Type(ty) = args.first().unwrap() else {
+        let segment = path
+            .segments
+            .last()
+            .expect("path must have at least one segment");
+        let args: Option<Box<InnerType>> =
+            if let PathArguments::AngleBracketed(args) = &segment.arguments {
+                let args = &args.args;
+                let syn::GenericArgument::Type(ty) = args.first().unwrap() else {
                 panic!("Option must have a type parameter");
             };
-            let syn::Type::Path(path) = &ty else {
+                let syn::Type::Path(path) = &ty else {
                 panic!("Option must have a type parameter");
             };
-            Some(Box::new(InnerType::from(&path.path)))
-        } else {
-            None
-        };
-        let mut path = path.segments.iter().map(|s| Ident::from(&s.ident)).collect::<Vec<_>>();
+                Some(Box::new(InnerType::from(&path.path)))
+            } else {
+                None
+            };
+        let mut path = path
+            .segments
+            .iter()
+            .map(|s| Ident::from(&s.ident))
+            .collect::<Vec<_>>();
         let ident = path.pop().expect("path must have at least one segment");
-        InnerType {
-            path,
-            args,
-            ident,
-        }
+        InnerType { path, args, ident }
     }
 }
 
@@ -270,13 +277,16 @@ impl TableMetadata {
         TableMetadataBuilder::default()
     }
 
-    pub fn builder_from_struct_attributes(ast: &DeriveInput) -> Result<TableMetadataBuilder, SyndecodeError> {
+    pub fn builder_from_struct_attributes(
+        ast: &DeriveInput,
+    ) -> Result<TableMetadataBuilder, SyndecodeError> {
         let mut builder = TableMetadata::builder();
         builder.insert_struct(None);
         builder.struct_name(Ident::from(&ast.ident));
         let mut databases = vec![];
         for attr in ast.attrs.iter().filter(|a| a.path.is_ident("ormlite")) {
-            let args: ModelAttributes = attr.parse_args()
+            let args: ModelAttributes = attr
+                .parse_args()
                 .map_err(|e| SyndecodeError(e.to_string()))?;
             if let Some(value) = args.table {
                 builder.table_name(value.value());
@@ -292,41 +302,46 @@ impl TableMetadata {
         Ok(builder)
     }
 
-    pub fn all_fields(&self) -> impl Iterator<Item=&Ident> + '_ {
-        self.columns.iter()
-            .map(|c| &c.identifier)
+    pub fn all_fields(&self) -> impl Iterator<Item = &Ident> + '_ {
+        self.columns.iter().map(|c| &c.identifier)
     }
 
-    pub fn database_columns(&self) -> impl Iterator<Item=&ColumnMetadata> + '_ {
-        self.columns.iter()
-            .filter(|&c| !c.skip)
+    pub fn database_columns(&self) -> impl Iterator<Item = &ColumnMetadata> + '_ {
+        self.columns.iter().filter(|&c| !c.skip)
     }
 
-    pub fn database_columns_except_pkey(&self) -> impl Iterator<Item=&ColumnMetadata> + '_ {
-        self.columns.iter()
+    pub fn database_columns_except_pkey(&self) -> impl Iterator<Item = &ColumnMetadata> + '_ {
+        self.columns
+            .iter()
             .filter(|&c| !c.skip)
             .filter(|&c| c.column_name != self.pkey.column_name)
     }
 
-    pub fn many_to_one_joins(&self) -> impl Iterator<Item=&ColumnMetadata> + '_ {
-        self.columns.iter()
+    pub fn many_to_one_joins(&self) -> impl Iterator<Item = &ColumnMetadata> + '_ {
+        self.columns
+            .iter()
             .filter(|&c| c.many_to_one_column_name.is_some())
     }
 }
 
-
 impl TableMetadataBuilder {
-    pub fn complete_with_struct_body(&mut self, ast: &DeriveInput) -> Result<TableMetadata, SyndecodeError> {
+    pub fn complete_with_struct_body(
+        &mut self,
+        ast: &DeriveInput,
+    ) -> Result<TableMetadata, SyndecodeError> {
         let model = &ast.ident;
         let model_lowercased = model.to_string().to_case(Case::Snake);
         self.table_name.get_or_insert(model_lowercased);
 
-        let mut cols = ast.fields()
+        let mut cols = ast
+            .fields()
             .map(ColumnMetadata::try_from)
-            .collect::<Result<Vec<_>, _>>().unwrap();
+            .collect::<Result<Vec<_>, _>>()
+            .unwrap();
         let mut pkey = cols
             .iter()
-            .find(|&c| c.marked_primary_key).map(|c| c.clone());
+            .find(|&c| c.marked_primary_key)
+            .map(|c| c.clone());
         if pkey.is_none() {
             let candidates = sqlmo::util::pkey_column_names(&self.table_name.as_ref().unwrap());
             for c in &mut cols {
@@ -344,13 +359,11 @@ impl TableMetadataBuilder {
     }
 }
 
-
 impl TryFrom<&DeriveInput> for TableMetadata {
     type Error = SyndecodeError;
 
     fn try_from(ast: &DeriveInput) -> Result<Self, Self::Error> {
-        TableMetadata::builder_from_struct_attributes(ast)?
-            .complete_with_struct_body(ast)
+        TableMetadata::builder_from_struct_attributes(ast)?.complete_with_struct_body(ast)
     }
 }
 
@@ -464,7 +477,6 @@ impl ColumnMetadata {
     }
 }
 
-
 impl TryFrom<&Field> for ColumnMetadata {
     type Error = SyndecodeError;
 
@@ -487,8 +499,7 @@ impl TryFrom<&Field> for ColumnMetadata {
             .one_to_many_foreign_key(None)
             .skip(false)
             .experimental_encode_as_json(false)
-            .rust_default(None)
-        ;
+            .rust_default(None);
         let mut has_join_directive = false;
         for attr in f.attrs.iter().filter(|&a| a.path.is_ident("ormlite")) {
             let args: ColumnAttributes = attr.parse_args().unwrap();
@@ -537,7 +548,6 @@ impl TryFrom<&Field> for ColumnMetadata {
         builder.build().map_err(|e| SyndecodeError(e.to_string()))
     }
 }
-
 
 #[cfg(test)]
 mod test {

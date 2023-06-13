@@ -1,15 +1,16 @@
+use crate::command::{get_executed_migrations, get_pending_migrations, MigrationType};
+use crate::util::{create_connection, create_runtime, CommandSuccess};
+use anyhow::Result;
+use clap::Parser;
+use ormlite::postgres::PgArguments;
+use ormlite::{Acquire, Arguments, Executor};
+use ormlite_core::config::{
+    get_var_database_url, get_var_migration_folder, get_var_snapshot_folder,
+};
+use sha2::{Digest, Sha384};
 use std::fs;
 use std::fs::File;
 use std::time::Instant;
-use anyhow::Result;
-use clap::Parser;
-use ormlite::{Executor, Arguments, Acquire};
-use ormlite::postgres::PgArguments;
-use crate::command::{get_executed_migrations, get_pending_migrations, MigrationType};
-use ormlite_core::config::{get_var_snapshot_folder, get_var_database_url, get_var_migration_folder};
-use crate::util::{CommandSuccess, create_connection, create_runtime};
-use sha2::{Digest, Sha384};
-
 
 #[derive(Parser, Debug)]
 pub struct Up {
@@ -35,7 +36,8 @@ impl Up {
         let conn = runtime.block_on(conn.acquire()).unwrap();
 
         let executed = get_executed_migrations(&runtime, &mut *conn).unwrap();
-        let pending = get_pending_migrations(&folder).unwrap()
+        let pending = get_pending_migrations(&folder)
+            .unwrap()
             .into_iter()
             .filter(|m| m.migration_type() != MigrationType::Down)
             .collect::<Vec<_>>();
@@ -45,13 +47,18 @@ impl Up {
             return Ok(());
         }
 
-        if (pending.last().as_ref().unwrap().migration_type() == MigrationType::Simple && !self.no_snapshot) ||
-            (pending.last().as_ref().unwrap().migration_type() != MigrationType::Simple && self.snapshot)
+        if (pending.last().as_ref().unwrap().migration_type() == MigrationType::Simple
+            && !self.no_snapshot)
+            || (pending.last().as_ref().unwrap().migration_type() != MigrationType::Simple
+                && self.snapshot)
         {
             eprintln!("Creating snapshot...");
             let snapshot_folder = get_var_snapshot_folder();
             fs::create_dir_all(&snapshot_folder).unwrap();
-            let file_stem = executed.last().map(|m| m.name.clone()).unwrap_or("0_empty".to_string());
+            let file_stem = executed
+                .last()
+                .map(|m| m.name.clone())
+                .unwrap_or("0_empty".to_string());
             let file_path = snapshot_folder.join(format!("{file_stem}.sql.bak"));
             let backup_file = File::create(&file_path)?;
             std::process::Command::new("pg_dump")
@@ -62,9 +69,15 @@ impl Up {
             eprintln!("{}: Created database snapshot.", file_path.display());
         }
 
-        let iter = pending.iter().skip(executed.len()).take(if self.all { pending.len() } else { 1 });
+        let iter =
+            pending
+                .iter()
+                .skip(executed.len())
+                .take(if self.all { pending.len() } else { 1 });
         for migration in iter {
-            let file_path = folder.join(&migration.name).with_extension(migration.migration_type().extension());
+            let file_path = folder
+                .join(&migration.name)
+                .with_extension(migration.migration_type().extension());
             let body = std::fs::read_to_string(&file_path)?;
 
             let checksum = Sha384::digest(body.as_bytes()).to_vec();

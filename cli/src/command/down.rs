@@ -1,16 +1,18 @@
 use std::env::var;
 use std::fs;
 
-use std::path::Path;
 use anyhow::{Error, Result};
 use clap::Parser;
+use std::path::Path;
 
-use ormlite::postgres::PgArguments;
-use ormlite::{Acquire, Executor};
 use crate::command::{get_executed_migrations, get_pending_migrations, MigrationType};
-use ormlite_core::config::{get_var_snapshot_folder, get_var_database_url, get_var_migration_folder};
-use crate::util::{CommandSuccess, create_connection, create_runtime};
+use crate::util::{create_connection, create_runtime, CommandSuccess};
+use ormlite::postgres::PgArguments;
 use ormlite::Arguments;
+use ormlite::{Acquire, Executor};
+use ormlite_core::config::{
+    get_var_database_url, get_var_migration_folder, get_var_snapshot_folder,
+};
 use url::Url;
 
 #[derive(Parser, Debug)]
@@ -71,7 +73,9 @@ impl Down {
             } else if executed.len() == 1 {
                 "0_empty".to_string()
             } else {
-                return Err(Error::msg("No target migration was specified and there are no migrations to rollback to."));
+                return Err(Error::msg(
+                    "No target migration was specified and there are no migrations to rollback to.",
+                ));
             };
 
             let snapshot_folder = get_var_snapshot_folder();
@@ -90,7 +94,7 @@ impl Down {
 
             if !self.force {
                 println!("Re-run with -f to execute rollback. This command will restore the following snapshot:\n{}", snapshot_folder.join(backup).display());
-                return Ok(())
+                return Ok(());
             }
 
             let mut user = Url::parse(&url)?.username().to_string();
@@ -107,16 +111,26 @@ impl Down {
                 .ok_or("Failed to restore database.")?;
         } else {
             if let Some(target) = self.target {
-                executed = executed.into_iter().take_while(|m| {
-                    let matches = if target.chars().all(|c| c.is_numeric()) {
-                        m.version_str() == target
-                    } else if target.chars().next().map(|c| c.is_numeric()).unwrap_or(false) && target.contains('_') { // my_description
-                        m.name == target
-                    } else {
-                        m.description == target
-                    };
-                    !matches
-                }).collect();
+                executed = executed
+                    .into_iter()
+                    .take_while(|m| {
+                        let matches = if target.chars().all(|c| c.is_numeric()) {
+                            m.version_str() == target
+                        } else if target
+                            .chars()
+                            .next()
+                            .map(|c| c.is_numeric())
+                            .unwrap_or(false)
+                            && target.contains('_')
+                        {
+                            // my_description
+                            m.name == target
+                        } else {
+                            m.description == target
+                        };
+                        !matches
+                    })
+                    .collect();
             } else {
                 executed.truncate(1);
             }
@@ -133,7 +147,10 @@ impl Down {
                     runtime.block_on(conn.execute(&*body))?;
                     let mut args = PgArguments::default();
                     args.add(migration.version);
-                    let q = ormlite::query_with("DELETE FROM _sqlx_migrations WHERE version = $1", args);
+                    let q = ormlite::query_with(
+                        "DELETE FROM _sqlx_migrations WHERE version = $1",
+                        args,
+                    );
                     runtime.block_on(q.execute(conn))?;
                 }
             }

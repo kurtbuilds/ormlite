@@ -1,22 +1,22 @@
 #![allow(non_snake_case)]
 
 mod attr;
-mod metadata;
 mod error;
 mod ext;
+mod metadata;
 mod syndecode;
 
+use ignore::Walk;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 use syn::{DeriveInput, Item};
-use ignore::Walk;
 
-use syndecode::{Attributes};
-pub use metadata::*;
 pub use attr::*;
 pub use error::*;
 pub use ext::*;
+pub use metadata::*;
+use syndecode::Attributes;
 
 #[derive(Default, Debug)]
 pub struct LoadOptions {
@@ -41,10 +41,22 @@ struct Intermediate {
 }
 
 impl Intermediate {
-    fn into_models_and_types(self) -> (impl Iterator<Item=WithAttr<syn::ItemStruct>>, impl Iterator<Item=WithAttr<String>>) {
+    fn into_models_and_types(
+        self,
+    ) -> (
+        impl Iterator<Item = WithAttr<syn::ItemStruct>>,
+        impl Iterator<Item = WithAttr<String>>,
+    ) {
         let models = self.model_structs.into_iter();
-        let types = self.type_structs.into_iter().map(|(s, a)| (s.ident.to_string(), a))
-            .chain(self.type_enums.into_iter().map(|(e, a)| (e.ident.to_string(), a)));
+        let types = self
+            .type_structs
+            .into_iter()
+            .map(|(s, a)| (s.ident.to_string(), a))
+            .chain(
+                self.type_enums
+                    .into_iter()
+                    .map(|(e, a)| (e.ident.to_string(), a)),
+            );
         (models, types)
     }
 
@@ -91,13 +103,15 @@ impl Intermediate {
 pub fn schema_from_filepaths(paths: &[&Path], opts: &LoadOptions) -> anyhow::Result<OrmliteSchema> {
     let walk = paths.iter().flat_map(Walk::new);
 
-    let walk = walk.filter_map(|e| e.ok())
-        .filter(|e| e.path().extension().map(|e| e == "rs")
-            .unwrap_or(false))
+    let walk = walk
+        .filter_map(|e| e.ok())
+        .filter(|e| e.path().extension().map(|e| e == "rs").unwrap_or(false))
         .map(|e| e.into_path())
-        .chain(paths.iter()
-            .filter(|p| p.ends_with(".rs"))
-            .map(|p| p.to_path_buf())
+        .chain(
+            paths
+                .iter()
+                .filter(|p| p.ends_with(".rs"))
+                .map(|p| p.to_path_buf()),
         );
 
     let mut tables = vec![];
@@ -116,11 +130,13 @@ pub fn schema_from_filepaths(paths: &[&Path], opts: &LoadOptions) -> anyhow::Res
 
         for (item, _attrs) in models {
             let derive: DeriveInput = item.into();
-            let table = TableMetadata::try_from(&derive)
-                .map_err(|e| SyndecodeError(format!(
+            let table = TableMetadata::try_from(&derive).map_err(|e| {
+                SyndecodeError(format!(
                     "{}: Encountered an error while scanning for #[derive(Model)] structs: {}",
-                    entry.display(), e))
-                )?;
+                    entry.display(),
+                    e
+                ))
+            })?;
             tables.push(table);
         }
 
@@ -130,7 +146,11 @@ pub fn schema_from_filepaths(paths: &[&Path], opts: &LoadOptions) -> anyhow::Res
                 if attr.name != "repr" {
                     continue;
                 }
-                ty = attr.args.first().expect("repr attribute must have at least one argument").clone();
+                ty = attr
+                    .args
+                    .first()
+                    .expect("repr attribute must have at least one argument")
+                    .clone();
             }
             type_aliases.insert(name, ty);
         }

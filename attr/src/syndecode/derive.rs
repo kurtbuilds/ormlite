@@ -24,7 +24,12 @@ impl DeriveAttribute {
     }
 
     pub fn decode_many_from_attr(attr: &syn::Attribute) -> Vec<Self> {
-        let group = attr.tokens.clone().into_iter().next().expect("Derive attribute must have a token group");
+        let group = attr
+            .tokens
+            .clone()
+            .into_iter()
+            .next()
+            .expect("Derive attribute must have a token group");
         let TokenTree::Group(group) = group else {
             panic!("Derive attribute must have a token group");
         };
@@ -58,7 +63,6 @@ impl DeriveAttribute {
         attributes
     }
 }
-
 
 #[cfg(test)]
 mod test {

@@ -1,11 +1,10 @@
-use clap::{Parser, Subcommand};
 use anyhow::Result;
+use clap::{Parser, Subcommand};
 
 mod command;
 mod util;
 
 use command::*;
-
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]

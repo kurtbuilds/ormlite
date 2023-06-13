@@ -1,8 +1,7 @@
 use anyhow::Error;
+use ormlite::postgres::PgConnection;
+use ormlite::Connection;
 use tokio::runtime::Runtime;
-use ormlite::{Connection};
-use ormlite::postgres::{PgConnection};
-
 
 pub(crate) fn create_runtime() -> tokio::runtime::Runtime {
     tokio::runtime::Builder::new_current_thread()

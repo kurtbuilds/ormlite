@@ -1,16 +1,12 @@
-
-
-
 use anyhow::Result;
 use clap::Parser;
 use colored::Colorize;
 use ormlite::Acquire;
 
-
 use ormlite::Executor;
 
-use ormlite_core::config::{get_var_database_url};
 use crate::util::{create_connection, create_runtime};
+use ormlite_core::config::get_var_database_url;
 
 const INIT_QUERY: &str = r#"
 CREATE TABLE public._sqlx_migrations (
@@ -24,8 +20,7 @@ CREATE TABLE public._sqlx_migrations (
 "#;
 
 #[derive(Parser, Debug)]
-pub struct Init {
-}
+pub struct Init {}
 
 impl Init {
     pub fn run(self) -> Result<()> {

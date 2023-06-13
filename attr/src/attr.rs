@@ -1,7 +1,6 @@
 use structmeta::{Flag, NameValue, StructMeta};
 use syn::{Ident, LitStr, Path};
 
-
 /// Available attributes on a struct
 #[derive(StructMeta, Debug)]
 pub struct ModelAttributes {
