@@ -9,9 +9,16 @@ pub fn impl_Model__update_all_fields(db: &dyn OrmliteCodegen, attr: &TableMetada
     let box_future = crate::util::box_fut_ts();
     let mut placeholder = db.placeholder();
     let db = db.database_ts();
-    let mut query = "UPDATE \"".to_string();
+    let mut query = "UPDATE ".to_string();
+    query.push_str(
+        &attr
+            .schema_name
+            .as_ref()
+            .map(|s| format!("\"{}\".", s))
+            .unwrap_or_default(),
+    );
     query.push_str(&attr.table_name);
-    query.push_str("\" SET ");
+    query.push_str(" SET ");
     for c in attr.database_columns_except_pkey() {
         query.push_str(&c.column_name);
         query.push_str(" = ");
@@ -62,8 +69,13 @@ pub fn impl_ModelBuilder__update(db: &dyn OrmliteCodegen, attr: &TableMetadata) 
     let db = db.database_ts();
 
     let query = format!(
-        "UPDATE \"{}\" SET {{}} WHERE {} = {{}} RETURNING *",
-        attr.table_name, attr.pkey.column_name,
+        "UPDATE {}\"{}\" SET {{}} WHERE {} = {{}} RETURNING *",
+        attr.schema_name
+            .as_ref()
+            .map(|s| format!("\"{}\".", s))
+            .unwrap_or_default(),
+        attr.table_name,
+        attr.pkey.column_name,
     );
 
     let bind_update = attr.database_columns().map(generate_conditional_bind);

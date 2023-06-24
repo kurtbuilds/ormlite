@@ -5,9 +5,17 @@ use syn::{Ident, LitStr, Path};
 /// Available attributes on a struct
 #[derive(StructMeta, Debug)]
 pub struct ModelAttributes {
+    /// The name of the table schema in the database. Defaults to nothing.
+    /// Example:
+    /// #[ormlite(schema = "public")]
+    /// pub struct User {
+    ///    pub id: i32,
+    /// }
+    pub schema: Option<LitStr>,
+
     /// The name of the table in the database. Defaults to the struct name.
     /// Example:
-    /// #[ormlite(table_name = "users")]
+    /// #[ormlite(table = "users")]
     /// pub struct User {
     ///    pub id: i32,
     /// }

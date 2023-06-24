@@ -135,14 +135,14 @@ mod test {
     #[test]
     fn test_all_bounds() {
         let mut cache = MetadataCache::new();
-        let table = TableMetadata::new("user", vec![
+        let table = TableMetadata::new("user", None, vec![
             ColumnMetadata::new("id", "u32"),
             ColumnMetadata::new("name", "String"),
             ColumnMetadata::new("organization_id", "u32"),
             ColumnMetadata::new_join("organization", "Organization"),
         ]);
         cache.insert("User".to_string(), table.clone());
-        let table = TableMetadata::new("organization", vec![
+        let table = TableMetadata::new("organization", None, vec![
             ColumnMetadata::new("id", "u32"),
             ColumnMetadata::new("name", "String"),
             ColumnMetadata::new("is_active", "bool"),

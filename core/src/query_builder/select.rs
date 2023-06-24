@@ -144,7 +144,9 @@ where
     }
 
     pub fn join(mut self, join_description: JoinDescription) -> Self {
-        self.query = self.query.join(join_description.to_join_clause(M::table_name()));
+        self.query = self
+            .query
+            .join(join_description.to_join_clause(M::table_schema(), M::table_name()));
         self.query.columns.extend(join_description.select_clause());
         self
     }
@@ -230,8 +232,7 @@ where
 impl<'args, DB: sqlx::Database + DatabaseMetadata, M: Model<DB>> Default for SelectQueryBuilder<'args, DB, M> {
     fn default() -> Self {
         Self {
-            query: Select::default()
-                .from(M::table_name()),
+            query: Select::default().from_table_with_schema(M::table_schema(), M::table_name()),
             arguments: QueryBuilderArgs::default(),
             model: PhantomData,
             gen: DB::placeholder(),

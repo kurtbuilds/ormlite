@@ -28,6 +28,16 @@ pub fn impl_Model__insert(db: &dyn OrmliteCodegen, attr: &TableMetadata, metadat
             where
                 A: 'a + Send + ::ormlite::Acquire<'a, Database=#db>
         {
+            let mut insert_builder = ::ormlite::__private::Insert::new(#table);
+
+            if let Some(schema) = <Self as ::ormlite::TableMeta>::table_schema() {
+                insert_builder = insert_builder.schema(schema);
+            }
+
+            insert_builder = insert_builder.columns(<Self as ::ormlite::TableMeta>::table_columns())
+            .one_value(&[#(#params,)*])
+            .returning(<Self as ::ormlite::TableMeta>::table_columns());
+
             ::ormlite::__private::Insertion {
                 acquire: conn,
                 model: self,
@@ -55,24 +65,24 @@ pub fn impl_Model__insert(db: &dyn OrmliteCodegen, attr: &TableMetadata, metadat
                         Ok(model)
                     })
                 }),
-                insert: ::ormlite::__private::Insert::new(#table)
-                    .columns(<Self as ::ormlite::TableMeta>::table_columns())
-                    .one_value(&[#(#params,)*])
-                    .returning(<Self as ::ormlite::TableMeta>::table_columns()),
+                insert: insert_builder,
                 _db: ::std::marker::PhantomData,
             }
         }
     }
 }
 
-
 pub fn impl_ModelBuilder__insert(db: &dyn OrmliteCodegen, attr: &TableMetadata) -> TokenStream {
     let box_future = crate::util::box_fut_ts();
     let placeholder = db.placeholder_ts();
     let db = db.database_ts();
     let query = format!(
-        "INSERT INTO \"{}\" ({{}}) VALUES ({{}}) RETURNING *",
-        attr.table_name
+        "INSERT INTO {}\"{}\" ({{}}) VALUES ({{}}) RETURNING *",
+        attr.schema_name
+            .as_ref()
+            .map(|s| format!("\"{}\".", s))
+            .unwrap_or_default(),
+        attr.table_name,
     );
 
     let bind_parameters = attr.database_columns().map(generate_conditional_bind);
@@ -114,8 +124,9 @@ pub fn impl_InsertModel(db: &dyn OrmliteCodegen, attr: &TableMetadata) -> TokenS
     let model = &attr.struct_name;
     let mut placeholder = db.placeholder();
     let db = db.database_ts();
-    let insert_model = Ident::new(&insert_struct);
-    let fields = attr.database_columns()
+    let insert_model = Ident::new(insert_struct);
+    let fields = attr
+        .database_columns()
         .filter(|&c| !c.has_database_default)
         .map(|c| c.column_name.clone())
         .collect::<Vec<_>>()
@@ -127,8 +138,14 @@ pub fn impl_InsertModel(db: &dyn OrmliteCodegen, attr: &TableMetadata) -> TokenS
         .collect::<Vec<_>>()
         .join(",");
     let query = format!(
-        "INSERT INTO \"{}\" ({}) VALUES ({}) RETURNING *",
-        attr.table_name, fields, placeholders,
+        "INSERT INTO {}\"{}\" ({}) VALUES ({}) RETURNING *",
+        attr.schema_name
+            .as_ref()
+            .map(|s| format!("\"{}\".", s))
+            .unwrap_or_default(),
+        attr.table_name,
+        fields,
+        placeholders,
     );
 
     let query_bindings = attr.database_columns()

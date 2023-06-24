@@ -6,13 +6,21 @@ use crate::codegen::common::OrmliteCodegen;
 pub fn impl_TableMeta(meta: &TableMetadata) -> TokenStream {
     let model = &meta.struct_name;
     let table_name = &meta.table_name;
+    let schema_name = meta.schema_name.clone().unwrap_or_default();
     let id = &meta.pkey.column_name;
 
-    let field_names = meta.database_columns()
-        .map(|c| c.column_name.to_string());
+    let field_names = meta.database_columns().map(|c| c.column_name.to_string());
 
     quote! {
         impl ::ormlite::model::TableMeta for #model {
+            fn table_schema() -> Option<&'static str> {
+                if #schema_name.is_empty() {
+                    None
+                } else {
+                    Some(#schema_name)
+                }
+            }
+
             fn table_name() -> &'static str {
                 #table_name
             }

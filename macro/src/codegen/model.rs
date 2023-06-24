@@ -57,7 +57,11 @@ pub fn impl_Model__delete(db: &dyn OrmliteCodegen, attr: &TableMetadata) -> Toke
     let mut placeholder = db.placeholder();
 
     let query = format!(
-        "DELETE FROM \"{}\" WHERE {} = {}",
+        "DELETE FROM {}\"{}\" WHERE {} = {}",
+        attr.schema_name
+            .as_ref()
+            .map(|s| format!("\"{}\".", s))
+            .unwrap_or_default(),
         attr.table_name,
         attr.pkey.column_name,
         placeholder.next().unwrap()
@@ -92,7 +96,11 @@ pub fn impl_Model__fetch_one(db: &dyn OrmliteCodegen, attr: &TableMetadata) -> T
     let mut placeholder = db.placeholder();
 
     let query = format!(
-        "SELECT * FROM \"{}\" WHERE {} = {}",
+        "SELECT * FROM {}\"{}\" WHERE {} = {}",
+        attr.schema_name
+            .as_ref()
+            .map(|s| format!("\"{}\".", s))
+            .unwrap_or_default(),
         attr.table_name,
         attr.pkey.column_name,
         placeholder.next().unwrap()
