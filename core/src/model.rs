@@ -109,6 +109,7 @@ pub trait Model<DB>
 }
 
 pub trait TableMeta {
+    fn table_schema() -> Option<&'static str>;
     fn table_name() -> &'static str;
     fn table_columns() -> &'static [&'static str];
     fn primary_key() -> Option<&'static str>;

@@ -24,10 +24,14 @@ pub fn static_join_descriptions(attr: &TableMetadata, metadata_cache: &MetadataC
         } else {
             panic!("Unknown join type");
         };
+
+        let table_schema = &joined_table.schema_name.clone().unwrap_or_default();
         let table_name = &joined_table.table_name;
-        let columns = joined_table.columns.iter().filter(|c| !c.is_join()).map(|c| {
-            c.identifier.to_string()
-        });
+        let columns = joined_table
+            .columns
+            .iter()
+            .filter(|c| !c.is_join())
+            .map(|c| c.identifier.to_string());
         quote! {
             pub fn #id() -> ::ormlite::__private::JoinDescription {
                 ::ormlite::__private::JoinDescription {
@@ -36,6 +40,11 @@ pub fn static_join_descriptions(attr: &TableMetadata, metadata_cache: &MetadataC
                             #columns,
                         )*
                     ],
+                    table_schema: if #table_schema.is_empty() {
+                        None
+                    } else {
+                        Some(#table_schema)
+                    },
                     table_name: #table_name,
                     relation: #id_s,
                     key: #column_name,

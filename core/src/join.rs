@@ -167,6 +167,7 @@ pub enum SemanticJoinType {
 #[derive(Debug, Clone, Copy)]
 pub struct JoinDescription {
     pub joined_columns: &'static [&'static str],
+    pub table_schema: Option<&'static str>,
     pub table_name: &'static str,
     pub relation: &'static str,
     /// The column on the local table
@@ -176,32 +177,47 @@ pub struct JoinDescription {
 }
 
 impl JoinDescription {
-    pub fn to_join_clause(&self, local_table: &str) -> JoinQueryFragment {
+    pub fn to_join_clause(
+        &self,
+        local_schema: Option<&str>,
+        local_table: &str,
+    ) -> JoinQueryFragment {
         use SemanticJoinType::*;
+        let schema = self.table_schema;
         let table = self.table_name;
         let relation = self.relation;
         let local_key = self.key;
         let foreign_key = self.foreign_key;
+
+        let formatted_local_schema = match local_schema {
+            Some(s) => format!("\"{}\".", s),
+            None => "".to_string(),
+        };
+
         let join = match &self.semantic_join_type {
             ManyToOne => {
-                format!(r#""{relation}"."{foreign_key}" = "{local_table}"."{local_key}" "#)
+                format!(
+                    r#""{relation}"."{foreign_key}" = {formatted_local_schema}"{local_table}"."{local_key}" "#
+                )
             }
             OneToMany => {
-                format!(r#""{relation}"."{local_key}" = "{local_table}"."{foreign_key}" "#)
+                format!(
+                    r#""{relation}"."{local_key}" = {formatted_local_schema}"{local_table}"."{foreign_key}" "#
+                )
             }
             ManyToMany(_join_table) => {
                 unimplemented!()
             }
         };
-        JoinQueryFragment::new(table)
+        JoinQueryFragment::new_with_schema(schema, table)
             .alias(self.relation)
             .on_raw(join)
     }
 
-    pub fn select_clause(&self) -> impl Iterator<Item=SelectColumn> + '_ {
-        self.joined_columns.iter()
-            .map(|c| SelectColumn::table_column(self.relation, c)
-                .alias(self.alias(c)))
+    pub fn select_clause(&self) -> impl Iterator<Item = SelectColumn> + '_ {
+        self.joined_columns.iter().map(|c| {
+            SelectColumn::table_column_with_schema(self.table_schema, self.relation, c).alias(self.alias(c))
+        })
     }
 
     pub fn alias(&self, column: &str) -> String {

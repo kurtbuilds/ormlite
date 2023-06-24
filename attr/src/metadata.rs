@@ -226,6 +226,7 @@ impl quote::ToTokens for TType {
 /// All the metadata we can capture about a table
 #[derive(Builder, Debug, Clone)]
 pub struct TableMetadata {
+    pub schema_name: Option<String>,
     pub table_name: String,
     pub struct_name: Ident,
     /// Database column of the primary key
@@ -238,6 +239,7 @@ pub struct TableMetadata {
 impl Default for TableMetadata {
     fn default() -> Self {
         TableMetadata {
+            schema_name: None,
             table_name: String::new(),
             struct_name: Ident::new(""),
             pkey: ColumnMetadata::default(),
@@ -249,8 +251,9 @@ impl Default for TableMetadata {
 }
 
 impl TableMetadata {
-    pub fn new(name: &str, columns: Vec<ColumnMetadata>) -> Self {
+    pub fn new(name: &str, schema: Option<&str>, columns: Vec<ColumnMetadata>) -> Self {
         TableMetadata {
+            schema_name: schema.map(|s| s.to_string()),
             table_name: name.to_string(),
             struct_name: Ident(name.to_case(Case::Pascal)),
             pkey: ColumnMetadata::default(),
@@ -270,14 +273,21 @@ impl TableMetadata {
         TableMetadataBuilder::default()
     }
 
-    pub fn builder_from_struct_attributes(ast: &DeriveInput) -> Result<TableMetadataBuilder, SyndecodeError> {
+    pub fn builder_from_struct_attributes(
+        ast: &DeriveInput,
+    ) -> Result<TableMetadataBuilder, SyndecodeError> {
         let mut builder = TableMetadata::builder();
         builder.insert_struct(None);
+        builder.schema_name(None);
         builder.struct_name(Ident::from(&ast.ident));
         let mut databases = vec![];
         for attr in ast.attrs.iter().filter(|a| a.path.is_ident("ormlite")) {
-            let args: ModelAttributes = attr.parse_args()
+            let args: ModelAttributes = attr
+                .parse_args()
                 .map_err(|e| SyndecodeError(e.to_string()))?;
+            if let Some(value) = args.schema {
+                builder.schema_name(Some(value.value()));
+            }
             if let Some(value) = args.table {
                 builder.table_name(value.value());
             }
