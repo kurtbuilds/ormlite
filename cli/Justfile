@@ -19,7 +19,7 @@ release:
     cargo build --release
 
 install:
-    cargo install --path . --features ormlite/runtime-tokio-rustls
+    cargo install --path . --features experimental-sid
 
 # Tools for development
 bootstrap:

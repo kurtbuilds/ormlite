@@ -39,7 +39,7 @@ fn load_metadata_cache() -> MetadataCache {
     let mut tables = HashMap::new();
     let paths = get_var_model_folders();
     let paths = paths.iter().map(|p| p.as_path()).collect::<Vec<_>>();
-    let schema = schema_from_filepaths(&paths, &LoadOptions::default()).expect("Failed to preload models");
+    let schema = schema_from_filepaths(&paths).expect("Failed to preload models");
     for meta in schema.tables {
         let name = meta.struct_name.to_string();
         tables.insert(name, meta);

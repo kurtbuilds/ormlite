@@ -48,7 +48,7 @@ impl Intermediate {
         (models, types)
     }
 
-    fn from_with_opts(value: syn::File, opts: &LoadOptions) -> Self {
+    fn from_with_opts(value: syn::File) -> Self {
         let mut model_structs = Vec::new();
         let mut type_structs = Vec::new();
         let mut type_enums = Vec::new();
@@ -56,23 +56,20 @@ impl Intermediate {
             match item {
                 Item::Struct(s) => {
                     let mut attrs = Attributes::from(s.attrs.as_slice());
-                    if opts.verbose {
-                        eprintln!("Found struct: {}. Attributes: {}", s.ident, attrs);
-                    }
                     if attrs.has_derive("Model") {
                         attrs.retain("ormlite");
+                        tracing::debug!(model=s.ident.to_string(), "Found");
                         model_structs.push((s, attrs));
                     } else if attrs.has_derive("Type") {
+                        tracing::debug!(r#type=s.ident.to_string(), "Found");
                         type_structs.push((s, attrs));
                     } else if attrs.has_derive("ManualType") {
+                        tracing::debug!(r#type=s.ident.to_string(), "Found");
                         type_structs.push((s, attrs));
                     }
                 }
                 Item::Enum(e) => {
                     let attrs = Attributes::from(e.attrs.as_slice());
-                    if opts.verbose {
-                        eprintln!("Found struct: {}. Attributes: {}", e.ident, attrs);
-                    }
                     if attrs.has_derive("Type") || attrs.has_derive("ManualType") {
                         type_enums.push((e, attrs));
                     }
@@ -88,7 +85,7 @@ impl Intermediate {
     }
 }
 
-pub fn schema_from_filepaths(paths: &[&Path], opts: &LoadOptions) -> anyhow::Result<OrmliteSchema> {
+pub fn schema_from_filepaths(paths: &[&Path]) -> anyhow::Result<OrmliteSchema> {
     let walk = paths.iter().flat_map(Walk::new);
 
     let walk = walk.filter_map(|e| e.ok())
@@ -107,11 +104,9 @@ pub fn schema_from_filepaths(paths: &[&Path], opts: &LoadOptions) -> anyhow::Res
         if !contents.contains("Model") {
             continue;
         }
-        if opts.verbose {
-            eprintln!("{}: Checking for #[derive(Model)]", entry.display());
-        }
+        tracing::debug!(file=entry.display().to_string(), "Checking for derive attrs: Model, Type, ManualType");
         let ast = syn::parse_file(&contents)?;
-        let intermediate = Intermediate::from_with_opts(ast, opts);
+        let intermediate = Intermediate::from_with_opts(ast);
         let (models, types) = intermediate.into_models_and_types();
 
         for (item, _attrs) in models {

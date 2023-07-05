@@ -5,7 +5,7 @@ use std::path::Path;
 use anyhow::Result;
 use sqlmo::{Schema, Table, schema::Column};
 use ormlite_attr::{ColumnMetadata, Ident, InnerType, TableMetadata, TType};
-use ormlite_attr::{schema_from_filepaths, LoadOptions};
+use ormlite_attr::{schema_from_filepaths};
 
 #[derive(Debug)]
 pub struct Options {
@@ -13,7 +13,7 @@ pub struct Options {
 }
 
 pub trait TryFromOrmlite: Sized {
-    fn try_from_ormlite_project(path: &[&Path], opts: &Options) -> Result<Self>;
+    fn try_from_ormlite_project(path: &[&Path]) -> Result<Self>;
 }
 
 trait SqlDiffTableExt {
@@ -164,9 +164,9 @@ impl SqlType {
 }
 
 impl TryFromOrmlite for Schema {
-    fn try_from_ormlite_project(paths: &[&Path], opts: &Options) -> Result<Self> {
+    fn try_from_ormlite_project(paths: &[&Path]) -> Result<Self> {
         let mut schema = Self::default();
-        let mut fs_schema = schema_from_filepaths(paths, &LoadOptions { verbose: opts.verbose })?;
+        let mut fs_schema = schema_from_filepaths(paths)?;
         let primary_key_type: BTreeMap<String, InnerType> = fs_schema.tables.iter().map(|t|  {
             let pkey_ty = t.pkey.column_type.inner_type().clone();
             (t.struct_name.to_string(), pkey_ty)

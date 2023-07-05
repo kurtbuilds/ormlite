@@ -1,22 +1,22 @@
 use std::fs;
-use time::OffsetDateTime as DateTime;
-use time::macros::format_description;
 use std::fs::File;
 use std::io::Write;
-use std::path::{Path};
+use std::path::Path;
 
-use clap::Parser;
 use anyhow::{anyhow, Context, Error, Result};
-use sqlmo::{Migration, Schema, Dialect, ToSql, migrate::Statement};
-use ormlite::{Row};
+use clap::Parser;
+use sqlmo::{Dialect, migrate::Statement, Migration, Schema, ToSql};
+use time::macros::format_description;
+use time::OffsetDateTime as DateTime;
 use tokio::runtime::Runtime;
-use ormlite_core::schema::TryFromOrmlite;
-use ormlite::{Acquire};
-use ormlite::postgres::{PgConnection};
 
+use ormlite::Row;
+use ormlite::Acquire;
+use ormlite::postgres::PgConnection;
 use ormlite_core::config;
-
 use ormlite_core::config::get_var_model_folders;
+use ormlite_core::schema::TryFromOrmlite;
+
 use crate::util::{create_connection, create_runtime};
 
 const GET_MIGRATIONS_QUERY: &str = "SELECT
@@ -169,13 +169,29 @@ fn check_reversible_compatibility(reversible: bool, migration_environment: Optio
     Ok(())
 }
 
+#[allow(unused_variables)]
+fn experimental_modifications_to_schema(schema: &mut Schema) -> Result<()> {
+    use sqlmo::Type;
+    for table in &mut schema.tables {
+        for column in &mut table.columns {
+            #[cfg(feature = "experimental-sid")]
+            match &column.typ {
+                Type::Other(z) if z == "Sid" => {
+                    column.typ = Type::Uuid;
+                }
+                _ => {}
+            }
+        }
+    }
+    Ok(())
+}
+
 fn autogenerate_migration(codebase_path: &[&Path], runtime: &Runtime, conn: &mut PgConnection, opts: &Migrate) -> Result<Migration> {
     let mut current = runtime.block_on(Schema::try_from_database(conn, "public"))?;
     current.tables.retain(|t| t.name != "_sqlx_migrations");
 
-    let desired = Schema::try_from_ormlite_project(codebase_path, &ormlite_core::schema::Options {
-        verbose: opts.verbose,
-    })?;
+    let mut desired = Schema::try_from_ormlite_project(codebase_path)?;
+    experimental_modifications_to_schema(&mut desired)?;
 
     let migration = current.migrate_to(desired, &sqlmo::MigrationOptions {
         debug: opts.verbose,
@@ -205,11 +221,8 @@ impl Migrate {
             let folder_paths = folder_paths.iter().map(|p| p.as_path()).collect::<Vec<_>>();
             let migration = autogenerate_migration(&folder_paths, &runtime, conn, &self)?;
 
-            if self.verbose {
-                eprintln!("Debug calculations for migration:");
-                for debug in &migration.debug_results {
-                    eprintln!("{debug:?}");
-                }
+            for d in &migration.debug_results {
+                tracing::debug!(table=d.table_name(), "Table is identical");
             }
 
             if self.dry {
@@ -229,6 +242,7 @@ impl Migrate {
         file_name.push_str(&self.name);
         let migration_body = migration.as_ref().map(|m| {
             m.statements.iter()
+                .inspect(|&f| { dbg!(f); })
                 .map(|s| s.to_sql(Dialect::Postgres))
                 .collect::<Vec<_>>()
                 .join(";\n")
@@ -240,17 +254,19 @@ impl Migrate {
             create_migration(&folder, file_name.clone(), MigrationType::Simple, &migration_body)?;
         }
         if let Some(migration) = migration {
-            println!("It auto-generated the following actions:");
-            for statement in &migration.statements {
-                match statement {
-                    Statement::CreateTable(t) => println!("Create table {} with columns: {}", &t.name, t.columns.iter().map(|c| c.name.to_string()).collect::<Vec<_>>().join(", ")),
-                    Statement::CreateIndex(s) => println!("Create index {} on {}", &s.name, &s.table),
-                    Statement::AlterTable(s) => println!("Alter table {}", &s.name),
+            if migration.statements.is_empty() {
+                println!("No changes were detected. Generated an empty migration file.");
+            } else {
+                println!("It auto-generated the following actions:");
+                for statement in &migration.statements {
+                    match statement {
+                        Statement::CreateTable(t) => println!("Create table {} with columns: {}", &t.name, t.columns.iter().map(|c| c.name.to_string()).collect::<Vec<_>>().join(", ")),
+                        Statement::CreateIndex(s) => println!("Create index {} on {}", &s.name, &s.table),
+                        Statement::AlterTable(s) => println!("Alter table {}", &s.name),
+                    }
                 }
             }
         }
-
-
         Ok(())
     }
 }

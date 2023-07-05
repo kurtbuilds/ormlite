@@ -1,5 +1,8 @@
 use clap::{Parser, Subcommand};
 use anyhow::Result;
+use tracing::Level;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 
 mod command;
 mod util;
@@ -12,6 +15,8 @@ use command::*;
 struct Cli {
     #[command(subcommand)]
     command: Command,
+    #[clap(long, short, global = true)]
+    verbose: bool,
 }
 
 #[derive(Subcommand, Debug)]
@@ -28,8 +33,20 @@ pub enum Command {
 }
 
 fn main() -> Result<()> {
-    use Command::*;
     let cli = Cli::parse();
+    let level = if cli.verbose { Level::DEBUG } else { Level::INFO };
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer()
+            .without_time()
+        )
+        .with(tracing_subscriber::filter::Targets::new()
+            .with_target(env!("CARGO_PKG_NAME"), level)
+            .with_target("ormlite", level)
+            .with_target("ormlite_attr", level)
+            .with_target("sqlmo", level)
+        )
+        .init();
+    use Command::*;
     match cli.command {
         Migrate(m) => m.run(),
         Up(up) => up.run(),
