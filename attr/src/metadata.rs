@@ -260,6 +260,17 @@ pub struct ModelMetadata {
 //     }
 // }
 impl ModelMetadata {
+    pub fn new(name: &str, columns: Vec<ColumnMetadata>) -> Self {
+        let inner = TableMetadata::new(name, columns);
+        Self {
+            pkey: inner.columns.iter()
+                .find(|c| c.column_name == "id")
+                .unwrap()
+                .clone(),
+            inner,
+            insert_struct: None,
+        }
+    }
     pub fn table(&self) -> &str {
         &self.inner.table_name
     }
@@ -292,16 +303,24 @@ impl ModelMetadata {
         self.inner.columns.iter()
     }
 
-    pub fn from_derive(input: &DeriveInput) -> Result<Self, SyndecodeError> {
-        let meta = TableMetadata::from_derive(input)?;
+    pub fn from_derive(ast: &DeriveInput) -> Result<Self, SyndecodeError> {
+        let meta = TableMetadata::from_derive(ast)?;
         let pkey = meta.pkey.clone().expect(&format!(
             "No column marked with #[ormlite(primary_key)], and no column named id, uuid, {0}_id, or {0}_uuid",
             meta.table_name,
         ));
         let pkey = meta.columns.iter().find(|&c| c.column_name == pkey).unwrap().clone();
+        let mut insert_struct = None;
+        for attr in ast.attrs.iter().filter(|a| a.path.is_ident("ormlite")) {
+            let args: ModelAttributes = attr.parse_args()
+                .map_err(|e| SyndecodeError(e.to_string()))?;
+            if let Some(value) = args.insertable {
+                insert_struct = Some(value.to_string());
+            }
+        }
         Ok(Self {
             inner: meta,
-            insert_struct: None,
+            insert_struct,
             pkey,
         })
     }
@@ -351,6 +370,7 @@ impl TableMetadata {
                 .find(|c| candidates.contains(c.identifier.as_ref()));
             if let Some(c) = c {
                 c.marked_primary_key = true;
+                c.has_database_default = true;
                 pkey = Some(c.column_name.clone());
             }
         }
@@ -596,12 +616,7 @@ mod test {
             id: i32,
         }"#).unwrap();
         let input = DeriveInput::from(ast);
-        let mut meta = ModelMetadata::builder();
-        meta.struct_name(Ident("User".to_string()));
-        meta.table_name("user".to_string());
-        meta.insert_struct(None);
-        meta.databases(vec![]);
-        let meta = meta.complete_with_struct_body(&input).unwrap();
-        assert!(meta.pkey.unwrap().column_name == "Id");
+        let meta = ModelMetadata::from_derive(&input).unwrap();
+        assert!(meta.pkey.column_name == "Id");
     }
 }
