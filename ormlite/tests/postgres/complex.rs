@@ -25,6 +25,7 @@ struct Job {
     typ: JobType,
     name: String,
     data: Json<JobData>,
+    #[allow(dead_code)]
     #[ormlite(skip)]
     skipped: Option<Uuid>,
 }

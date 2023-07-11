@@ -369,7 +369,6 @@ impl TableMetadata {
             let c = columns.iter_mut()
                 .find(|c| candidates.contains(c.identifier.as_ref()));
             if let Some(c) = c {
-                c.marked_primary_key = true;
                 c.has_database_default = true;
                 pkey = Some(c.column_name.clone());
             }

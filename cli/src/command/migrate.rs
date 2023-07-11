@@ -171,6 +171,7 @@ fn check_reversible_compatibility(reversible: bool, migration_environment: Optio
 
 #[allow(unused_variables)]
 fn experimental_modifications_to_schema(schema: &mut Schema) -> Result<()> {
+    #[allow(unused_imports)]
     use sqlmo::Type;
     for table in &mut schema.tables {
         for column in &mut table.columns {
