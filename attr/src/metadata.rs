@@ -330,7 +330,7 @@ impl TableMetadataBuilder {
         if pkey.is_none() {
             let candidates = sqlmo::util::pkey_column_names(&self.table_name.as_ref().unwrap());
             for c in &mut cols {
-                if candidates.contains(&c.column_name) {
+                if candidates.contains(&c.identifier.to_string()) {
                     c.has_database_default = true;
                     pkey = Some(c.clone());
                     break;
@@ -541,6 +541,7 @@ impl TryFrom<&Field> for ColumnMetadata {
 
 #[cfg(test)]
 mod test {
+    use syn::ItemStruct;
     use super::*;
 
     #[test]
@@ -565,5 +566,21 @@ mod test {
         assert_eq!(ty.path[0].0.as_str(), "rust_decimal");
         let z = quote::quote!(#ty);
         assert_eq!(z.to_string(), "rust_decimal :: Decimal");
+    }
+
+    #[test]
+    fn test_decode_metadata() {
+        let ast = syn::parse_str::<ItemStruct>(r#"struct User {
+            #[ormlite(column = "Id")]
+            id: i32,
+        }"#).unwrap();
+        let input = DeriveInput::from(ast);
+        let mut meta = TableMetadata::builder();
+        meta.struct_name(Ident("User".to_string()));
+        meta.table_name("user".to_string());
+        meta.insert_struct(None);
+        meta.databases(vec![]);
+        let meta = meta.complete_with_struct_body(&input).unwrap();
+        assert!(meta.pkey.column_name == "Id");
     }
 }
