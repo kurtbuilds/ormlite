@@ -1,6 +1,6 @@
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
-use ormlite_attr::{ColumnMetadata, Ident, TableMetadata, TType};
+use ormlite_attr::{ColumnMetadata, Ident, ModelMetadata, TableMetadata, TType};
 use crate::codegen::common::{generate_conditional_bind, insertion_binding, OrmliteCodegen};
 use crate::MetadataCache;
 
@@ -106,32 +106,31 @@ pub fn impl_ModelBuilder__insert(db: &dyn OrmliteCodegen, attr: &TableMetadata) 
     }
 }
 
-pub fn impl_InsertModel(db: &dyn OrmliteCodegen, attr: &TableMetadata) -> TokenStream {
-    let Some(insert_struct) = &attr.insert_struct else {
+pub fn impl_InsertModel(db: &dyn OrmliteCodegen, meta: &ModelMetadata) -> TokenStream {
+    let Some(insert_struct) = &meta.insert_struct else {
         return quote! {};
     };
     let box_future = crate::util::box_fut_ts();
-    let model = &attr.struct_name;
+    let model = &meta.inner.struct_name;
     let mut placeholder = db.placeholder();
     let db = db.database_ts();
     let insert_model = Ident::new(&insert_struct);
-    let fields = attr.database_columns()
+    let fields = meta.database_columns()
         .filter(|&c| !c.has_database_default)
         .map(|c| c.column_name.clone())
         .collect::<Vec<_>>()
         .join(",");
-    let placeholders = attr
-        .database_columns()
+    let placeholders = meta.database_columns()
         .filter(|&c| !c.has_database_default)
         .map(|_| placeholder.next().unwrap())
         .collect::<Vec<_>>()
         .join(",");
     let query = format!(
         "INSERT INTO \"{}\" ({}) VALUES ({}) RETURNING *",
-        attr.table_name, fields, placeholders,
+        meta.inner.table_name, fields, placeholders,
     );
 
-    let query_bindings = attr.database_columns()
+    let query_bindings = meta.database_columns()
         .filter(|&c| !c.has_database_default)
         .map(|c| {
             if let Some(rust_default) = &c.rust_default {
@@ -143,9 +142,9 @@ pub fn impl_InsertModel(db: &dyn OrmliteCodegen, attr: &TableMetadata) -> TokenS
             insertion_binding(c)
         });
 
-    let insert_join = attr.many_to_one_joins().map(|c| insert_join(c));
+    let insert_join = meta.inner.many_to_one_joins().map(|c| insert_join(c));
 
-    let late_bind = attr.many_to_one_joins().map(|c| {
+    let late_bind = meta.many_to_one_joins().map(|c| {
         let id = &c.identifier;
         quote! {
             model.#id = #id;

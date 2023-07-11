@@ -7,7 +7,7 @@ use syn::punctuated::Punctuated;
 use syn::token::{Comma, Token};
 use syn::{DeriveInput, Field};
 use syn::spanned::Spanned;
-use ormlite_attr::{ColumnMetadata, DeriveInputExt, FieldExt, Ident, InnerType, TableMetadata, TType};
+use ormlite_attr::{ColumnMetadata, DeriveInputExt, FieldExt, Ident, InnerType, ModelMetadata, TableMetadata, TType};
 use crate::MetadataCache;
 use itertools::Itertools;
 use sqlx::Column;
@@ -65,8 +65,8 @@ fn recursive_primitive_types_ty<'a>(ty: &'a TType, cache: &'a MetadataCache) -> 
 }
 
 
-fn recursive_primitive_types<'a>(table: &'a TableMetadata, cache: &'a MetadataCache) -> Vec<Cow<'a, InnerType>> {
-    table.columns.iter()
+fn recursive_primitive_types<'a>(table: &'a ModelMetadata, cache: &'a MetadataCache) -> Vec<Cow<'a, InnerType>> {
+    table.inner.columns.iter()
         .map(|c| {
             recursive_primitive_types_ty(&c.column_type, cache)
         })

@@ -13,6 +13,9 @@ impl Ident {
     pub fn new(ident: &str) -> Self {
         Ident(ident.to_string())
     }
+    pub fn as_ref(&self) -> &String {
+        &self.0
+    }
 }
 
 impl From<&proc_macro2::Ident> for Ident {
@@ -131,7 +134,7 @@ impl TType {
                 quote::quote! {
                     #(#segments)::* #ident
                 }
-            },
+            }
             TType::Option(ty) => ty.qualified_inner_name(),
             TType::Vec(ty) => ty.qualified_inner_name(),
             TType::Join(ty) => ty.qualified_inner_name(),
@@ -223,28 +226,84 @@ impl quote::ToTokens for TType {
     }
 }
 
-/// All the metadata we can capture about a table
+/// Metadata used for IntoArguments, TableMeta, and (subset of) Model
 #[derive(Builder, Debug, Clone)]
 pub struct TableMetadata {
     pub table_name: String,
     pub struct_name: Ident,
-    /// Database column of the primary key
-    pub pkey: ColumnMetadata,
     pub columns: Vec<ColumnMetadata>,
-    pub insert_struct: Option<String>,
     pub databases: Vec<String>,
+
+    /// If you're using this, consider whether you should be using a ModelMetadata and its pkey,
+    /// which is not optional, instead.
+    pub pkey: Option<String>,
 }
 
-impl Default for TableMetadata {
-    fn default() -> Self {
-        TableMetadata {
-            table_name: String::new(),
-            struct_name: Ident::new(""),
-            pkey: ColumnMetadata::default(),
-            columns: vec![],
+/// Metadata used for IntoArguments, TableMeta, and (subset of) Model
+#[derive(Builder, Debug, Clone)]
+pub struct ModelMetadata {
+    pub inner: TableMetadata,
+    pub insert_struct: Option<String>,
+    pub pkey: ColumnMetadata,
+}
+
+// impl Default for TableMetadata {
+//     fn default() -> Self {
+//         TableMetadata {
+//             table_name: String::new(),
+//             struct_name: Ident::new(""),
+//             pkey: None,
+//             columns: vec![],
+//             insert_struct: None,
+//             databases: vec![],
+//         }
+//     }
+// }
+impl ModelMetadata {
+    pub fn table(&self) -> &str {
+        &self.inner.table_name
+    }
+
+    pub fn struct_name(&self) -> &Ident {
+        &self.inner.struct_name
+    }
+
+    pub fn builder_struct(&self) -> Ident {
+        let mut s = self.inner.struct_name.0.clone();
+        s.push_str("Builder");
+        Ident(s)
+    }
+
+    pub fn database_columns_except_pkey(&self) -> impl Iterator<Item=&ColumnMetadata> + '_ {
+        self.inner.columns.iter()
+            .filter(|&c| !c.skip)
+            .filter(|&c| self.pkey.column_name != c.column_name)
+    }
+
+    pub fn database_columns(&self) -> impl Iterator<Item=&ColumnMetadata> + '_ {
+        self.inner.database_columns()
+    }
+
+    pub fn many_to_one_joins(&self) -> impl Iterator<Item=&ColumnMetadata> + '_ {
+        self.inner.many_to_one_joins()
+    }
+
+    pub fn columns(&self) -> impl Iterator<Item=&ColumnMetadata> + '_ {
+        self.inner.columns.iter()
+    }
+
+    pub fn from_derive(input: &DeriveInput) -> Result<Self, SyndecodeError> {
+        let meta = TableMetadata::from_derive(input)?;
+        let pkey = meta.pkey.clone().expect(&format!(
+            "No column marked with #[ormlite(primary_key)], and no column named id, uuid, {0}_id, or {0}_uuid",
+            meta.table_name,
+        ));
+        let pkey = meta.columns.iter().find(|&c| c.column_name == pkey).unwrap().clone();
+        Ok(Self {
+            inner: meta,
             insert_struct: None,
-            databases: vec![],
-        }
+            pkey,
+        })
     }
 }
 
@@ -253,43 +312,55 @@ impl TableMetadata {
         TableMetadata {
             table_name: name.to_string(),
             struct_name: Ident(name.to_case(Case::Pascal)),
-            pkey: ColumnMetadata::default(),
+            pkey: None,
             columns,
-            insert_struct: None,
             databases: vec![],
         }
     }
 
-    pub fn builder_struct(&self) -> Ident {
-        let mut s = self.struct_name.0.clone();
-        s.push_str("Builder");
-        Ident(s)
-    }
 
     pub fn builder() -> TableMetadataBuilder {
         TableMetadataBuilder::default()
     }
 
-    pub fn builder_from_struct_attributes(ast: &DeriveInput) -> Result<TableMetadataBuilder, SyndecodeError> {
-        let mut builder = TableMetadata::builder();
-        builder.insert_struct(None);
-        builder.struct_name(Ident::from(&ast.ident));
+    pub fn from_derive(ast: &DeriveInput) -> Result<TableMetadata, SyndecodeError> {
         let mut databases = vec![];
+        let struct_name = Ident::from(&ast.ident);
+        let mut table_name = None;
         for attr in ast.attrs.iter().filter(|a| a.path.is_ident("ormlite")) {
             let args: ModelAttributes = attr.parse_args()
                 .map_err(|e| SyndecodeError(e.to_string()))?;
             if let Some(value) = args.table {
-                builder.table_name(value.value());
-            }
-            if let Some(value) = args.insertable {
-                builder.insert_struct(Some(value.to_string()));
+                table_name = Some(value.value());
             }
             if let Some(value) = args.database {
                 databases.push(value.value());
             }
         }
-        builder.databases(databases);
-        Ok(builder)
+        let table_name = table_name.unwrap_or_else(|| struct_name.to_string().to_case(Case::Snake));
+        let mut columns = ast.fields()
+            .map(ColumnMetadata::try_from)
+            .collect::<Result<Vec<_>, _>>().unwrap();
+        let mut pkey = columns
+            .iter()
+            .find(|&c| c.marked_primary_key).map(|c| c.clone())
+            .map(|c| c.column_name.clone());
+        if pkey.is_none() {
+            let candidates = sqlmo::util::pkey_column_names(&table_name);
+            let c = columns.iter_mut()
+                .find(|c| candidates.contains(c.identifier.as_ref()));
+            if let Some(c) = c {
+                c.marked_primary_key = true;
+                pkey = Some(c.column_name.clone());
+            }
+        }
+        Ok(Self {
+            table_name,
+            struct_name,
+            columns,
+            databases,
+            pkey,
+        })
     }
 
     pub fn all_fields(&self) -> impl Iterator<Item=&Ident> + '_ {
@@ -302,12 +373,6 @@ impl TableMetadata {
             .filter(|&c| !c.skip)
     }
 
-    pub fn database_columns_except_pkey(&self) -> impl Iterator<Item=&ColumnMetadata> + '_ {
-        self.columns.iter()
-            .filter(|&c| !c.skip)
-            .filter(|&c| c.column_name != self.pkey.column_name)
-    }
-
     pub fn many_to_one_joins(&self) -> impl Iterator<Item=&ColumnMetadata> + '_ {
         self.columns.iter()
             .filter(|&c| c.many_to_one_column_name.is_some())
@@ -315,55 +380,10 @@ impl TableMetadata {
 }
 
 
-impl TableMetadataBuilder {
-    pub fn complete_with_struct_body(&mut self, ast: &DeriveInput) -> Result<TableMetadata, SyndecodeError> {
-        let model = &ast.ident;
-        let model_lowercased = model.to_string().to_case(Case::Snake);
-        self.table_name.get_or_insert(model_lowercased);
-
-        let mut cols = ast.fields()
-            .map(ColumnMetadata::try_from)
-            .collect::<Result<Vec<_>, _>>().unwrap();
-        let mut pkey = cols
-            .iter()
-            .find(|&c| c.marked_primary_key).map(|c| c.clone());
-        if pkey.is_none() {
-            let candidates = sqlmo::util::pkey_column_names(&self.table_name.as_ref().unwrap());
-            for c in &mut cols {
-                if candidates.contains(&c.identifier.to_string()) {
-                    c.has_database_default = true;
-                    pkey = Some(c.clone());
-                    break;
-                }
-            }
-        }
-        let pkey = pkey.expect(&format!("No column marked with #[ormlite(primary_key)], and no column named id, uuid, {0}_id, or {0}_uuid", self.table_name.as_ref().unwrap()));
-        self.pkey(pkey);
-        self.columns(cols);
-        self.build().map_err(|e| SyndecodeError(e.to_string()))
-    }
-}
-
-
-impl TryFrom<&DeriveInput> for TableMetadata {
-    type Error = SyndecodeError;
-
-    fn try_from(ast: &DeriveInput) -> Result<Self, Self::Error> {
-        TableMetadata::builder_from_struct_attributes(ast)?
-            .complete_with_struct_body(ast)
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct ForeignKey {
     pub model: String,
     pub column: String,
-}
-
-impl From<&syn::Path> for ForeignKey {
-    fn from(_value: &syn::Path) -> Self {
-        unimplemented!()
-    }
 }
 
 /// All the metadata we can capture about a column
@@ -514,9 +534,10 @@ impl TryFrom<&Field> for ColumnMetadata {
                 builder.many_to_many_table(Some(value));
                 has_join_directive = true;
             }
-            if let Some(path) = args.one_to_many_foreign_key {
-                builder.one_to_many_foreign_key(Some(ForeignKey::from(&path)));
-                has_join_directive = true;
+            if let Some(_path) = args.one_to_many_foreign_key {
+                panic!("Join support in ormlite is in alpha state, and one_to_many_foreign_key is unfortunately not implemented yet.");
+                // builder.one_to_many_foreign_key(Some(ForeignKey::from(&path)));
+                // has_join_directive = true;
             }
             if args.skip.value() {
                 builder.skip(true);
@@ -575,12 +596,12 @@ mod test {
             id: i32,
         }"#).unwrap();
         let input = DeriveInput::from(ast);
-        let mut meta = TableMetadata::builder();
+        let mut meta = ModelMetadata::builder();
         meta.struct_name(Ident("User".to_string()));
         meta.table_name("user".to_string());
         meta.insert_struct(None);
         meta.databases(vec![]);
         let meta = meta.complete_with_struct_body(&input).unwrap();
-        assert!(meta.pkey.column_name == "Id");
+        assert!(meta.pkey.unwrap().column_name == "Id");
     }
 }

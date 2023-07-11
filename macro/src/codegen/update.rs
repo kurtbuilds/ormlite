@@ -1,16 +1,16 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::DeriveInput;
-use ormlite_attr::{Ident, TableMetadata};
+use ormlite_attr::{Ident, ModelMetadata, TableMetadata};
 use crate::codegen::common::{generate_conditional_bind, insertion_binding, OrmliteCodegen};
 use crate::MetadataCache;
 
-pub fn impl_Model__update_all_fields(db: &dyn OrmliteCodegen, attr: &TableMetadata) -> TokenStream {
+pub fn impl_Model__update_all_fields(db: &dyn OrmliteCodegen, attr: &ModelMetadata) -> TokenStream {
     let box_future = crate::util::box_fut_ts();
     let mut placeholder = db.placeholder();
     let db = db.database_ts();
     let mut query = "UPDATE \"".to_string();
-    query.push_str(&attr.table_name);
+    query.push_str(&attr.inner.table_name);
     query.push_str("\" SET ");
     for c in attr.database_columns_except_pkey() {
         query.push_str(&c.column_name);
@@ -56,14 +56,14 @@ pub fn impl_Model__update_all_fields(db: &dyn OrmliteCodegen, attr: &TableMetada
 }
 
 
-pub fn impl_ModelBuilder__update(db: &dyn OrmliteCodegen, attr: &TableMetadata) -> TokenStream {
+pub fn impl_ModelBuilder__update(db: &dyn OrmliteCodegen, attr: &ModelMetadata) -> TokenStream {
     let box_future = crate::util::box_fut_ts();
     let placeholder = db.placeholder_ts();
     let db = db.database_ts();
 
     let query = format!(
         "UPDATE \"{}\" SET {{}} WHERE {} = {{}} RETURNING *",
-        attr.table_name, attr.pkey.column_name,
+        attr.table(), attr.pkey.column_name,
     );
 
     let bind_update = attr.database_columns().map(generate_conditional_bind);

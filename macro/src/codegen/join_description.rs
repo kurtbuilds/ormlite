@@ -24,8 +24,8 @@ pub fn static_join_descriptions(attr: &TableMetadata, metadata_cache: &MetadataC
         } else {
             panic!("Unknown join type");
         };
-        let table_name = &joined_table.table_name;
-        let columns = joined_table.columns.iter().filter(|c| !c.is_join()).map(|c| {
+        let table_name = &joined_table.inner.table_name;
+        let columns = joined_table.inner.columns.iter().filter(|c| !c.is_join()).map(|c| {
             c.identifier.to_string()
         });
         quote! {

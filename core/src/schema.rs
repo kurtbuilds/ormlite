@@ -4,7 +4,7 @@ use std::fmt::Formatter;
 use std::path::Path;
 use anyhow::Result;
 use sqlmo::{Schema, Table, schema::Column};
-use ormlite_attr::{ColumnMetadata, Ident, InnerType, TableMetadata, TType};
+use ormlite_attr::{ColumnMetadata, Ident, InnerType, ModelMetadata, TType};
 use ormlite_attr::{schema_from_filepaths};
 
 #[derive(Debug)]
@@ -17,22 +17,22 @@ pub trait TryFromOrmlite: Sized {
 }
 
 trait SqlDiffTableExt {
-    fn from_metadata(metadata: &TableMetadata) -> Result<Self, TypeTranslationError> where Self: Sized;
+    fn from_metadata(metadata: &ModelMetadata) -> Result<Self, TypeTranslationError> where Self: Sized;
 }
 
 impl SqlDiffTableExt for Table {
-    fn from_metadata(metadata: &TableMetadata) -> Result<Self, TypeTranslationError> {
+    fn from_metadata(model: &ModelMetadata) -> Result<Self, TypeTranslationError> {
         Ok(Self {
             schema: None,
-            name: metadata.table_name.clone(),
-            columns: metadata.columns.iter().map(|c| {
+            name: model.inner.table_name.clone(),
+            columns: model.inner.columns.iter().map(|c| {
                 if c.skip {
                     return Ok(None);
                 }
                 let Some(mut col) = Column::from_metadata(c)? else {
                     return Ok(None);
                 };
-                col.primary_key = metadata.pkey.column_name == col.name;
+                col.primary_key = model.pkey.column_name == col.name;
                 Ok(Some(col))
             })
                 .filter_map(|c| c.transpose())
@@ -169,10 +169,10 @@ impl TryFromOrmlite for Schema {
         let mut fs_schema = schema_from_filepaths(paths)?;
         let primary_key_type: BTreeMap<String, InnerType> = fs_schema.tables.iter().map(|t|  {
             let pkey_ty = t.pkey.column_type.inner_type().clone();
-            (t.struct_name.to_string(), pkey_ty)
+            (t.inner.struct_name.to_string(), pkey_ty)
         }).collect();
         for t in &mut fs_schema.tables {
-            for c in &mut t.columns {
+            for c in &mut t.inner.columns {
                 // replace alias types with the real type.
                 let inner = c.column_type.inner_type_mut();
                 if let Some(f) = fs_schema.type_reprs.get(&inner.ident.0) {

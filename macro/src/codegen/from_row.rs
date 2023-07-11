@@ -15,7 +15,7 @@ pub fn impl_FromRow(attr: &TableMetadata, cache: &MetadataCache) -> TokenStream 
         let result = if c.is_join_many() {
             unimplemented!("Join<Vec<...>> isn't supported quite yet...");
         } else {
-            let prefixed_columns = meta.columns.iter().map(|c| {
+            let prefixed_columns = meta.database_columns().map(|c| {
                 format!("__{}__{}", iden, c.identifier)
             });
             let path = c.joined_model();

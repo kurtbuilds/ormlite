@@ -1,12 +1,15 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use ormlite_attr::TableMetadata;
+use ormlite_attr::{ModelMetadata, TableMetadata};
 use crate::codegen::common::OrmliteCodegen;
 
-pub fn impl_TableMeta(meta: &TableMetadata) -> TokenStream {
+pub fn impl_TableMeta(meta: &TableMetadata, pkey: Option<&str>) -> TokenStream {
     let model = &meta.struct_name;
     let table_name = &meta.table_name;
-    let id = &meta.pkey.column_name;
+    let id = match pkey {
+        Some(id) => quote! { Some(#id) },
+        None => quote! { None },
+    };
 
     let field_names = meta.database_columns()
         .map(|c| c.column_name.to_string());
@@ -22,14 +25,14 @@ pub fn impl_TableMeta(meta: &TableMetadata) -> TokenStream {
             }
 
             fn primary_key() -> Option<&'static str> {
-                Some(#id)
+                #id
             }
         }
     }
 }
 
-pub fn impl_JoinMeta(attr: &TableMetadata) -> TokenStream {
-    let model = &attr.struct_name;
+pub fn impl_JoinMeta(attr: &ModelMetadata) -> TokenStream {
+    let model = &attr.inner.struct_name;
     let id_type = &attr.pkey.column_type;
     let id = &attr.pkey.identifier;
 

@@ -1,15 +1,15 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::DeriveInput;
-use ormlite_attr::{Ident, TableMetadata};
+use ormlite_attr::{Ident, ModelMetadata, TableMetadata};
 use crate::codegen::common::{insertion_binding, OrmliteCodegen};
 use crate::codegen::insert::impl_ModelBuilder__insert;
 use crate::codegen::update::impl_ModelBuilder__update;
 use crate::MetadataCache;
 
 
-pub fn struct_ModelBuilder(ast: &DeriveInput, attr: &TableMetadata) -> TokenStream {
-    let model = &attr.struct_name;
+pub fn struct_ModelBuilder(ast: &DeriveInput, attr: &ModelMetadata) -> TokenStream {
+    let model = &attr.inner.struct_name;
     let model_builder = attr.builder_struct();
     let vis = &ast.vis;
 
@@ -114,13 +114,13 @@ pub fn impl_ModelBuilder__build(attr: &TableMetadata) -> TokenStream {
 }
 
 
-pub fn impl_ModelBuilder(db: &dyn OrmliteCodegen, attr: &TableMetadata) -> TokenStream {
+pub fn impl_ModelBuilder(db: &dyn OrmliteCodegen, attr: &ModelMetadata) -> TokenStream {
     let partial_model = attr.builder_struct();
-    let model = &attr.struct_name;
+    let model = &attr.struct_name();
 
-    let impl_ModelBuilder__insert = impl_ModelBuilder__insert(db, attr);
+    let impl_ModelBuilder__insert = impl_ModelBuilder__insert(db, &attr.inner);
     let impl_ModelBuilder__update = impl_ModelBuilder__update(db, attr);
-    let impl_ModelBuilder__build = impl_ModelBuilder__build(attr);
+    let impl_ModelBuilder__build = impl_ModelBuilder__build(&attr.inner);
 
     let db = db.database_ts();
     quote! {

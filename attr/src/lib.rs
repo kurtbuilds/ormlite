@@ -26,7 +26,7 @@ pub struct LoadOptions {
 /// This is an intermediate representation of the schema.
 ///
 pub struct OrmliteSchema {
-    pub tables: Vec<TableMetadata>,
+    pub tables: Vec<ModelMetadata>,
     // map of rust structs (e.g. enums) to database encodings.
     // note that these are not bona fide postgres types.
     pub type_reprs: HashMap<String, String>,
@@ -111,11 +111,7 @@ pub fn schema_from_filepaths(paths: &[&Path]) -> anyhow::Result<OrmliteSchema> {
 
         for (item, _attrs) in models {
             let derive: DeriveInput = item.into();
-            let table = TableMetadata::try_from(&derive)
-                .map_err(|e| SyndecodeError(format!(
-                    "{}: Encountered an error while scanning for #[derive(Model)] structs: {}",
-                    entry.display(), e))
-                )?;
+            let table = ModelMetadata::from_derive(&derive)?;
             tables.push(table);
         }
 

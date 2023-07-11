@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::DeriveInput;
-use ormlite_attr::{Ident, TableMetadata};
+use ormlite_attr::{Ident, ModelMetadata, TableMetadata};
 use crate::codegen::common::{insertion_binding, OrmliteCodegen};
 use crate::codegen::insert::impl_Model__insert;
 use crate::codegen::select::impl_Model__select;
@@ -9,15 +9,15 @@ use crate::codegen::update::impl_Model__update_all_fields;
 use crate::MetadataCache;
 
 
-pub fn impl_Model(db: &dyn OrmliteCodegen, attr: &TableMetadata, metadata_cache: &MetadataCache) -> TokenStream {
-    let model = &attr.struct_name;
+pub fn impl_Model(db: &dyn OrmliteCodegen, attr: &ModelMetadata, metadata_cache: &MetadataCache) -> TokenStream {
+    let model = &attr.inner.struct_name;
     let partial_model = attr.builder_struct();
 
-    let impl_Model__insert = impl_Model__insert(db, attr, metadata_cache);
+    let impl_Model__insert = impl_Model__insert(db, &attr.inner, metadata_cache);
     let impl_Model__update_all_fields = impl_Model__update_all_fields(db, attr);
     let impl_Model__delete = impl_Model__delete(db, attr);
     let impl_Model__fetch_one = impl_Model__fetch_one(db, attr);
-    let impl_Model__select = impl_Model__select(db, attr);
+    let impl_Model__select = impl_Model__select(db, &attr.inner);
 
     let db = db.database_ts();
     quote! {
@@ -35,8 +35,8 @@ pub fn impl_Model(db: &dyn OrmliteCodegen, attr: &TableMetadata, metadata_cache:
     }
 }
 
-pub fn impl_HasModelBuilder(db: &dyn OrmliteCodegen, attr: &TableMetadata) -> TokenStream {
-    let model = &attr.struct_name;
+pub fn impl_HasModelBuilder(db: &dyn OrmliteCodegen, attr: &ModelMetadata) -> TokenStream {
+    let model = &attr.inner.struct_name;
     let partial_model = attr.builder_struct();
 
     let impl_Model__builder = impl_Model__builder(attr);
@@ -53,12 +53,12 @@ pub fn impl_HasModelBuilder(db: &dyn OrmliteCodegen, attr: &TableMetadata) -> To
     }
 }
 
-pub fn impl_Model__delete(db: &dyn OrmliteCodegen, attr: &TableMetadata) -> TokenStream {
+pub fn impl_Model__delete(db: &dyn OrmliteCodegen, attr: &ModelMetadata) -> TokenStream {
     let mut placeholder = db.placeholder();
 
     let query = format!(
         "DELETE FROM \"{}\" WHERE {} = {}",
-        attr.table_name,
+        attr.inner.table_name,
         attr.pkey.column_name,
         placeholder.next().unwrap()
     );
@@ -88,12 +88,12 @@ pub fn impl_Model__delete(db: &dyn OrmliteCodegen, attr: &TableMetadata) -> Toke
 }
 
 
-pub fn impl_Model__fetch_one(db: &dyn OrmliteCodegen, attr: &TableMetadata) -> TokenStream {
+pub fn impl_Model__fetch_one(db: &dyn OrmliteCodegen, attr: &ModelMetadata) -> TokenStream {
     let mut placeholder = db.placeholder();
 
     let query = format!(
         "SELECT * FROM \"{}\" WHERE {} = {}",
-        attr.table_name,
+        attr.inner.table_name,
         attr.pkey.column_name,
         placeholder.next().unwrap()
     );
@@ -119,7 +119,7 @@ pub fn impl_Model__fetch_one(db: &dyn OrmliteCodegen, attr: &TableMetadata) -> T
 }
 
 
-pub fn impl_Model__builder(attr: &TableMetadata) -> TokenStream {
+pub fn impl_Model__builder(attr: &ModelMetadata) -> TokenStream {
     let partial_model = &attr.builder_struct();
     quote! {
         fn builder() -> #partial_model<'static> {
@@ -128,7 +128,7 @@ pub fn impl_Model__builder(attr: &TableMetadata) -> TokenStream {
     }
 }
 
-pub fn impl_Model__update_partial(attr: &TableMetadata) -> TokenStream {
+pub fn impl_Model__update_partial(attr: &ModelMetadata) -> TokenStream {
     let partial_model = &attr.builder_struct();
     quote! {
         fn update_partial(&'slf self) -> #partial_model<'slf> {
