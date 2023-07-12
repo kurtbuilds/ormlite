@@ -6,6 +6,7 @@ use std::path::Path;
 use anyhow::{anyhow, Context, Error, Result};
 use clap::Parser;
 use sqlmo::{Dialect, migrate::Statement, Migration, Schema, ToSql};
+use sqlmo_sqlx::FromPostgres;
 use time::macros::format_description;
 use time::OffsetDateTime as DateTime;
 use tokio::runtime::Runtime;
@@ -188,7 +189,7 @@ fn experimental_modifications_to_schema(schema: &mut Schema) -> Result<()> {
 }
 
 fn autogenerate_migration(codebase_path: &[&Path], runtime: &Runtime, conn: &mut PgConnection, opts: &Migrate) -> Result<Migration> {
-    let mut current = runtime.block_on(Schema::try_from_database(conn, "public"))?;
+    let mut current = runtime.block_on(Schema::try_from_postgres(conn, "public"))?;
     current.tables.retain(|t| t.name != "_sqlx_migrations");
 
     let mut desired = Schema::try_from_ormlite_project(codebase_path)?;
