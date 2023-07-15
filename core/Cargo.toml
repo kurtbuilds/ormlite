@@ -23,6 +23,7 @@ sqlmo = "0.13"
 ormlite-attr = { path = "../attr" , version = "0.16"}
 anyhow = "1.0.69"
 async-trait = "0.1.68"
+serde = { version = "1.0.130", features = ["derive"] }
 
 [dev-dependencies]
 syn = "1.0.108"
