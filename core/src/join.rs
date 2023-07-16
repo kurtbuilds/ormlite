@@ -7,7 +7,7 @@ use sqlx::{Database, Decode, Encode, Type};
 use crate::model::Model;
 
 pub trait JoinMeta {
-    type IdType: Clone + Send;
+    type IdType: Clone + Send + Eq + PartialEq + std::hash::Hash;
     fn _id(&self) -> Self::IdType;
 }
 
