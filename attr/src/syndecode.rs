@@ -74,14 +74,14 @@ impl From<&[syn::Attribute]> for Attributes {
     fn from(attrs: &[syn::Attribute]) -> Self {
         let mut attributes = Vec::new();
         for attr in attrs.iter() {
-            if attr.path.is_ident("derive") {
+            if attr.path().is_ident("derive") {
                 DeriveAttribute::decode_many_from_attr(attr)
                     .into_iter()
                     .map(Attribute::Derive)
                     .for_each(|a| attributes.push(a));
             } else {
-                let name = attr.path.segments.last().unwrap().ident.to_string();
-                let attr = if attr.tokens.is_empty() {
+                let name = attr.path().segments.last().unwrap().ident.to_string();
+                let attr = if attr.meta.require_list().unwrap().tokens.is_empty() {
                     Attribute::Flag(name)
                 } else {
                     PropertiesAttribute::try_from(attr).map(Attribute::Properties)
