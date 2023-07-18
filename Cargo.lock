@@ -150,15 +150,6 @@ dependencies = [
 
 [[package]]
 name = "atoi"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d7c57d12312ff59c811c0643f4d80830505833c9ffaebd193d819392b265be8e"
-dependencies = [
- "num-traits",
-]
-
-[[package]]
-name = "atoi"
 version = "2.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f28d99ec8bfea296261ca1af174f24225171fea9664ba9003cbebee704810528"
@@ -186,12 +177,6 @@ dependencies = [
  "object",
  "rustc-demangle",
 ]
-
-[[package]]
-name = "base64"
-version = "0.13.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e1b586273c5702936fe7b7d6896644d8be71e6314cfe09d3167c95f712589e8"
 
 [[package]]
 name = "base64"
@@ -375,9 +360,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.3.12"
+version = "4.3.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3eab9e8ceb9afdade1ab3f0fd8dbce5b1b2f468ad653baf10e771781b2b67b73"
+checksum = "8f644d0dac522c8b05ddc39aaaccc5b136d5dc4ff216610c5641e3be5becf56c"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -386,9 +371,9 @@ dependencies = [
 
 [[package]]
 name = "clap_builder"
-version = "4.3.12"
+version = "4.3.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f2763db829349bf00cfc06251268865ed4363b93a943174f638daf3ecdba2cd"
+checksum = "af410122b9778e024f9e0fb35682cc09cc3f85cad5e8d3ba8f47a9702df6e73d"
 dependencies = [
  "anstream",
  "anstyle",
@@ -595,26 +580,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dirs"
-version = "4.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca3aa72a6f96ea37bbc5aa912f6788242832f75369bdfdadcb0e38423f100059"
-dependencies = [
- "dirs-sys",
-]
-
-[[package]]
-name = "dirs-sys"
-version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b1d1d91c932ef41c0f2663aa8b0ca0342d444d842c06914aa0a7e352d0bada6"
-dependencies = [
- "libc",
- "redox_users",
- "winapi",
-]
-
-[[package]]
 name = "dissimilar"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -778,24 +743,13 @@ dependencies = [
 
 [[package]]
 name = "futures-intrusive"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a604f7a68fbf8103337523b1fadc8ade7361ee3f112f7c680ad179651616aed5"
-dependencies = [
- "futures-core",
- "lock_api",
- "parking_lot 0.11.2",
-]
-
-[[package]]
-name = "futures-intrusive"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d930c203dd0b6ff06e0201a4a2fe9149b43c684fd4420555b26d21b1a02956f"
 dependencies = [
  "futures-core",
  "lock_api",
- "parking_lot 0.12.1",
+ "parking_lot",
 ]
 
 [[package]]
@@ -1036,16 +990,6 @@ dependencies = [
  "thread_local",
  "walkdir",
  "winapi-util",
-]
-
-[[package]]
-name = "indexmap"
-version = "1.9.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd070e393353796e801d209ad339e89596eb4c8d430d18ede6a1cced8fafbd99"
-dependencies = [
- "autocfg",
- "hashbrown 0.12.3",
 ]
 
 [[package]]
@@ -1337,8 +1281,8 @@ dependencies = [
  "ormlite-macro",
  "serde",
  "sqlmo",
- "sqlx 0.7.1",
- "sqlx-core 0.7.1",
+ "sqlx",
+ "sqlx-core",
  "tokio",
  "tokio-stream",
  "trybuild",
@@ -1397,7 +1341,7 @@ dependencies = [
  "serde",
  "sqlmo",
  "sqlparser",
- "sqlx 0.7.1",
+ "sqlx",
  "syn 2.0.26",
  "thiserror",
  "tokio",
@@ -1415,7 +1359,7 @@ dependencies = [
  "ormlite-core",
  "proc-macro2",
  "quote",
- "sqlx 0.7.1",
+ "sqlx",
  "syn 2.0.26",
 ]
 
@@ -1427,37 +1371,12 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 
 [[package]]
 name = "parking_lot"
-version = "0.11.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7d17b78036a60663b797adeaee46f5c9dfebb86948d1255007a1d6be0271ff99"
-dependencies = [
- "instant",
- "lock_api",
- "parking_lot_core 0.8.6",
-]
-
-[[package]]
-name = "parking_lot"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3742b2c103b9f06bc9fff0a37ff4912935851bee6d36f3c02bcc755bcfec228f"
 dependencies = [
  "lock_api",
- "parking_lot_core 0.9.8",
-]
-
-[[package]]
-name = "parking_lot_core"
-version = "0.8.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "60a2cfe6f0ad2bfc16aefa463b497d5c7a5ecd44a23efa72aa342d90177356dc"
-dependencies = [
- "cfg-if",
- "instant",
- "libc",
- "redox_syscall 0.2.16",
- "smallvec",
- "winapi",
+ "parking_lot_core",
 ]
 
 [[package]]
@@ -1468,7 +1387,7 @@ checksum = "93f00c865fe7cabf650081affecd3871070f26767e7b2070a3ffae14c654b447"
 dependencies = [
  "cfg-if",
  "libc",
- "redox_syscall 0.3.5",
+ "redox_syscall",
  "smallvec",
  "windows-targets",
 ]
@@ -1644,31 +1563,11 @@ dependencies = [
 
 [[package]]
 name = "redox_syscall"
-version = "0.2.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fb5a58c1855b4b6819d59012155603f0b22ad30cad752600aadfcb695265519a"
-dependencies = [
- "bitflags 1.3.2",
-]
-
-[[package]]
-name = "redox_syscall"
 version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "567664f262709473930a4bf9e51bf2ebf3348f2e748ccc50dea20646858f8f29"
 dependencies = [
  "bitflags 1.3.2",
-]
-
-[[package]]
-name = "redox_users"
-version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b033d837a7cf162d7993aded9304e30a83213c648b6e389db233191f891e5c2b"
-dependencies = [
- "getrandom",
- "redox_syscall 0.2.16",
- "thiserror",
 ]
 
 [[package]]
@@ -1827,18 +1726,6 @@ dependencies = [
 
 [[package]]
 name = "rustls"
-version = "0.20.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fff78fc74d175294f4e83b28343315ffcfb114b156f0185e9741cb5570f50e2f"
-dependencies = [
- "log",
- "ring",
- "sct",
- "webpki",
-]
-
-[[package]]
-name = "rustls"
 version = "0.21.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "79ea77c539259495ce8ca47f53e66ae0330a8819f67e23ac96ca02f50e7b7d36"
@@ -1854,7 +1741,7 @@ version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2d3987094b1d07b653b7dfdc3f70ce9a1da9c51ac18c1b06b662e4f9a0e9f4b2"
 dependencies = [
- "base64 0.21.2",
+ "base64",
 ]
 
 [[package]]
@@ -1884,9 +1771,9 @@ dependencies = [
 
 [[package]]
 name = "scopeguard"
-version = "1.1.0"
+version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
+checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
 name = "sct"
@@ -2055,8 +1942,6 @@ dependencies = [
 [[package]]
 name = "sqlmo"
 version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0fa64e26409e061ca3d6e0da7c0b295b735e2b3c86c75bc601d93b0d7d07f43b"
 dependencies = [
  "anyhow",
  "tracing",
@@ -2065,14 +1950,12 @@ dependencies = [
 [[package]]
 name = "sqlmo_sqlx"
 version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "799e0ea0a8d69e5ce1231a6f1713b704fc6323593c579c26663b9e65d191b6ed"
 dependencies = [
  "anyhow",
  "async-trait",
- "itertools 0.10.5",
+ "itertools 0.11.0",
  "sqlmo",
- "sqlx 0.6.3",
+ "sqlx",
 ]
 
 [[package]]
@@ -2086,78 +1969,15 @@ dependencies = [
 
 [[package]]
 name = "sqlx"
-version = "0.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8de3b03a925878ed54a954f621e64bf55a3c1bd29652d0d1a17830405350188"
-dependencies = [
- "sqlx-core 0.6.3",
- "sqlx-macros 0.6.3",
-]
-
-[[package]]
-name = "sqlx"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8e58421b6bc416714d5115a2ca953718f6c621a51b68e4f4922aea5a4391a721"
 dependencies = [
- "sqlx-core 0.7.1",
- "sqlx-macros 0.7.1",
+ "sqlx-core",
+ "sqlx-macros",
  "sqlx-mysql",
  "sqlx-postgres",
  "sqlx-sqlite",
-]
-
-[[package]]
-name = "sqlx-core"
-version = "0.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa8241483a83a3f33aa5fff7e7d9def398ff9990b2752b6c6112b83c6d246029"
-dependencies = [
- "ahash 0.7.6",
- "atoi 1.0.0",
- "base64 0.13.1",
- "bitflags 1.3.2",
- "byteorder",
- "bytes",
- "crc",
- "crossbeam-queue",
- "dirs",
- "dotenvy",
- "either",
- "event-listener",
- "futures-channel",
- "futures-core",
- "futures-intrusive 0.4.2",
- "futures-util",
- "hashlink",
- "hex",
- "hkdf",
- "hmac",
- "indexmap 1.9.3",
- "itoa",
- "libc",
- "log",
- "md-5",
- "memchr",
- "once_cell",
- "paste",
- "percent-encoding",
- "rand",
- "rustls 0.20.8",
- "rustls-pemfile",
- "serde",
- "serde_json",
- "sha1",
- "sha2",
- "smallvec",
- "sqlformat",
- "sqlx-rt",
- "stringprep",
- "thiserror",
- "tokio-stream",
- "url",
- "webpki-roots 0.22.6",
- "whoami",
 ]
 
 [[package]]
@@ -2167,7 +1987,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dd4cef4251aabbae751a3710927945901ee1d97ee96d757f6880ebb9a79bfd53"
 dependencies = [
  "ahash 0.8.3",
- "atoi 2.0.0",
+ "atoi",
  "byteorder",
  "bytes",
  "chrono",
@@ -2178,19 +1998,19 @@ dependencies = [
  "event-listener",
  "futures-channel",
  "futures-core",
- "futures-intrusive 0.5.0",
+ "futures-intrusive",
  "futures-io",
  "futures-util",
  "hashlink",
  "hex",
- "indexmap 2.0.0",
+ "indexmap",
  "log",
  "memchr",
  "once_cell",
  "paste",
  "percent-encoding",
  "rust_decimal",
- "rustls 0.21.5",
+ "rustls",
  "rustls-pemfile",
  "serde",
  "serde_json",
@@ -2204,26 +2024,7 @@ dependencies = [
  "tracing",
  "url",
  "uuid",
- "webpki-roots 0.24.0",
-]
-
-[[package]]
-name = "sqlx-macros"
-version = "0.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9966e64ae989e7e575b19d7265cb79d7fc3cbbdf179835cb0d716f294c2049c9"
-dependencies = [
- "dotenvy",
- "either",
- "heck",
- "once_cell",
- "proc-macro2",
- "quote",
- "sha2",
- "sqlx-core 0.6.3",
- "sqlx-rt",
- "syn 1.0.109",
- "url",
+ "webpki-roots",
 ]
 
 [[package]]
@@ -2234,7 +2035,7 @@ checksum = "208e3165167afd7f3881b16c1ef3f2af69fa75980897aac8874a0696516d12c2"
 dependencies = [
  "proc-macro2",
  "quote",
- "sqlx-core 0.7.1",
+ "sqlx-core",
  "sqlx-macros-core",
  "syn 1.0.109",
 ]
@@ -2255,7 +2056,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "sqlx-core 0.7.1",
+ "sqlx-core",
  "sqlx-mysql",
  "sqlx-postgres",
  "sqlx-sqlite",
@@ -2271,8 +2072,8 @@ version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ca69bf415b93b60b80dc8fda3cb4ef52b2336614d8da2de5456cc942a110482"
 dependencies = [
- "atoi 2.0.0",
- "base64 0.21.2",
+ "atoi",
+ "base64",
  "bitflags 2.3.3",
  "byteorder",
  "bytes",
@@ -2302,7 +2103,7 @@ dependencies = [
  "sha1",
  "sha2",
  "smallvec",
- "sqlx-core 0.7.1",
+ "sqlx-core",
  "stringprep",
  "thiserror",
  "time 0.3.23",
@@ -2317,8 +2118,8 @@ version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a0db2df1b8731c3651e204629dd55e52adbae0462fa1bdcbed56a2302c18181e"
 dependencies = [
- "atoi 2.0.0",
- "base64 0.21.2",
+ "atoi",
+ "base64",
  "bitflags 2.3.3",
  "byteorder",
  "chrono",
@@ -2346,7 +2147,7 @@ dependencies = [
  "sha1",
  "sha2",
  "smallvec",
- "sqlx-core 0.7.1",
+ "sqlx-core",
  "stringprep",
  "thiserror",
  "time 0.3.23",
@@ -2356,35 +2157,24 @@ dependencies = [
 ]
 
 [[package]]
-name = "sqlx-rt"
-version = "0.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "804d3f245f894e61b1e6263c84b23ca675d96753b5abfd5cc8597d86806e8024"
-dependencies = [
- "once_cell",
- "tokio",
- "tokio-rustls",
-]
-
-[[package]]
 name = "sqlx-sqlite"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be4c21bf34c7cae5b283efb3ac1bcc7670df7561124dc2f8bdc0b59be40f79a2"
 dependencies = [
- "atoi 2.0.0",
+ "atoi",
  "chrono",
  "flume",
  "futures-channel",
  "futures-core",
  "futures-executor",
- "futures-intrusive 0.5.0",
+ "futures-intrusive",
  "futures-util",
  "libsqlite3-sys",
  "log",
  "percent-encoding",
  "serde",
- "sqlx-core 0.7.1",
+ "sqlx-core",
  "time 0.3.23",
  "tracing",
  "url",
@@ -2473,7 +2263,7 @@ dependencies = [
  "autocfg",
  "cfg-if",
  "fastrand",
- "redox_syscall 0.3.5",
+ "redox_syscall",
  "rustix 0.37.23",
  "windows-sys",
 ]
@@ -2582,7 +2372,7 @@ dependencies = [
  "libc",
  "mio",
  "num_cpus",
- "parking_lot 0.12.1",
+ "parking_lot",
  "pin-project-lite",
  "signal-hook-registry",
  "socket2",
@@ -2599,17 +2389,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.26",
-]
-
-[[package]]
-name = "tokio-rustls"
-version = "0.23.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c43ee83903113e03984cb9e5cebe6c04a5116269e900e3ddba8f068a62adda59"
-dependencies = [
- "rustls 0.20.8",
- "tokio",
- "webpki",
 ]
 
 [[package]]
@@ -2884,25 +2663,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "webpki"
-version = "0.22.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f095d78192e208183081cc07bc5515ef55216397af48b873e5edcd72637fa1bd"
-dependencies = [
- "ring",
- "untrusted",
-]
-
-[[package]]
-name = "webpki-roots"
-version = "0.22.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6c71e40d7d2c34a5106301fb632274ca37242cd0c9d3e64dbece371a40a2d87"
-dependencies = [
- "webpki",
-]
-
-[[package]]
 name = "webpki-roots"
 version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2916,10 +2676,6 @@ name = "whoami"
 version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "22fc3756b8a9133049b26c7f61ab35416c130e8c09b660f5b3958b446f52cc50"
-dependencies = [
- "wasm-bindgen",
- "web-sys",
-]
 
 [[package]]
 name = "winapi"
