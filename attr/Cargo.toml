@@ -1,6 +1,6 @@
 [package]
 name = "ormlite-attr"
-version = "0.16.0"
+version = "0.17.0"
 edition = "2021"
 description = "See `ormlite`."
 authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
@@ -23,5 +23,5 @@ structmeta = "0.2"
 convert_case = "0.6"
 anyhow = "1.0"
 ignore = "0.4"
-sqlmo = { path = "../../sqlmo" }
+sqlmo = "0.15"
 tracing = "0.1"

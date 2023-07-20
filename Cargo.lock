@@ -1273,7 +1273,7 @@ checksum = "dd8b5dd2ae5ed71462c540258bedcb51965123ad7e7ccf4b9a8cafaa4a63576d"
 
 [[package]]
 name = "ormlite"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "chrono",
  "env_logger",
@@ -1291,7 +1291,7 @@ dependencies = [
 
 [[package]]
 name = "ormlite-attr"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "anyhow",
  "convert_case",
@@ -1307,7 +1307,7 @@ dependencies = [
 
 [[package]]
 name = "ormlite-cli"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -1331,7 +1331,7 @@ dependencies = [
 
 [[package]]
 name = "ormlite-core"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "anyhow",
  "assert_matches",
@@ -1350,7 +1350,7 @@ dependencies = [
 
 [[package]]
 name = "ormlite-macro"
-version = "0.16.0"
+version = "0.17.0"
 dependencies = [
  "itertools 0.11.0",
  "lazy_static",
@@ -1941,7 +1941,7 @@ dependencies = [
 
 [[package]]
 name = "sqlmo"
-version = "0.14.0"
+version = "0.15.0"
 dependencies = [
  "anyhow",
  "tracing",
@@ -1949,11 +1949,13 @@ dependencies = [
 
 [[package]]
 name = "sqlmo_sqlx"
-version = "0.14.0"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d30ecbaf581250d110768a8033c1ef3c88b5a0d8cd1caa5b955ba7b431a3509f"
 dependencies = [
  "anyhow",
  "async-trait",
- "itertools 0.11.0",
+ "itertools 0.10.5",
  "sqlmo",
  "sqlx",
 ]
