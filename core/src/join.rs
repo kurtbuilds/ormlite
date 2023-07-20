@@ -1,12 +1,13 @@
 use std::ops::{Deref, DerefMut};
 use async_trait::async_trait;
+use serde::{Serialize, Serializer};
 use sqlmo::query::{Join as JoinQueryFragment};
 use sqlmo::query::SelectColumn;
 use sqlx::{Database, Decode, Encode, Type};
 use crate::model::Model;
 
 pub trait JoinMeta {
-    type IdType: Clone + Send;
+    type IdType: Clone + Send + Eq + PartialEq + std::hash::Hash;
     fn _id(&self) -> Self::IdType;
 }
 
@@ -206,5 +207,17 @@ impl JoinDescription {
 
     pub fn alias(&self, column: &str) -> String {
         format!("__{}__{}", self.relation, column)
+    }
+}
+
+impl<T: JoinMeta + Serialize> Serialize for Join<T> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer {
+            match &self.data {
+                JoinData::Modified(data) => data.serialize(serializer),
+                JoinData::NotQueried => serializer.serialize_none(),
+                JoinData::QueryResult(data) => data.serialize(serializer),
+            }
     }
 }

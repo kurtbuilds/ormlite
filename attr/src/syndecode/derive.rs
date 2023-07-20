@@ -24,16 +24,11 @@ impl DeriveAttribute {
     }
 
     pub fn decode_many_from_attr(attr: &syn::Attribute) -> Vec<Self> {
-        let group = attr.tokens.clone().into_iter().next().expect("Derive attribute must have a token group");
-        let TokenTree::Group(group) = group else {
-            panic!("Derive attribute must have a token group");
-        };
-        let group = group.stream().into_iter();
-
+        let tokens = attr.meta.require_list().expect("Derive attribute must have a token group").clone().tokens;
         let mut current: Option<String> = None;
         let mut attributes = Vec::new();
 
-        for tok in group {
+        for tok in tokens {
             match tok {
                 TokenTree::Group(_) => {}
                 TokenTree::Ident(i) => {

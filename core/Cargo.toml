@@ -1,6 +1,6 @@
 [package]
 name = "ormlite-core"
-version = "0.16.0"
+version = "0.17.0"
 edition = "2021"
 description = "An ORM for people who love SQL. Use the `ormlite` crate, not this one."
 authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
@@ -15,16 +15,17 @@ runtime-tokio-rustls = ["sqlx/runtime-tokio-rustls"]
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
-futures = "0.3.25"
-sqlx = "0.6.0"
-sqlparser = "0.28.0"
-thiserror = "1.0.30"
-sqlmo = "0.13"
-ormlite-attr = { path = "../attr" , version = "0.16"}
-anyhow = "1.0.69"
-async-trait = "0.1.68"
+futures = "0.3"
+sqlx = "0.7"
+sqlparser = "0.35"
+thiserror = "1"
+sqlmo = "0.15"
+ormlite-attr = { path = "../attr" , version = "0.17" }
+anyhow = "1"
+async-trait = "0.1"
+serde = { version = "1", features = ["derive"] }
 
 [dev-dependencies]
-syn = "1.0.108"
-assert_matches = "1.5.0"
-uuid = { version = "1.3.2", features = ["serde", "v4"] }
+syn = "2"
+assert_matches = "1"
+uuid = { version = "1", features = ["serde", "v4"] }

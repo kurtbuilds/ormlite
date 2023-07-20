@@ -311,7 +311,7 @@ impl ModelMetadata {
         ));
         let pkey = meta.columns.iter().find(|&c| c.column_name == pkey).unwrap().clone();
         let mut insert_struct = None;
-        for attr in ast.attrs.iter().filter(|a| a.path.is_ident("ormlite")) {
+        for attr in ast.attrs.iter().filter(|a| a.path().is_ident("ormlite")) {
             let args: ModelAttributes = attr.parse_args()
                 .map_err(|e| SyndecodeError(e.to_string()))?;
             if let Some(value) = args.insertable {
@@ -346,7 +346,7 @@ impl TableMetadata {
         let mut databases = vec![];
         let struct_name = Ident::from(&ast.ident);
         let mut table_name = None;
-        for attr in ast.attrs.iter().filter(|a| a.path.is_ident("ormlite")) {
+        for attr in ast.attrs.iter().filter(|a| a.path().is_ident("ormlite")) {
             let args: ModelAttributes = attr.parse_args()
                 .map_err(|e| SyndecodeError(e.to_string()))?;
             if let Some(value) = args.table {
@@ -529,7 +529,7 @@ impl TryFrom<&Field> for ColumnMetadata {
             .rust_default(None)
         ;
         let mut has_join_directive = false;
-        for attr in f.attrs.iter().filter(|&a| a.path.is_ident("ormlite")) {
+        for attr in f.attrs.iter().filter(|&a| a.path().is_ident("ormlite")) {
             let args: ColumnAttributes = attr.parse_args().unwrap();
             if args.primary_key.value() {
                 builder.marked_primary_key(true);

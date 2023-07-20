@@ -1,6 +1,6 @@
 [package]
 name = "ormlite-cli"
-version = "0.16.0"
+version = "0.17.0"
 edition = "2021"
 description = "An ORM for people who love SQL. Use the `ormlite` crate, not this one."
 authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
@@ -20,23 +20,23 @@ default = ["ormlite/postgres", "ormlite/uuid", "ormlite/time", "ormlite/json", "
 experimental-sid = []
 
 [dependencies]
-anyhow = "1.0.68"
-time = { version = "0.3.5", features = ["formatting"] }
-clap = { version = "4.0.32", features = ["derive"] }
-ormlite = { version = "0.16.0", path = "../ormlite" }
-ormlite-core = { version = "0.16.0", path = "../core" }
-ormlite-attr = { version = "0.16.0", path = "../attr" }
+anyhow = "1"
+time = { version = "0.3", features = ["formatting"] }
+clap = { version = "4", features = ["derive"] }
+ormlite = { version = "0.17", path = "../ormlite" }
+ormlite-core = { version = "0.17", path = "../core" }
+ormlite-attr = { version = "0.17", path = "../attr" }
 tokio = { version = "1", features = ["full"] }
-sqlmo = { version = "0.13", features = ["tracing"] }
-sqlmo_sqlx = "0.1"
-syn = "1.0.107"
-proc-macro2 = "1.0.49"
-url = "2.3.1"
-sha2 = "0.10.6"
-regex = "1.7.0"
-colored = "2.0.0"
-tracing-subscriber = "0.3.17"
-tracing = "0.1.37"
+sqlmo = { version = "0.15", features = ["tracing"] }
+sqlmo_sqlx = "0.15"
+syn = "2"
+proc-macro2 = "1"
+url = "2"
+sha2 = "0.10"
+regex = "1"
+colored = "2"
+tracing-subscriber = "0.3"
+tracing = "0.1"
 
 [dev-dependencies]
-assert_matches = "1.5.0"
+assert_matches = "1"

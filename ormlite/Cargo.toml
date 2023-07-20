@@ -1,6 +1,6 @@
 [package]
 name = "ormlite"
-version = "0.16.0"
+version = "0.17.0"
 edition = "2021"
 authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
 description = "An ORM for people who love SQL"
@@ -32,7 +32,7 @@ sqlite = ["sqlx/sqlite", "ormlite-macro/sqlite", "ormlite-core/sqlite"]
 postgres = ["sqlx/postgres", "ormlite-macro/postgres", "ormlite-core/postgres"]
 runtime-tokio-rustls = ["ormlite-macro/runtime-tokio-rustls", "sqlx/runtime-tokio-rustls", "ormlite-core/runtime-tokio-rustls"]
 uuid = ["sqlx/uuid"]
-decimal = ["sqlx/decimal"]
+decimal = ["sqlx/rust_decimal"]
 chrono = ["sqlx/chrono"]
 time = ["sqlx/time"]
 json = ["sqlx/json"]
@@ -47,12 +47,12 @@ default-sqlite = ["sqlite", "ormlite-macro/default-sqlite"]
 default-mysql = ["mysql", "ormlite-macro/default-mysql"]
 
 [dependencies]
-sqlx = { version = "0.6.2" }
+sqlx = { version = "0.7" }
 tokio = { version = "1.24.1", features = ["full"] }
-ormlite-macro = { path = "../macro" , version = "0.16.0"}
-ormlite-core = { path = "../core" , version = "0.16.0"}
-sqlx-core = "0.6.2"
-sqlmo = "0.13"
+ormlite-macro = { path = "../macro" , version = "0.17.0" }
+ormlite-core = { path = "../core" , version = "0.17.0" }
+sqlx-core = "0.7"
+sqlmo = "0.15"
 tokio-stream = "0.1.14"
 
 [dev-dependencies]
