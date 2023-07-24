@@ -12,6 +12,17 @@ use rust_format::{Formatter, PrettyPlease};
 use sqlx::FromRow;
 use std::fs;
 
+/* TODO
+ * - Dynamically import required types
+ * - Reserved words `r#` quoting
+ * - Repeated field name detection
+ * - Integrate `KVec` one-to-many implementation
+ * - Properly support views
+ * - Provide a mechanism to skip unwanted fields and other settings (via doc-comments or custom directive)
+ * - `--split` option for generating one model per file
+ * - `--domains` option for domains as `type` aliases
+ */
+
 #[derive(Debug, FromRow)]
 struct ColumnDef {
     table_schema: String,
