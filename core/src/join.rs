@@ -221,3 +221,26 @@ impl<T: JoinMeta + Serialize> Serialize for Join<T> {
             }
     }
 }
+
+#[macro_export]
+macro_rules! fetch_linked {
+    ($conn:ident, $container:expr, $query:expr, $field:ident) => {
+        fetch_linked!($conn, $container, $query, $field, id)
+    };
+    ($conn:ident, $container:expr, $query:expr, $field:ident, $key:ident) => {
+        fetch_linked!($conn, $container, $query, $field, $key, $key)
+    };
+    ($conn:ident, $container:expr, $query:expr, $field:ident, $key:ident, $key_ref:ident) => {
+        $query
+            .where_bind(concat!(stringify!($key), " = ANY(?)"), $container.keys().copied().collect::<Vec<_>>())
+            .fetch_all(&mut $conn)
+            .await
+            .unwrap()
+            .into_iter()
+            .for_each(|row| {
+                $container.entry(row.$key_ref).and_modify(|item| {
+                    item.$field.insert(row.$key, row);
+                });
+            });
+    };
+}

@@ -17,13 +17,14 @@ runtime-tokio-rustls = ["sqlx/runtime-tokio-rustls"]
 tokio = { version = "1", features = ["full"] }
 futures = "0.3"
 sqlx = "0.7"
-sqlparser = "0.35"
+sqlparser = "0.36"
 thiserror = "1"
 sqlmo = "0.15"
 ormlite-attr = { path = "../attr" , version = "0.17" }
 anyhow = "1"
 async-trait = "0.1"
 serde = { version = "1", features = ["derive"] }
+indexmap = "2"
 
 [dev-dependencies]
 syn = "2"
