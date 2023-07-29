@@ -27,7 +27,7 @@ ormlite = { version = "0.17", path = "../ormlite" }
 ormlite-core = { version = "0.17", path = "../core" }
 ormlite-attr = { version = "0.17", path = "../attr" }
 tokio = { version = "1", features = ["full"] }
-sqlmo = { version = "0.15", features = ["tracing"] }
+sqlmo = { version = "0.16", features = ["tracing"] }
 sqlmo_sqlx = "0.15"
 syn = "2"
 proc-macro2 = "1"
