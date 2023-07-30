@@ -1280,7 +1280,7 @@ dependencies = [
  "ormlite-core",
  "ormlite-macro",
  "serde",
- "sqlmo 0.16.2",
+ "sqlmo",
  "sqlx",
  "sqlx-core",
  "tokio",
@@ -1299,7 +1299,7 @@ dependencies = [
  "ignore",
  "proc-macro2",
  "quote",
- "sqlmo 0.16.2",
+ "sqlmo",
  "structmeta",
  "syn 2.0.27",
  "tracing",
@@ -1319,7 +1319,7 @@ dependencies = [
  "proc-macro2",
  "regex",
  "sha2",
- "sqlmo 0.16.2",
+ "sqlmo",
  "sqlmo_sqlx",
  "syn 2.0.27",
  "time 0.3.23",
@@ -1339,7 +1339,7 @@ dependencies = [
  "futures",
  "ormlite-attr",
  "serde",
- "sqlmo 0.16.2",
+ "sqlmo",
  "sqlparser",
  "sqlx",
  "syn 2.0.27",
@@ -1941,15 +1941,6 @@ dependencies = [
 
 [[package]]
 name = "sqlmo"
-version = "0.15.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6681faef8b483f2c065cfb7a20bc4e4bebdfa3eba952f2a729e5be6852394dee"
-dependencies = [
- "anyhow",
-]
-
-[[package]]
-name = "sqlmo"
 version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "615d1dbc919be35b8aed9f23a9957a923a19cb7ff6f594b2a8d12e90d8c9cba6"
@@ -1960,14 +1951,14 @@ dependencies = [
 
 [[package]]
 name = "sqlmo_sqlx"
-version = "0.15.0"
+version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d30ecbaf581250d110768a8033c1ef3c88b5a0d8cd1caa5b955ba7b431a3509f"
+checksum = "fd0b48e865e7bd682a74ab4fe7cb2c130a7fcad06fbf6c6524d4b5bae60a32a1"
 dependencies = [
  "anyhow",
  "async-trait",
  "itertools 0.10.5",
- "sqlmo 0.15.0",
+ "sqlmo",
  "sqlx",
 ]
 

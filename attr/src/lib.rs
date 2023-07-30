@@ -56,7 +56,6 @@ impl Intermediate {
         for item in value.items {
             match item {
                 Item::Struct(s) => {
-                    println!("struct: {}", s.ident.to_string());
                     let attrs = Attributes2::from(s.attrs.as_slice());
                     if attrs.has_derive("Model") {
                         tracing::debug!(model=s.ident.to_string(), "Found");
@@ -109,7 +108,6 @@ pub fn schema_from_filepaths(paths: &[&Path]) -> anyhow::Result<OrmliteSchema> {
         tracing::debug!(file=entry.display().to_string(), "Checking for derive attrs: Model, Type, ManualType");
         let ast = syn::parse_file(&contents)
             .context(format!("Failed to parse file: {}", entry.display()))?;
-        println!("loaded file: {}", entry.display());
         let intermediate = Intermediate::from_with_opts(ast);
         let (models, types) = intermediate.into_models_and_types();
 
