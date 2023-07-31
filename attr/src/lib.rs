@@ -9,10 +9,11 @@ mod syndecode;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
+use anyhow::Context;
 use syn::{DeriveInput, Item};
 use ignore::Walk;
 
-use syndecode::{Attributes};
+use syndecode::{Attributes2};
 pub use metadata::*;
 pub use attr::*;
 pub use error::*;
@@ -32,7 +33,7 @@ pub struct OrmliteSchema {
     pub type_reprs: HashMap<String, String>,
 }
 
-type WithAttr<T> = (T, Attributes);
+type WithAttr<T> = (T, Attributes2);
 
 struct Intermediate {
     model_structs: Vec<WithAttr<syn::ItemStruct>>,
@@ -55,9 +56,8 @@ impl Intermediate {
         for item in value.items {
             match item {
                 Item::Struct(s) => {
-                    let mut attrs = Attributes::from(s.attrs.as_slice());
+                    let attrs = Attributes2::from(s.attrs.as_slice());
                     if attrs.has_derive("Model") {
-                        attrs.retain("ormlite");
                         tracing::debug!(model=s.ident.to_string(), "Found");
                         model_structs.push((s, attrs));
                     } else if attrs.has_derive("Type") {
@@ -69,7 +69,7 @@ impl Intermediate {
                     }
                 }
                 Item::Enum(e) => {
-                    let attrs = Attributes::from(e.attrs.as_slice());
+                    let attrs = Attributes2::from(e.attrs.as_slice());
                     if attrs.has_derive("Type") || attrs.has_derive("ManualType") {
                         type_enums.push((e, attrs));
                     }
@@ -100,29 +100,26 @@ pub fn schema_from_filepaths(paths: &[&Path]) -> anyhow::Result<OrmliteSchema> {
     let mut tables = vec![];
     let mut type_aliases = HashMap::new();
     for entry in walk {
-        let contents = fs::read_to_string(&entry)?;
+        let contents = fs::read_to_string(&entry)
+            .context(format!("failed to read file: {}", entry.display()))?;
         if !contents.contains("Model") {
             continue;
         }
         tracing::debug!(file=entry.display().to_string(), "Checking for derive attrs: Model, Type, ManualType");
-        let ast = syn::parse_file(&contents)?;
+        let ast = syn::parse_file(&contents)
+            .context(format!("Failed to parse file: {}", entry.display()))?;
         let intermediate = Intermediate::from_with_opts(ast);
         let (models, types) = intermediate.into_models_and_types();
 
         for (item, _attrs) in models {
             let derive: DeriveInput = item.into();
-            let table = ModelMetadata::from_derive(&derive)?;
+            let table = ModelMetadata::from_derive(&derive)
+                .context(format!("Failed to parse model: {}", derive.ident.to_string()))?;
             tables.push(table);
         }
 
         for (name, attrs) in types {
-            let mut ty = "String".to_string();
-            for attr in attrs.iter_args() {
-                if attr.name != "repr" {
-                    continue;
-                }
-                ty = attr.args.first().expect("repr attribute must have at least one argument").clone();
-            }
+            let ty = attrs.repr.unwrap_or_else(|| "String".to_string());
             type_aliases.insert(name, ty);
         }
     }

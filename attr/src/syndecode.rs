@@ -1,120 +1,95 @@
-use std::fmt::Display;
-pub use self::args::ArgsAttribute;
-use self::derive::DeriveAttribute;
-use self::properties::PropertiesAttribute;
-
-mod args;
-mod derive;
-mod properties;
+use proc_macro2::{TokenStream};
+use syn::Meta;
 
 #[derive(Debug)]
-pub enum Attribute {
-    Derive(DeriveAttribute),
-    Properties(PropertiesAttribute),
-    Args(ArgsAttribute),
-    Flag(String),
-}
-
-impl Attribute {
-    pub fn name(&self) -> &str {
-        match self {
-            Attribute::Derive(attr) => attr.trait_name(),
-            Attribute::Properties(attr) => attr.name.as_str(),
-            Attribute::Args(attr) => attr.name.as_str(),
-            Attribute::Flag(attr) => &attr,
-        }
-    }
+pub struct Derives {
+    pub is_model: bool,
+    pub is_type: bool,
+    pub is_manual_type: bool,
 }
 
 #[derive(Debug)]
-pub struct Attributes(Vec<Attribute>);
+pub struct Attributes2 {
+    pub derives: Derives,
+    pub repr: Option<String>,
+}
 
-impl Attributes {
+impl Attributes2 {
     pub fn has_derive(&self, trait_name: &str) -> bool {
-        self.0.iter().any(|attr| {
-            matches!(attr, Attribute::Derive(a) if a.trait_name() == trait_name)
-        })
-    }
-
-    pub fn iter_args(&self) -> impl Iterator<Item=&ArgsAttribute> {
-        self.0.iter().filter_map(|attr| match attr {
-            Attribute::Args(a) => Some(a),
-            _ => None
-        })
+        match trait_name {
+            "Model" => self.derives.is_model,
+            "Type" => self.derives.is_type,
+            "ManualType" => self.derives.is_manual_type,
+            _ => false,
+        }
     }
 }
 
-impl Display for Attributes {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "(")?;
-        if self.0.iter().filter(|f| matches!(f, Attribute::Derive(_))).count() > 0 {
-            write!(f, "#[derive(")?;
-            for attr in self.0.iter().filter_map(|f| match f {
-                Attribute::Derive(d) => Some(d),
-                _ => None
-            }) {
-                write!(f, "{},", attr.trait_name())?;
-            }
-            write!(f, ")], ")?;
-        }
-        for attr in self.0.iter() {
-            match attr {
-                Attribute::Derive(_) => {},
-                Attribute::Properties(attr) => write!(f, "{}({:?}), ", attr.name, attr.properties)?,
-                Attribute::Args(attr) => write!(f, "{}({}), ", attr.name, attr.args.join(", "))?,
-                Attribute::Flag(attr) => write!(f, "{}, ", attr)?,
-            }
-        }
-        write!(f, ")")?;
-        Ok(())
-    }
-}
+fn decode_traits_from_derive_tokens(derives: &mut Derives, tokens: &TokenStream) {
+    use proc_macro2::TokenTree;
 
-impl From<&[syn::Attribute]> for Attributes {
-    fn from(attrs: &[syn::Attribute]) -> Self {
-        let mut attributes = Vec::new();
-        for attr in attrs.iter() {
-            if attr.path().is_ident("derive") {
-                DeriveAttribute::decode_many_from_attr(attr)
-                    .into_iter()
-                    .map(Attribute::Derive)
-                    .for_each(|a| attributes.push(a));
-            } else {
-                let name = attr.path().segments.last().unwrap().ident.to_string();
-                let attr = if attr.meta.require_list().unwrap().tokens.is_empty() {
-                    Attribute::Flag(name)
+    let mut iter = tokens.clone().into_iter().peekable();
+
+    while let Some(tok) = iter.next() {
+        match tok {
+            TokenTree::Ident(i) => {
+                let p = iter.peek();
+                if p.is_none() || matches!(p.unwrap(), TokenTree::Punct(p) if p.as_char() == ',') {
+                    match i.to_string().as_str() {
+                        "Model" => derives.is_model = true,
+                        "Type" => derives.is_type = true,
+                        "ManualType" => derives.is_manual_type = true,
+                        _ => {}
+                    }
+                    _ = iter.next();
+                    continue;
+                } else if matches!(p.unwrap(), TokenTree::Punct(p) if p.as_char() == ':') {
+                    let ns = i.to_string();
+                    if !(ns == "sqlx" || ns == "ormlite") {
+                        iter.find(|tok| matches!(tok, TokenTree::Punct(p) if p.as_char() == ','));
+                        continue;
+                    }
+                    _ = iter.next(); // consume the colon
+                    _ = iter.next(); // consume another colon
+                    continue;
                 } else {
-                    PropertiesAttribute::try_from(attr).map(Attribute::Properties)
-                        .or_else(|_| {
-                            ArgsAttribute::try_from(attr).map(Attribute::Args)
-                        }).expect("Unknown attribute")
-                };
-                attributes.push(attr);
+                    panic!("Unexpected token in derive attribute: {:?}", p);
+                }
+            }
+            _ => panic!("Unexpected token in derive attribute: {:?}", tok),
+        }
+    }
+}
+
+impl From<&[syn::Attribute]> for Attributes2 {
+    fn from(attrs: &[syn::Attribute]) -> Self {
+        let mut repr = None;
+        let mut derives = Derives {
+            is_model: false,
+            is_type: false,
+            is_manual_type: false,
+        };
+        for attr in attrs.iter() {
+            match &attr.meta {
+                Meta::List(l) => {
+                    let Some(ident) = l.path.get_ident() else { continue; };
+                    if ident == "derive" {
+                        decode_traits_from_derive_tokens(&mut derives, &l.tokens);
+                    } else if ident == "repr" {
+                        let ident = l.tokens.clone().into_iter().next().expect("Encountered a repr attribute without an argument.");
+                        repr = Some(ident.to_string());
+                    }
+                }
+                _ => {}
             }
         }
-        Attributes(attributes)
+        Attributes2 { derives, repr }
     }
 }
-
-impl Attributes {
-    /// keeps all the derives, but filters the attributes for the word
-    pub fn retain(&mut self, filter: &str) {
-        self.0.retain(|f| matches!(f, Attribute::Derive(_)) || f.name() == filter);
-    }
-}
-
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_derives() {
-        let attrs = Attributes(vec![
-            Attribute::Derive(DeriveAttribute::new("ormlite::Model")),
-        ]);
-        assert!(attrs.has_derive("Model"));
-    }
 
     #[test]
     fn test_repr() {
@@ -127,11 +102,35 @@ mod tests {
             }
         };
         let item = syn::parse2::<syn::ItemEnum>(q).unwrap();
-        let attrs = Attributes::from(item.attrs.as_slice());
+        let attrs = Attributes2::from(item.attrs.as_slice());
+        dbg!(&attrs);
         assert!(attrs.has_derive("Type"));
-        assert_eq!(attrs.iter_args().count(), 1);
-        let args = attrs.iter_args().next().unwrap();
-        assert_eq!(args.name, "repr");
-        assert_eq!(args.args, vec!["u8"]);
+        assert_eq!(attrs.repr, Some("u8".to_string()));
+    }
+
+    /// The attributes on this are sort of nonsense, but we want to test the dynamic attribute parsing
+    /// in ormlite_attr::Attribute
+    #[test]
+    fn test_attributes() {
+        // the doc string is the regression test
+        let code = r#"/// Json-serializable representation of query results
+#[derive(Debug, Serialize, Deserialize, Clone, sqlx::Type, ormlite::Model)]
+#[repr(u8)]
+#[ormlite(table = "result")]
+#[deprecated]
+pub struct QuerySet {
+    pub headers: Vec<String>,
+    pub rows: Vec<Vec<Value>>,
+}"#;
+        let file: syn::File = syn::parse_str(code).unwrap();
+        let syn::Item::Struct(item) = file.items.first().unwrap() else {
+            panic!("expected struct");
+        };
+        let attr = Attributes2::from(item.attrs.as_slice());
+        assert_eq!(attr.repr, Some("u8".to_string()));
+        assert_eq!(attr.derives.is_model, true);
+        assert_eq!(attr.derives.is_type, true);
+        assert_eq!(attr.derives.is_manual_type, false);
+
     }
 }
