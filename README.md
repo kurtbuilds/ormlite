@@ -291,7 +291,7 @@ async fn model_query_example() {
 
 async fn raw_query_example() {
     // You can also use the raw query API, which will return tuples to decode as you like
-    let _used_ids: Vec<i32> = ormlite::query("SELECT id FROM person")
+    let _used_ids: Vec<i32> = ormlite::query_as("SELECT id FROM person")
         .fetch_all(pool)
         .await
         .unwrap()
