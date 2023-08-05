@@ -23,6 +23,7 @@ use std::fs;
  * - `--domains` option for domains as `type` aliases
  */
 
+#[allow(dead_code)]
 #[derive(Debug, FromRow)]
 struct ColumnDef {
     table_schema: String,
