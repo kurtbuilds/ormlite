@@ -86,14 +86,17 @@ impl Intermediate {
 }
 
 pub fn schema_from_filepaths(paths: &[&Path]) -> anyhow::Result<OrmliteSchema> {
+    let invalid_paths = paths.iter().filter(|p| fs::metadata(p).is_err()).collect::<Vec<_>>();
+    if !invalid_paths.is_empty() {
+        for path in invalid_paths {
+            tracing::error!(path=path.display().to_string(), "Does not exist");
+        }
+        anyhow::bail!("Provided paths that did not exist.");
+    }
+
     let walk = paths.iter().flat_map(Walk::new);
 
-    let walk = walk.filter_map(|e| {
-        if let Err(e) = &e {
-            tracing::warn!("{}", e.to_string());
-        }
-        e.ok()
-    })
+    let walk = walk.map(|e| e.unwrap())
         .filter(|e| e.path().extension().map(|e| e == "rs")
             .unwrap_or(false))
         .map(|e| e.into_path())
