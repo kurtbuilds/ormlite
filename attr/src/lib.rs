@@ -88,7 +88,12 @@ impl Intermediate {
 pub fn schema_from_filepaths(paths: &[&Path]) -> anyhow::Result<OrmliteSchema> {
     let walk = paths.iter().flat_map(Walk::new);
 
-    let walk = walk.filter_map(|e| e.ok())
+    let walk = walk.filter_map(|e| {
+        if let Err(e) = &e {
+            tracing::warn!("{}", e.to_string());
+        }
+        e.ok()
+    })
         .filter(|e| e.path().extension().map(|e| e == "rs")
             .unwrap_or(false))
         .map(|e| e.into_path())
@@ -102,10 +107,10 @@ pub fn schema_from_filepaths(paths: &[&Path]) -> anyhow::Result<OrmliteSchema> {
     for entry in walk {
         let contents = fs::read_to_string(&entry)
             .context(format!("failed to read file: {}", entry.display()))?;
+        tracing::debug!(file=entry.display().to_string(), "Checking for Model, Type, ManualType derive attrs");
         if !contents.contains("Model") {
             continue;
         }
-        tracing::debug!(file=entry.display().to_string(), "Checking for derive attrs: Model, Type, ManualType");
         let ast = syn::parse_file(&contents)
             .context(format!("Failed to parse file: {}", entry.display()))?;
         let intermediate = Intermediate::from_with_opts(ast);
