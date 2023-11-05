@@ -244,7 +244,6 @@ impl Migrate {
         file_name.push_str(&self.name);
         let migration_body = migration.as_ref().map(|m| {
             m.statements.iter()
-                .inspect(|&f| { dbg!(f); })
                 .map(|s| s.to_sql(Dialect::Postgres))
                 .collect::<Vec<_>>()
                 .join(";\n")

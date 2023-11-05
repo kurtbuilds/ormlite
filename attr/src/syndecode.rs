@@ -103,7 +103,6 @@ mod tests {
         };
         let item = syn::parse2::<syn::ItemEnum>(q).unwrap();
         let attrs = Attributes2::from(item.attrs.as_slice());
-        dbg!(&attrs);
         assert!(attrs.has_derive("Type"));
         assert_eq!(attrs.repr, Some("u8".to_string()));
     }
