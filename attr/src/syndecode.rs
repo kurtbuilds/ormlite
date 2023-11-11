@@ -176,6 +176,6 @@ pub enum Privacy {
         assert_eq!(attr.repr, None);
         assert_eq!(attr.derives.is_model, false);
         assert_eq!(attr.derives.is_type, true);
-        assert_eq!(attr.derives.is_manual_type, true);
+        assert_eq!(attr.derives.is_manual_type, false);
     }
 }
