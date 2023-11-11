@@ -49,6 +49,12 @@ fn decode_traits_from_derive_tokens(derives: &mut Derives, tokens: &TokenStream)
                     }
                     _ = iter.next(); // consume the colon
                     _ = iter.next(); // consume another colon
+                    let p = iter.peek();
+                    if matches!(p, Some(TokenTree::Ident(i)) if i.to_string() == "types") {
+                        _ = iter.next(); // consume the type
+                        _ = iter.next(); // consume a colon
+                        _ = iter.next(); // consume another colon
+                    }
                     continue;
                 } else {
                     panic!("Unexpected token in derive attribute: {:?}", p);
@@ -177,5 +183,35 @@ pub enum Privacy {
         assert_eq!(attr.derives.is_model, false);
         assert_eq!(attr.derives.is_type, true);
         assert_eq!(attr.derives.is_manual_type, false);
+    }
+
+    #[test]
+    fn test_cfg_attr2() {
+        let code = r#"
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[cfg_attr(
+    target_arch = "wasm32",
+    derive(tsify::Tsify),
+    tsify(into_wasm_abi, from_wasm_abi)
+)]
+#[cfg_attr(
+    not(target_arch = "wasm32"),
+    derive(ormlite::types::ManualType, strum::IntoStaticStr, strum::EnumString),
+    strum(serialize_all = "snake_case")
+)]
+#[serde(rename_all = "snake_case")]
+pub enum Privacy {
+    Private,
+    Team,
+    Public,
+}
+"#;
+        let file: syn::File = syn::parse_str(code).unwrap();
+        let syn::Item::Enum(item) = file.items.first().unwrap() else { panic!() };
+        let attr = Attributes2::from(item.attrs.as_slice());
+        assert_eq!(attr.repr, None);
+        assert_eq!(attr.derives.is_model, false);
+        assert_eq!(attr.derives.is_type, false);
+        assert_eq!(attr.derives.is_manual_type, true);
     }
 }
