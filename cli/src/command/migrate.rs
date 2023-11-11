@@ -244,9 +244,9 @@ impl Migrate {
         file_name.push_str(&self.name);
         let migration_body = migration.as_ref().map(|m| {
             m.statements.iter()
-                .map(|s| s.to_sql(Dialect::Postgres))
+                .map(|s| s.to_sql(Dialect::Postgres) + ";")
                 .collect::<Vec<_>>()
-                .join(";\n")
+                .join("\n")
         }).unwrap_or_default();
         if self.reversible {
             create_migration(&folder, file_name.clone(), MigrationType::Up, &migration_body)?;
@@ -261,9 +261,10 @@ impl Migrate {
                 println!("It auto-generated the following actions:");
                 for statement in &migration.statements {
                     match statement {
-                        Statement::CreateTable(t) => println!("Create table {} with columns: {}", &t.name, t.columns.iter().map(|c| c.name.to_string()).collect::<Vec<_>>().join(", ")),
+                        Statement::CreateTable(s) => println!("Create table {} with columns: {}", &s.name, s.columns.iter().map(|c| c.name.to_string()).collect::<Vec<_>>().join(", ")),
                         Statement::CreateIndex(s) => println!("Create index {} on {}", &s.name, &s.table),
                         Statement::AlterTable(s) => println!("Alter table {}", &s.name),
+                        Statement::Update(s) => println!("Update table {}", &s.table),
                     }
                 }
             }

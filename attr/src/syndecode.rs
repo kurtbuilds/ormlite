@@ -1,4 +1,4 @@
-use proc_macro2::{TokenStream};
+use proc_macro2::{TokenStream, TokenTree};
 use syn::Meta;
 
 #[derive(Debug)]
@@ -26,8 +26,6 @@ impl Attributes2 {
 }
 
 fn decode_traits_from_derive_tokens(derives: &mut Derives, tokens: &TokenStream) {
-    use proc_macro2::TokenTree;
-
     let mut iter = tokens.clone().into_iter().peekable();
 
     while let Some(tok) = iter.next() {
@@ -78,6 +76,20 @@ impl From<&[syn::Attribute]> for Attributes2 {
                     } else if ident == "repr" {
                         let ident = l.tokens.clone().into_iter().next().expect("Encountered a repr attribute without an argument.");
                         repr = Some(ident.to_string());
+                    } else if ident == "cfg_attr" {
+                        let mut iter = l.tokens.clone().into_iter().skip_while(|tok| !matches!(tok, TokenTree::Punct(p) if p.as_char() == ','));
+                        iter.next(); // skip the ,
+                        while let Some(tok) = iter.next() {
+                            match tok {
+                                TokenTree::Ident(i) => {
+                                    if i.to_string() == "derive" {
+                                        let Some(TokenTree::Group(toks)) = iter.next() else { panic!("Expected a token group after derive") };
+                                        decode_traits_from_derive_tokens(&mut derives, &toks.stream());
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
                     }
                 }
                 _ => {}
@@ -130,6 +142,40 @@ pub struct QuerySet {
         assert_eq!(attr.derives.is_model, true);
         assert_eq!(attr.derives.is_type, true);
         assert_eq!(attr.derives.is_manual_type, false);
+    }
 
+    #[test]
+    fn test_cfg_attr() {
+        // the doc string is the regression test
+        let code = r#"
+#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[cfg_attr(
+    target_arch = "wasm32",
+    derive(tsify::Tsify),
+    tsify(into_wasm_abi, from_wasm_abi)
+)]
+#[cfg_attr(
+    not(target_arch = "wasm32"),
+    derive(
+        sqlx::Type,
+        strum::IntoStaticStr,
+        strum::EnumString,
+    ),
+    strum(serialize_all = "snake_case")
+)]
+#[serde(rename_all = "snake_case")]
+pub enum Privacy {
+    Private,
+    Team,
+    Public,
+}
+"#;
+        let file: syn::File = syn::parse_str(code).unwrap();
+        let syn::Item::Enum(item) = file.items.first().unwrap() else { panic!() };
+        let attr = Attributes2::from(item.attrs.as_slice());
+        assert_eq!(attr.repr, None);
+        assert_eq!(attr.derives.is_model, false);
+        assert_eq!(attr.derives.is_type, true);
+        assert_eq!(attr.derives.is_manual_type, true);
     }
 }

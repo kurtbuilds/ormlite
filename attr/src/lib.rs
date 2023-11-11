@@ -58,19 +58,20 @@ impl Intermediate {
                 Item::Struct(s) => {
                     let attrs = Attributes2::from(s.attrs.as_slice());
                     if attrs.has_derive("Model") {
-                        tracing::debug!(model=s.ident.to_string(), "Found");
+                        tracing::debug!(model=%s.ident.to_string(), "Found");
                         model_structs.push((s, attrs));
                     } else if attrs.has_derive("Type") {
-                        tracing::debug!(r#type=s.ident.to_string(), "Found");
+                        tracing::debug!(r#type=%s.ident.to_string(), "Found");
                         type_structs.push((s, attrs));
                     } else if attrs.has_derive("ManualType") {
-                        tracing::debug!(r#type=s.ident.to_string(), "Found");
+                        tracing::debug!(r#type=%s.ident.to_string(), "Found");
                         type_structs.push((s, attrs));
                     }
                 }
                 Item::Enum(e) => {
                     let attrs = Attributes2::from(e.attrs.as_slice());
                     if attrs.has_derive("Type") || attrs.has_derive("ManualType") {
+                        tracing::debug!(r#type=%e.ident.to_string(), "Found");
                         type_enums.push((e, attrs));
                     }
                 }
@@ -111,7 +112,7 @@ pub fn schema_from_filepaths(paths: &[&Path]) -> anyhow::Result<OrmliteSchema> {
         let contents = fs::read_to_string(&entry)
             .context(format!("failed to read file: {}", entry.display()))?;
         tracing::debug!(file=entry.display().to_string(), "Checking for Model, Type, ManualType derive attrs");
-        if !contents.contains("Model") {
+        if !(contents.contains("Model") || contents.contains("Type") || contents.contains("ManualType")) {
             continue;
         }
         let ast = syn::parse_file(&contents)
