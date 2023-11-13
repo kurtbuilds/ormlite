@@ -1,6 +1,6 @@
 [package]
 name = "ormlite-macro"
-version = "0.17.1"
+version = "0.17.3"
 edition = "2021"
 description = "An ORM for people who love SQL. Use the `ormlite` crate, not this one."
 authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
@@ -24,7 +24,7 @@ default-mysql = ["mysql"]
 syn = { version = "2", features = ["derive", "parsing"] }
 quote = "1"
 proc-macro2 = "1"
-ormlite-core = { path = "../core", version = "0.17.1"}
+ormlite-core = { path = "../core", version = "0.17.3"}
 ormlite-attr = { path = "../attr", version = "0.17" }
 sqlx = "0.7"
 lazy_static = "1"

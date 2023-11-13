@@ -7,8 +7,8 @@ mod ext;
 mod syndecode;
 
 use std::collections::HashMap;
-use std::fs;
-use std::path::Path;
+use std::{env, fs};
+use std::path::{Path, PathBuf};
 use anyhow::Context;
 use syn::{DeriveInput, Item};
 use ignore::Walk;
@@ -58,19 +58,20 @@ impl Intermediate {
                 Item::Struct(s) => {
                     let attrs = Attributes2::from(s.attrs.as_slice());
                     if attrs.has_derive("Model") {
-                        tracing::debug!(model=s.ident.to_string(), "Found");
+                        tracing::debug!(model=%s.ident.to_string(), "Found");
                         model_structs.push((s, attrs));
                     } else if attrs.has_derive("Type") {
-                        tracing::debug!(r#type=s.ident.to_string(), "Found");
+                        tracing::debug!(r#type=%s.ident.to_string(), "Found");
                         type_structs.push((s, attrs));
                     } else if attrs.has_derive("ManualType") {
-                        tracing::debug!(r#type=s.ident.to_string(), "Found");
+                        tracing::debug!(r#type=%s.ident.to_string(), "Found");
                         type_structs.push((s, attrs));
                     }
                 }
                 Item::Enum(e) => {
                     let attrs = Attributes2::from(e.attrs.as_slice());
                     if attrs.has_derive("Type") || attrs.has_derive("ManualType") {
+                        tracing::debug!(r#type=%e.ident.to_string(), "Found");
                         type_enums.push((e, attrs));
                     }
                 }
@@ -86,12 +87,16 @@ impl Intermediate {
 }
 
 pub fn schema_from_filepaths(paths: &[&Path]) -> anyhow::Result<OrmliteSchema> {
+    let cwd = env::var("PWD").unwrap_or_default();
+    let cwd = PathBuf::from(cwd);
+    let paths = paths.iter().map(|p| cwd.join(p)).collect::<Vec<_>>();
     let invalid_paths = paths.iter().filter(|p| fs::metadata(p).is_err()).collect::<Vec<_>>();
     if !invalid_paths.is_empty() {
-        for path in invalid_paths {
+        for path in &invalid_paths {
             tracing::error!(path=path.display().to_string(), "Does not exist");
         }
-        anyhow::bail!("Provided paths that did not exist.");
+        let paths = invalid_paths.iter().map(|p| p.display().to_string()).collect::<Vec<_>>().join(", ");
+        anyhow::bail!("Provided paths that did not exist: {}", paths);
     }
 
     let walk = paths.iter().flat_map(Walk::new);
@@ -111,7 +116,7 @@ pub fn schema_from_filepaths(paths: &[&Path]) -> anyhow::Result<OrmliteSchema> {
         let contents = fs::read_to_string(&entry)
             .context(format!("failed to read file: {}", entry.display()))?;
         tracing::debug!(file=entry.display().to_string(), "Checking for Model, Type, ManualType derive attrs");
-        if !contents.contains("Model") {
+        if !(contents.contains("Model") || contents.contains("Type") || contents.contains("ManualType")) {
             continue;
         }
         let ast = syn::parse_file(&contents)
