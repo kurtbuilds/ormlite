@@ -39,16 +39,6 @@ pub fn struct_ModelBuilder(ast: &DeriveInput, attr: &ModelMetadata) -> TokenStre
         }
     });
 
-    let build_modified_fields = attr.database_columns().map(|c| {
-        let name = &c.identifier;
-        let name_str = &c.column_name;
-        quote! {
-            if self.#name.is_some() {
-                ret.push(#name_str);
-            }
-        }
-    });
-
     let fields_none = attr.database_columns().map(|c| {
         let name = &c.identifier;
         quote! {
@@ -74,11 +64,6 @@ pub fn struct_ModelBuilder(ast: &DeriveInput, attr: &ModelMetadata) -> TokenStre
             impl<'a> #model_builder<'a> {
                 #(#methods)*
 
-                fn modified_fields(&self) -> Vec<&'static str> {
-                    let mut ret = Vec::new();
-                    #(#build_modified_fields)*
-                    ret
-                }
             }
         }
 }
@@ -122,6 +107,16 @@ pub fn impl_ModelBuilder(db: &dyn OrmliteCodegen, attr: &ModelMetadata) -> Token
     let impl_ModelBuilder__update = impl_ModelBuilder__update(db, attr);
     let impl_ModelBuilder__build = impl_ModelBuilder__build(&attr.inner);
 
+    let build_modified_fields = attr.database_columns().map(|c| {
+        let name = &c.identifier;
+        let name_str = &c.column_name;
+        quote! {
+            if self.#name.is_some() {
+                ret.push(#name_str);
+            }
+        }
+    });
+
     let db = db.database_ts();
     quote! {
         impl<'a> ::ormlite::model::ModelBuilder<'a, #db> for #partial_model<'a> {
@@ -129,6 +124,12 @@ pub fn impl_ModelBuilder(db: &dyn OrmliteCodegen, attr: &ModelMetadata) -> Token
             #impl_ModelBuilder__insert
             #impl_ModelBuilder__update
             #impl_ModelBuilder__build
+
+            fn modified_fields(&self) -> Vec<&'static str> {
+                let mut ret = Vec::new();
+                #(#build_modified_fields)*
+                ret
+            }
         }
     }
 }

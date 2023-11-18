@@ -52,6 +52,9 @@ pub trait ModelBuilder<'a, DB>
         where
             E: 'e + sqlx::Executor<'e, Database=DB>;
 
+    /// All fields that will be modified in the query.
+    fn modified_fields(&self) -> Vec<&'static str>;
+
     /// Build the model, don't insert or update it.
     fn build(self) -> Self::Model;
 }

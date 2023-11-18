@@ -1,0 +1,106 @@
+name: release
+
+on:
+  push:
+    tags:
+      - '*'
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  all:
+    name: All
+
+    strategy:
+      matrix:
+        target:
+          - aarch64-unknown-linux-musl
+          - armv7-unknown-linux-musleabihf
+          - x86_64-apple-darwin
+          - x86_64-pc-windows-msvc
+          - x86_64-unknown-linux-musl
+        include:
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-latest
+            native: false
+            target_rustflags: '--codegen linker=aarch64-linux-gnu-gcc'
+          - target: armv7-unknown-linux-musleabihf
+            os: ubuntu-latest
+            native: false
+            target_rustflags: '--codegen linker=arm-linux-gnueabihf-gcc'
+          - target: x86_64-apple-darwin
+            os: macos-latest
+            native: true
+            target_rustflags: ''
+          - target: x86_64-pc-windows-msvc
+            os: windows-2016
+            native: true
+            target_rustflags: ''
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+            native: true
+            target_rustflags: ''
+
+    runs-on: ${{matrix.os}}
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Install Rust Toolchain Components
+        uses: actions-rs/toolchain@v1
+        with:
+          override: true
+          target: ${{ matrix.target }}
+          toolchain: stable
+
+      - uses: Swatinem/rust-cache@v1
+
+      - name: Install AArch64 Toolchain
+        if: ${{ matrix.target == 'aarch64-unknown-linux-musl' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install gcc-aarch64-linux-gnu
+      - name: Install ARM7 Toolchain
+        if: ${{ matrix.target == 'armv7-unknown-linux-musleabihf' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install gcc-arm-linux-gnueabihf
+      - name: Test
+        if: matrix.native
+        run: cargo test --all --target ${{ matrix.target }}
+
+      - name: Package
+        id: package
+        env:
+          TARGET: ${{ matrix.target }}
+          REF: ${{ github.ref }}
+          OS: ${{ matrix.os }}
+          TARGET_RUSTFLAGS: ${{ matrix.target_rustflags }}
+        run: ./.github/package
+        shell: bash
+
+      - name: Publish Archive
+        uses: softprops/action-gh-release@v0.1.5
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        with:
+          draft: false
+          files: ${{ steps.package.outputs.archive }}
+          prerelease: ${{ contains(github.ref_name, '-') }} ## looking for a bare semver number rather than a tagged one like 1.0.0-beta.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish Changelog
+        uses: softprops/action-gh-release@v0.1.5
+        if: >-
+          ${{
+            startsWith(github.ref, 'refs/tags/')
+            && matrix.target == 'x86_64-unknown-linux-musl'
+          }}
+        with:
+          draft: false
+          files: CHANGELOG.md
+          prerelease: ${{ contains(github.ref_name, '-') }} ## looking for a bare semver number rather than a tagged one like 1.0.0-beta.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
