@@ -74,6 +74,7 @@ jobs:
         if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
         run: |
           echo "TARGET_CC=x86_64-linux-musl-gcc" >> "$GITHUB_ENV"
+          echo "CC_x86_64_unknown_linux_musl=x86_64-linux-musl-gcc" >> "$GITHUB_ENV"
       - name: Test
         if: matrix.native
         run: cargo test --all --target ${{ matrix.target }}
