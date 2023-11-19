@@ -27,6 +27,7 @@ version level:
    git commit -am "Bump version {{level}} to $VERSION"
    git tag v$VERSION
    git push
+   git push --tags
 
 patch:
     just version patch
