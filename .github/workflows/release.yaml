@@ -15,6 +15,7 @@ jobs:
     name: All
 
     strategy:
+      fail-fast: false
       matrix:
         target:
           - aarch64-unknown-linux-musl
