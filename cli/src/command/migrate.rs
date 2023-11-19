@@ -11,14 +11,14 @@ use time::macros::format_description;
 use time::OffsetDateTime as DateTime;
 use tokio::runtime::Runtime;
 
-use ormlite::Row;
-use ormlite::Acquire;
+use ormlite::{Acquire, Connection};
 use ormlite::postgres::PgConnection;
+use ormlite::Row;
 use ormlite_core::config;
 use ormlite_core::config::get_var_model_folders;
 use ormlite_core::schema::TryFromOrmlite;
 
-use crate::util::{create_connection, create_runtime};
+use crate::util::create_runtime;
 
 const GET_MIGRATIONS_QUERY: &str = "SELECT
 version || '_' || description AS name
@@ -105,9 +105,9 @@ fn create_migration(folder: &Path, file_name: String, migration: MigrationType, 
 }
 
 /// Migrations are sorted asc. Last is most recent.
-pub fn get_executed_migrations(runtime: &Runtime, conn: &mut PgConnection) -> Result<Vec<MigrationMetadata>> {
-    let migrations = runtime.block_on(ormlite::query(GET_MIGRATIONS_QUERY)
-        .fetch_all(conn))?;
+pub async fn get_executed_migrations(conn: &mut PgConnection) -> Result<Vec<MigrationMetadata>> {
+    let migrations = ormlite::query(GET_MIGRATIONS_QUERY)
+        .fetch_all(conn).await?;
     let migrations = migrations.into_iter().map(|m: ormlite::postgres::PgRow| {
         let name: String = m.get("name");
         let version: i64 = m.get("version");
@@ -144,7 +144,7 @@ pub fn get_pending_migrations(folder: &Path) -> Result<Vec<MigrationMetadata>> {
 
 // Returns the type of migration environment, either None (any), Simple, or Up (it doesn't return Down)
 fn check_for_pending_migrations(folder: &Path, runtime: &Runtime, conn: &mut PgConnection) -> Result<Option<MigrationType>> {
-    let executed = get_executed_migrations(runtime, conn)?;
+    let executed = runtime.block_on(get_executed_migrations(conn))?;
     let pending = get_pending_migrations(folder)?;
 
     if executed.len() < pending.len() {
@@ -209,7 +209,7 @@ impl Migrate {
         let folder = config::get_var_migration_folder();
         let url = config::get_var_database_url();
 
-        let mut conn = create_connection(&url, &runtime)?;
+        let mut conn = runtime.block_on(PgConnection::connect(&url))?;
         let conn = runtime.block_on(conn.acquire())?;
 
         fs::create_dir_all(&folder)?;

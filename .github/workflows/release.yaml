@@ -15,6 +15,7 @@ jobs:
     name: All
 
     strategy:
+      fail-fast: false
       matrix:
         target:
           - aarch64-unknown-linux-musl
@@ -27,8 +28,6 @@ jobs:
             os: ubuntu-latest
             native: false
             target_rustflags: '--codegen linker=aarch64-linux-gnu-gcc'
-            env:
-              TARGET_CC=x86_64-linux-musl-gcc
           - target: armv7-unknown-linux-musleabihf
             os: ubuntu-latest
             native: false
@@ -38,7 +37,7 @@ jobs:
             native: true
             target_rustflags: ''
           - target: x86_64-pc-windows-msvc
-            os: windows-2016
+            os: windows-latest
             native: true
             target_rustflags: ''
           - target: x86_64-unknown-linux-musl
@@ -65,18 +64,23 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install gcc-aarch64-linux-gnu
+          echo "TARGET_CC=aarch64-linux-gnu-gcc" >> "$GITHUB_ENV"
       - name: Install ARM7 Toolchain
         if: ${{ matrix.target == 'armv7-unknown-linux-musleabihf' }}
         run: |
           sudo apt-get update
           sudo apt-get install gcc-arm-linux-gnueabihf
+          echo "TARGET_CC=arm-linux-gnueabihf-gcc" >> "$GITHUB_ENV"
       - name: Install musl toolchain
         if: ${{ matrix.target == 'x86_64-unknown-linux-musl' }}
         run: |
-          echo "TARGET_CC=x86_64-linux-musl-gcc" >> "$GITHUB_ENV"
+          sudo apt update
+          sudo apt install musl-tools
       - name: Test
         if: matrix.native
-        run: cargo test --all --target ${{ matrix.target }}
+        run: |
+          env
+          cargo test --all --target ${{ matrix.target }}
 
       - name: Package
         id: package

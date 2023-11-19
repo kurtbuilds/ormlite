@@ -5,11 +5,11 @@ use std::path::Path;
 use anyhow::{Error, Result};
 use clap::Parser;
 
-use ormlite::postgres::PgArguments;
-use ormlite::{Acquire, Executor};
+use ormlite::postgres::{PgArguments, PgConnection};
+use ormlite::{Acquire, Connection, Executor};
 use crate::command::{get_executed_migrations, get_pending_migrations, MigrationType};
 use ormlite_core::config::{get_var_snapshot_folder, get_var_database_url, get_var_migration_folder};
-use crate::util::{CommandSuccess, create_connection, create_runtime};
+use crate::util::{CommandSuccess, create_runtime};
 use ormlite::Arguments;
 use url::Url;
 
@@ -49,10 +49,10 @@ impl Down {
         let folder = get_var_migration_folder();
         let runtime = create_runtime();
         let url = get_var_database_url();
-        let mut conn = create_connection(&url, &runtime)?;
+        let mut conn = runtime.block_on(PgConnection::connect(&url))?;
         let conn = runtime.block_on(conn.acquire())?;
 
-        let mut executed = get_executed_migrations(&runtime, &mut *conn)?;
+        let mut executed = runtime.block_on(get_executed_migrations(&mut *conn))?;
         let pending = get_pending_migrations(&folder)?
             .into_iter()
             .filter(|m| m.migration_type() != MigrationType::Up)
