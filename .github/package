@@ -4,6 +4,7 @@ set -euxo pipefail
 
 
 VERSION=${REF#"refs/tags/"}
+VERSION=test-release
 DIST=`pwd`/dist
 # This var can be modified if need be.
 BIN=${GITHUB_REPOSITORY##*/}
