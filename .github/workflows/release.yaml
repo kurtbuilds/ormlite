@@ -28,8 +28,6 @@ jobs:
             os: ubuntu-latest
             native: false
             target_rustflags: '--codegen linker=aarch64-linux-gnu-gcc'
-            env:
-              TARGET_CC=x86_64-linux-musl-gcc
           - target: armv7-unknown-linux-musleabihf
             os: ubuntu-latest
             native: false
@@ -66,6 +64,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install gcc-aarch64-linux-gnu
+          echo "TARGET_CC=aarch64-linux-gnu-gcc" >> "$GITHUB_ENV"
       - name: Install ARM7 Toolchain
         if: ${{ matrix.target == 'armv7-unknown-linux-musleabihf' }}
         run: |
@@ -79,7 +78,9 @@ jobs:
           echo "CC_x86_64_unknown_linux_musl=x86_64-linux-musl-gcc" >> "$GITHUB_ENV"
       - name: Test
         if: matrix.native
-        run: cargo test --all --target ${{ matrix.target }}
+        run: |
+          env
+          cargo test --all --target ${{ matrix.target }}
 
       - name: Package
         id: package
