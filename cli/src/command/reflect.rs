@@ -1,4 +1,4 @@
-use crate::util::{create_connection, create_runtime};
+use crate::util::create_runtime;
 use anyhow::Result;
 use clap::Parser;
 use colored::Colorize;
@@ -9,7 +9,7 @@ use ormlite_core::config::get_var_database_url;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use rust_format::{Formatter, PrettyPlease};
-use sqlx::FromRow;
+use sqlx::{FromRow, PgConnection, Connection};
 use std::fs;
 
 /* TODO
@@ -158,7 +158,7 @@ impl ColumnDef {
     }
 }
 
-const SCHEMA_QUERY: &str = include_str!("reflect/schema.postgres.sql"); 
+const SCHEMA_QUERY: &str = include_str!("reflect/schema.postgres.sql");
 
 #[derive(Parser, Debug)]
 pub struct Reflect {
@@ -174,7 +174,7 @@ impl Reflect {
     pub fn run(self) -> Result<()> {
         let runtime = create_runtime();
         let url = get_var_database_url();
-        let mut conn = create_connection(&url, &runtime)?;
+        let mut conn = runtime.block_on(PgConnection::connect(&url))?;
         let conn = runtime.block_on(conn.acquire())?;
 
         let schema =
