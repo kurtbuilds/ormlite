@@ -1,8 +1,4 @@
 use anyhow::Error;
-use tokio::runtime::Runtime;
-use ormlite::{Connection};
-use ormlite::postgres::{PgConnection};
-
 
 pub(crate) fn create_runtime() -> tokio::runtime::Runtime {
     tokio::runtime::Builder::new_current_thread()
@@ -12,17 +8,12 @@ pub(crate) fn create_runtime() -> tokio::runtime::Runtime {
         .unwrap()
 }
 
-pub fn create_connection(url: &str, runtime: &Runtime) -> anyhow::Result<PgConnection> {
-    let conn = runtime.block_on(ormlite::postgres::PgConnection::connect(url))?;
-    Ok(conn)
-}
-
 pub trait CommandSuccess {
-    fn ok_or(&mut self, message: &str) -> Result<(), anyhow::Error>;
+    fn ok_or(&mut self, message: &str) -> Result<(), Error>;
 }
 
 impl CommandSuccess for std::process::Command {
-    fn ok_or(&mut self, message: &str) -> Result<(), anyhow::Error> {
+    fn ok_or(&mut self, message: &str) -> Result<(), Error> {
         let status = self.status()?;
         if status.success() {
             Ok(())
@@ -33,7 +24,7 @@ impl CommandSuccess for std::process::Command {
 }
 
 impl CommandSuccess for std::process::Output {
-    fn ok_or(&mut self, message: &str) -> Result<(), anyhow::Error> {
+    fn ok_or(&mut self, message: &str) -> Result<(), Error> {
         if self.status.success() {
             Ok(())
         } else {
