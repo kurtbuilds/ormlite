@@ -3,11 +3,11 @@ use std::fs::File;
 use std::time::Instant;
 use anyhow::Result;
 use clap::Parser;
-use ormlite::{Executor, Arguments, Acquire};
-use ormlite::postgres::PgArguments;
+use ormlite::{Executor, Arguments, Acquire, Connection};
+use ormlite::postgres::{PgArguments, PgConnection};
 use crate::command::{get_executed_migrations, get_pending_migrations, MigrationType};
 use ormlite_core::config::{get_var_snapshot_folder, get_var_database_url, get_var_migration_folder};
-use crate::util::{CommandSuccess, create_connection, create_runtime};
+use crate::util::{CommandSuccess, create_runtime};
 use sha2::{Digest, Sha384};
 
 
@@ -31,10 +31,10 @@ impl Up {
         let folder = get_var_migration_folder();
         let runtime = create_runtime();
         let url = get_var_database_url();
-        let mut conn = create_connection(&url, &runtime).unwrap();
+        let mut conn = runtime.block_on(PgConnection::connect(&url))?;
         let conn = runtime.block_on(conn.acquire()).unwrap();
 
-        let executed = get_executed_migrations(&runtime, &mut *conn).unwrap();
+        let executed = runtime.block_on(get_executed_migrations(&mut *conn))?;
         let pending = get_pending_migrations(&folder).unwrap()
             .into_iter()
             .filter(|m| m.migration_type() != MigrationType::Down)

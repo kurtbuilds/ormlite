@@ -8,7 +8,7 @@ use ormlite::Executor;
 use ormlite::postgres::PgConnection;
 
 use ormlite_core::config::{get_var_database_url};
-use crate::util::{create_connection, create_runtime};
+use crate::util::{create_runtime};
 
 const INIT_QUERY: &str = r#"
 CREATE TABLE public._sqlx_migrations (
