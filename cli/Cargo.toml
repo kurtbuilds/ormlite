@@ -1,6 +1,6 @@
 [package]
 name = "ormlite-cli"
-version = "0.17.4"
+version = "0.17.5"
 edition = "2021"
 description = "An ORM for people who love SQL. Use the `ormlite` crate, not this one."
 authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
