@@ -10,7 +10,7 @@ homepage = "https://github.com/kurtbuilds/ormlite"
 documentation = "https://docs.rs/ormlite"
 autotests = false
 readme = "../README.md"
-autoexamples = false
+# autoexamples = false
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
@@ -19,6 +19,11 @@ all-features = true
 [[test]]
 name = "sqlite"
 path = "tests/sqlite.rs"
+required-features = ["sqlite"]
+
+[[test]]
+name = "simple"
+path = "tests/simple.rs"
 required-features = ["sqlite"]
 
 [[test]]

@@ -55,7 +55,7 @@ fn get_databases(table_meta: &TableMetadata) -> Vec<Box<dyn OrmliteCodegen>> {
         #[cfg(feature = "default-sqlite")]
         databases.push(Box::new(codegen::sqlite::SqliteBackend {}));
         #[cfg(feature = "default-postgres")]
-        databases.push(Box::new(codegen::postgres::PostgresBackend {}));
+        databases.push(Box::new(codegen::postgres::PostgresBackend));
         #[cfg(feature = "default-mysql")]
         databases.push(Box::new(codegen::mysql::MysqlBackend {}));
     } else {
@@ -64,7 +64,7 @@ fn get_databases(table_meta: &TableMetadata) -> Vec<Box<dyn OrmliteCodegen>> {
                 #[cfg(feature = "sqlite")]
                 "sqlite" => databases.push(Box::new(codegen::sqlite::SqliteBackend {})),
                 #[cfg(feature = "postgres")]
-                "postgres" => databases.push(Box::new(codegen::postgres::PostgresBackend {})),
+                "postgres" => databases.push(Box::new(codegen::postgres::PostgresBackend)),
                 #[cfg(feature = "mysql")]
                 "mysql" => databases.push(Box::new(codegen::mysql::MysqlBackend {})),
                 "sqlite" | "postgres" | "mysql" => panic!("Database {} is not enabled. Enable it with features = [\"{}\"]", db, db),
@@ -96,7 +96,7 @@ fn get_databases(table_meta: &TableMetadata) -> Vec<Box<dyn OrmliteCodegen>> {
         #[cfg(feature = "sqlite")]
         databases.push(Box::new(codegen::sqlite::SqliteBackend {}));
         #[cfg(feature = "postgres")]
-        databases.push(Box::new(codegen::postgres::PostgresBackend {}));
+        databases.push(Box::new(codegen::postgres::PostgresBackend));
         #[cfg(feature = "mysql")]
         databases.push(Box::new(codegen::mysql::MysqlBackend {}));
     }
@@ -124,8 +124,8 @@ pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
         let static_join_descriptions = static_join_descriptions(&meta.inner, &tables);
         let impl_Model = impl_Model(db, &meta, tables);
         let impl_HasModelBuilder = impl_HasModelBuilder(db, &meta);
-        let impl_FromRow = impl_FromRow(&meta.inner, &tables);
-        let impl_from_row_using_aliases = impl_from_row_using_aliases(&meta.inner, &tables);
+        let impl_FromRow = impl_FromRow(db, &meta.inner, &tables);
+        let impl_from_row_using_aliases = impl_from_row_using_aliases(db, &meta.inner, &tables);
 
         let struct_ModelBuilder = struct_ModelBuilder(&ast, &meta);
         let impl_ModelBuilder = impl_ModelBuilder(db, &meta);
@@ -175,8 +175,9 @@ pub fn expand_derive_fromrow(input: TokenStream) -> TokenStream {
     let tables = get_tables();
 
     let expanded = databases.iter().map(|db| {
-        let impl_FromRow = impl_FromRow(&meta, &tables);
-        let impl_from_row_using_aliases = impl_from_row_using_aliases(&meta, &tables);
+        let db = db.as_ref();
+        let impl_FromRow = impl_FromRow(db, &meta, &tables);
+        let impl_from_row_using_aliases = impl_from_row_using_aliases(db, &meta, &tables);
         quote! {
             #impl_FromRow
             #impl_from_row_using_aliases

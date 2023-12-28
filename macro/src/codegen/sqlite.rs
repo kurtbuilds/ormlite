@@ -20,4 +20,10 @@ impl OrmliteCodegen for SqliteBackend {
     fn placeholder(&self) -> Placeholder {
         Placeholder::question_mark()
     }
+
+    fn row(&self) -> TokenStream {
+        quote! {
+            ::ormlite::sqlite::SqliteRow
+        }
+    }
 }

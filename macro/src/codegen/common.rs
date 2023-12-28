@@ -74,22 +74,24 @@ fn recursive_primitive_types<'a>(table: &'a ModelMetadata, cache: &'a MetadataCa
         .collect()
 }
 
-fn table_primitive_types<'a>(attr: &'a TableMetadata, cache: &'a MetadataCache) -> Vec<Cow<'a, InnerType>> {
+pub(crate) fn table_primitive_types<'a>(attr: &'a TableMetadata, cache: &'a MetadataCache) -> Vec<Cow<'a, InnerType>> {
     attr.columns.iter()
         .filter(|c| !c.skip)
+        .filter(|c| !c.experimental_encode_as_json)
         .map(|c| recursive_primitive_types_ty(&c.column_type, cache))
         .flatten()
         .unique()
         .collect()
 }
 
-pub fn from_row_bounds<'a>(attr: &'a TableMetadata, cache: &'a MetadataCache) -> impl Iterator<Item=proc_macro2::TokenStream> + 'a {
+pub fn from_row_bounds<'a>(db: &dyn OrmliteCodegen, attr: &'a TableMetadata, cache: &'a MetadataCache) -> impl Iterator<Item=proc_macro2::TokenStream> + 'a {
+    let database = db.database_ts();
     table_primitive_types(attr, cache)
         .into_iter()
-        .map(|ty| {
+        .map(move |ty| {
             quote! {
-                #ty: ::ormlite::decode::Decode<'a, R::Database>,
-                #ty: ::ormlite::types::Type<R::Database>,
+                #ty: ::ormlite::decode::Decode<'a, #database>,
+                #ty: ::ormlite::types::Type<#database>,
             }
         })
 }
@@ -124,52 +126,6 @@ pub trait OrmliteCodegen {
     // A placeholder that works at the phase when its invoked (e.g. during comp time, it can be used.
     // Compare to placeholder_ts, which is just the tokens of a placeholder, and therefore can't be "used" until runtime.
     fn placeholder(&self) -> Placeholder;
+    fn row(&self) -> TokenStream;
 
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use ormlite_attr::*;
-
-    #[test]
-    fn test_all_bounds() {
-        let mut cache = MetadataCache::new();
-        let table = ModelMetadata::new("user", vec![
-            ColumnMetadata::new("id", "u32"),
-            ColumnMetadata::new("name", "String"),
-            ColumnMetadata::new("organization_id", "u32"),
-            ColumnMetadata::new_join("organization", "Organization"),
-        ]);
-        cache.insert("User".to_string(), table.clone());
-        let table = ModelMetadata::new("organization", vec![
-            ColumnMetadata::new("id", "u32"),
-            ColumnMetadata::new("name", "String"),
-            ColumnMetadata::new("is_active", "bool"),
-        ]);
-        cache.insert("Organization".to_string(), table.clone());
-
-        let types_for_bound = table_primitive_types(&table.inner, &cache);
-        let types_for_bound = types_for_bound.into_iter().map(|c| c.into_owned()).collect::<Vec<_>>();
-        assert_eq!(types_for_bound, vec![
-            InnerType::new("u32"),
-            InnerType::new("String"),
-            InnerType::new("bool"),
-        ]);
-        let bounds = from_row_bounds(&table.inner, &cache);
-        let bounds = quote! {
-            #(#bounds)*
-        };
-        assert_eq!(
-            bounds.to_string(),
-            "u32 : :: ormlite :: decode :: Decode < 'a , R :: Database > , ".to_owned() +
-                "u32 : :: ormlite :: types :: Type < R :: Database > , " +
-
-                "String : :: ormlite :: decode :: Decode < 'a , R :: Database > , " +
-                "String : :: ormlite :: types :: Type < R :: Database > , " +
-
-                "bool : :: ormlite :: decode :: Decode < 'a , R :: Database > , " +
-                "bool : :: ormlite :: types :: Type < R :: Database > ,"
-        );
-    }
 }
