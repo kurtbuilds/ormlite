@@ -25,6 +25,7 @@
 
 ```rust
 use ormlite::model::*;
+use ormlite::sqlite::SqliteConnection;
 
 #[derive(Model, Debug)]
 pub struct Person {
@@ -36,7 +37,7 @@ pub struct Person {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// Start by making a database connection.
-     let mut conn = ormlite::SqliteConnection::connect(":memory:").await.unwrap();
+    let mut conn = SqliteConnection::connect(":memory:").await.unwrap();
 
     /// You can insert the model directly.
     let mut john = Person {
@@ -44,6 +45,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         name: "John".to_string(),
         age: 99,
     }.insert(&mut conn).await?;
+
     println!("{:?}", john);
 
     /// After modifying the object, you can update all its fields.
@@ -54,6 +56,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let people = Person::select()
         .where_("age > ?").bind(50)
         .fetch_all(&mut conn).await?;
+
     println!("{:?}", people);
 }
 ```
@@ -68,7 +71,16 @@ You might like `ormlite` because:
 
 ### Installation
 
-First, update your `Cargo.toml`:
+Install with `cargo`:
+
+```ps
+# For postgres
+cargo add ormlite --features postgres
+# For sqlite
+cargo add ormlite --features sqlite
+```
+
+Or update your `Cargo.toml`:
 
 ```toml
 [dependencies]
@@ -168,6 +180,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         id: Uuid::new_v4(),
         name: "user_clicked".to_string(),
     }.insert(&mut conn).await?;
+
     println!("{:?}", event);
 }
 ```
@@ -205,6 +218,7 @@ async fn insertion_struct_example(conn: &mut SqliteConnection) {
     let john: Person = InsertPerson {
         name: "John".to_string(),
     }.insert(&mut conn).await?;
+
     println!("{:?}", john);
 }
 ```
@@ -239,12 +253,14 @@ async fn builder_syntax_example() {
         .name("John".to_string())
         .age(99)
         .insert(&mut conn).await?;
+
     println!("{:?}", john);
 
     // builder syntax for update
     let john = john.update_partial()
         .age(100)
         .update(&mut conn).await?;
+
     println!("{:?}", john);
 }
 ```
@@ -359,6 +375,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     
     let mut conn = ormlite::SqliteConnection::connect(":memory:").await.unwrap();
+
     let user = user.insert(&mut conn).await?;
     assert_eq!(user.organization.loaded(), true);
     println!("{:?}", user);
@@ -369,6 +386,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .join(Person::organization())
         .fetch_all(&mut conn)
         .await?;
+
     for user in users {
         assert!(user.organization.loaded());
         println!("{:?}", user);
