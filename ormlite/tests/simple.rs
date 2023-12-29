@@ -5,15 +5,15 @@ use ormlite::Connection;
 #[ormlite(insertable = InsertPerson)]
 // #[index(col, col2, col3, unique = true, name = "my_index", type="btree")]
 pub struct Person {
-    pub id: u32,
+    pub id: i32,
     pub name: String,
-    pub age: u8,
+    pub age: i16,
 }
 
 pub static CREATE_TABLE_SQL: &str =
     "CREATE TABLE person (id INTEGER PRIMARY KEY, name TEXT, age INTEGER)";
 
-#[tokio::main]
+#[tokio::test]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut conn = ormlite::sqlite::SqliteConnection::connect(":memory:").await.unwrap();
     env_logger::init();
@@ -35,13 +35,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("select");
     let people = Person::select()
         .where_("age > ?")
-        .bind(50u32)
+        .bind(50)
         .fetch_all(&mut conn)
         .await?;
     println!("select query builder {:?}", people);
 
     let r = sqlx::query_as::<_, Person>("select * from person where age > ?")
-        .bind(50u32)
+        .bind(50)
         .fetch_all(&mut conn)
         .await?;
     println!("sqlx {:?}", r);
@@ -54,7 +54,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Lastly, you can delete the object.
     john.delete(&mut conn).await?;
     // You can get a single user.
-    Person::fetch_one(1u32, &mut conn)
+    Person::fetch_one(1, &mut conn)
         .await
         .expect_err("Should not exist");
 
@@ -66,7 +66,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .insert(&mut conn)
     .await?;
 
-    let dan = Person::fetch_one(1u32, &mut conn).await?;
+    let dan = Person::fetch_one(1, &mut conn).await?;
     println!("get_one {:?}", dan);
 
     let dan2 = dan.update_partial().age(29).update(&mut conn).await?;
@@ -89,13 +89,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // // You can create a query builder.
     let people = Person::select()
         .where_("age > ?")
-        .bind(50u32)
+        .bind(50)
         .fetch_all(&mut conn)
         .await?;
     println!("select builder {:?}", people);
 
     let people = Person::query("SELECT * FROM person WHERE age > ?")
-        .bind(20u32)
+        .bind(20)
         .fetch_all(&mut conn)
         .await?;
     println!("raw query: {:?}", people);

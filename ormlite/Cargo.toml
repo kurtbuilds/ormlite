@@ -1,6 +1,6 @@
 [package]
 name = "ormlite"
-version = "0.17.5"
+version = "0.18.0"
 edition = "2021"
 authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
 description = "An ORM for people who love SQL"
@@ -10,7 +10,7 @@ homepage = "https://github.com/kurtbuilds/ormlite"
 documentation = "https://docs.rs/ormlite"
 autotests = false
 readme = "../README.md"
-autoexamples = false
+# autoexamples = false
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]
@@ -19,6 +19,11 @@ all-features = true
 [[test]]
 name = "sqlite"
 path = "tests/sqlite.rs"
+required-features = ["sqlite"]
+
+[[test]]
+name = "simple"
+path = "tests/simple.rs"
 required-features = ["sqlite"]
 
 [[test]]
@@ -49,8 +54,8 @@ default-mysql = ["mysql", "ormlite-macro/default-mysql"]
 [dependencies]
 sqlx = { version = "0.7" }
 tokio = { version = "1.24.1", features = ["full"] }
-ormlite-macro = { path = "../macro" , version = "0.17.5"}
-ormlite-core = { path = "../core" , version = "0.17.5"}
+ormlite-macro = { path = "../macro" , version = "0.18.0"}
+ormlite-core = { path = "../core" , version = "0.18.0"}
 sqlx-core = "0.7"
 sqlmo = "0.16"
 tokio-stream = "0.1.14"
