@@ -21,7 +21,6 @@ mod attr;
 mod metadata;
 mod error;
 mod ext;
-mod syndecode;
 mod ident;
 mod ttype;
 mod derive;
