@@ -1,16 +1,14 @@
 use std::borrow::Cow;
-use std::collections::HashMap;
 use ormlite_core::query_builder::Placeholder;
-use proc_macro2::{Span, TokenStream};
+use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
-use syn::punctuated::Punctuated;
-use syn::token::{Comma, Token};
-use syn::{DeriveInput, Field};
-use syn::spanned::Spanned;
-use ormlite_attr::{ColumnMetadata, DeriveInputExt, FieldExt, Ident, InnerType, ModelMetadata, TableMetadata, TType};
 use crate::MetadataCache;
 use itertools::Itertools;
-use sqlx::Column;
+use ormlite_attr::Ident;
+use ormlite_attr::ColumnMetadata;
+use ormlite_attr::ModelMetadata;
+use ormlite_attr::TableMetadata;
+use ormlite_attr::{InnerType, TType};
 
 
 pub fn generate_conditional_bind(c: &ColumnMetadata) -> TokenStream {

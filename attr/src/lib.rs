@@ -1,23 +1,32 @@
 #![allow(non_snake_case)]
 
+use std::{env, fs};
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
+
+use anyhow::Context;
+use ignore::Walk;
+use syn::{DeriveInput, Item};
+
+pub use attr::*;
+pub use error::*;
+pub use ext::*;
+pub use ttype::*;
+pub use ident::*;
+pub use metadata::*;
+use crate::derive::DeriveParser;
+use crate::repr::Repr;
+
 mod attr;
 mod metadata;
 mod error;
 mod ext;
 mod syndecode;
-
-use std::collections::HashMap;
-use std::{env, fs};
-use std::path::{Path, PathBuf};
-use anyhow::Context;
-use syn::{DeriveInput, Item};
-use ignore::Walk;
-
-use syndecode::{Attributes2};
-pub use metadata::*;
-pub use attr::*;
-pub use error::*;
-pub use ext::*;
+mod ident;
+mod ttype;
+mod derive;
+mod cfg_attr;
+mod repr;
 
 #[derive(Default, Debug)]
 pub struct LoadOptions {
@@ -33,46 +42,52 @@ pub struct OrmliteSchema {
     pub type_reprs: HashMap<String, String>,
 }
 
-type WithAttr<T> = (T, Attributes2);
-
 struct Intermediate {
-    model_structs: Vec<WithAttr<syn::ItemStruct>>,
-    type_structs: Vec<WithAttr<syn::ItemStruct>>,
-    type_enums: Vec<WithAttr<syn::ItemEnum>>,
+    model_structs: Vec<syn::ItemStruct>,
+    type_structs: Vec<(syn::ItemStruct, Option<Repr>)>,
+    type_enums: Vec<(syn::ItemEnum, Option<Repr>)>,
 }
 
 impl Intermediate {
-    fn into_models_and_types(self) -> (impl Iterator<Item=WithAttr<syn::ItemStruct>>, impl Iterator<Item=WithAttr<String>>) {
+    fn into_models_and_types(self) -> (impl Iterator<Item=syn::ItemStruct>, impl Iterator<Item=(String, Option<Repr>)>) {
         let models = self.model_structs.into_iter();
-        let types = self.type_structs.into_iter().map(|(s, a)| (s.ident.to_string(), a))
-            .chain(self.type_enums.into_iter().map(|(e, a)| (e.ident.to_string(), a)));
+        let types = self.type_structs
+            .into_iter()
+            .map(|(s, a)| (s.ident.to_string(), a))
+            .chain(self.type_enums
+                .into_iter()
+                .map(|(e, a)| (e.ident.to_string(), a))
+            );
         (models, types)
     }
 
-    fn from_with_opts(value: syn::File) -> Self {
+    fn from_file(value: syn::File) -> Self {
         let mut model_structs = Vec::new();
         let mut type_structs = Vec::new();
         let mut type_enums = Vec::new();
         for item in value.items {
             match item {
                 Item::Struct(s) => {
-                    let attrs = Attributes2::from(s.attrs.as_slice());
-                    if attrs.has_derive("Model") {
+                    let attrs = DeriveParser::from_attributes(&s.attrs);
+                    if attrs.has_derive("ormlite", "Model") {
                         tracing::debug!(model=%s.ident.to_string(), "Found");
-                        model_structs.push((s, attrs));
-                    } else if attrs.has_derive("Type") {
+                        model_structs.push(s);
+                    } else if attrs.has_derive2(&["ormlite", "sqlx"], "Type") {
                         tracing::debug!(r#type=%s.ident.to_string(), "Found");
-                        type_structs.push((s, attrs));
-                    } else if attrs.has_derive("ManualType") {
+                        let repr = Repr::from_attributes(&s.attrs);
+                        type_structs.push((s, repr));
+                    } else if attrs.has_derive("ormlite", "ManualType") {
                         tracing::debug!(r#type=%s.ident.to_string(), "Found");
-                        type_structs.push((s, attrs));
+                        let repr = Repr::from_attributes(&s.attrs);
+                        type_structs.push((s, repr));
                     }
                 }
                 Item::Enum(e) => {
-                    let attrs = Attributes2::from(e.attrs.as_slice());
-                    if attrs.has_derive("Type") || attrs.has_derive("ManualType") {
+                    let attrs = DeriveParser::from_attributes(&e.attrs);
+                    if attrs.has_derive("ormlite", "Type") || attrs.has_derive("ormlite", "ManualType") {
                         tracing::debug!(r#type=%e.ident.to_string(), "Found");
-                        type_enums.push((e, attrs));
+                        let repr = Repr::from_attributes(&e.attrs);
+                        type_enums.push((e, repr));
                     }
                 }
                 _ => {}
@@ -121,18 +136,18 @@ pub fn schema_from_filepaths(paths: &[&Path]) -> anyhow::Result<OrmliteSchema> {
         }
         let ast = syn::parse_file(&contents)
             .context(format!("Failed to parse file: {}", entry.display()))?;
-        let intermediate = Intermediate::from_with_opts(ast);
+        let intermediate = Intermediate::from_file(ast);
         let (models, types) = intermediate.into_models_and_types();
 
-        for (item, _attrs) in models {
+        for item in models {
             let derive: DeriveInput = item.into();
             let table = ModelMetadata::from_derive(&derive)
                 .context(format!("Failed to parse model: {}", derive.ident.to_string()))?;
             tables.push(table);
         }
 
-        for (name, attrs) in types {
-            let ty = attrs.repr.unwrap_or_else(|| "String".to_string());
+        for (name, repr) in types {
+            let ty = repr.map(|s| s.to_string()).unwrap_or_else(|| "String".to_string());
             type_aliases.insert(name, ty);
         }
     }

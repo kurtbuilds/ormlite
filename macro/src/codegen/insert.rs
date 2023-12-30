@@ -1,6 +1,10 @@
-use proc_macro2::{Span, TokenStream};
+use proc_macro2::TokenStream;
 use quote::quote;
-use ormlite_attr::{ColumnMetadata, Ident, ModelMetadata, TableMetadata, TType};
+use ormlite_attr::TableMetadata;
+use ormlite_attr::Ident;
+use ormlite_attr::ColumnMetadata;
+use ormlite_attr::ModelMetadata;
+use ormlite_attr::TType;
 use crate::codegen::common::{generate_conditional_bind, insertion_binding, OrmliteCodegen};
 use crate::MetadataCache;
 

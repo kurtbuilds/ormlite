@@ -1,6 +1,8 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use ormlite_attr::{ColumnMetadata, Ident, TableMetadata};
+use ormlite_attr::TableMetadata;
+use ormlite_attr::Ident;
+use ormlite_attr::ColumnMetadata;
 use crate::codegen::common::{from_row_bounds, OrmliteCodegen};
 use crate::MetadataCache;
 

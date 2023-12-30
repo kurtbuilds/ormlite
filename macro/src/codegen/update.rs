@@ -1,9 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::DeriveInput;
-use ormlite_attr::{Ident, ModelMetadata, TableMetadata};
+use ormlite_attr::ModelMetadata;
 use crate::codegen::common::{generate_conditional_bind, insertion_binding, OrmliteCodegen};
-use crate::MetadataCache;
 
 pub fn impl_Model__update_all_fields(db: &dyn OrmliteCodegen, attr: &ModelMetadata) -> TokenStream {
     let box_future = crate::util::box_fut_ts();

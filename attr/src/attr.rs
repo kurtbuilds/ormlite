@@ -1,13 +1,12 @@
-use structmeta::{Flag, NameValue, StructMeta};
+use structmeta::{Flag, StructMeta};
 use syn::{Ident, LitStr, Path};
 
-
 /// Available attributes on a struct
-#[derive(StructMeta, Debug)]
+#[derive(StructMeta)]
 pub struct ModelAttributes {
     /// The name of the table in the database. Defaults to the struct name.
     /// Example:
-    /// #[ormlite(table_name = "users")]
+    /// #[ormlite(table = "users")]
     /// pub struct User {
     ///    pub id: i32,
     /// }
@@ -39,7 +38,7 @@ pub struct ModelAttributes {
 }
 
 /// Available attributes on a column (struct field)
-#[derive(StructMeta, Debug)]
+#[derive(StructMeta)]
 pub struct ColumnAttributes {
     pub primary_key: Flag,
     /// Marks a primary key, but includes it in the Insertable struct.
@@ -47,7 +46,7 @@ pub struct ColumnAttributes {
     /// Specifies that a default exists at the database level.
     pub default: Flag,
     /// Specify a default value on the Rust side.
-    pub default_value: Option<NameValue<LitStr>>,
+    pub default_value: Option<LitStr>,
 
     /// Note this column is not expected to exist on the model, but needs to exist in the database.
     /// Example:
@@ -55,7 +54,7 @@ pub struct ColumnAttributes {
     ///     #[ormlite(join_column = "organization_id")]
     ///     pub organization: Join<Organization>,
     /// }
-    pub join_column: Option<NameValue<LitStr>>,
+    pub join_column: Option<LitStr>,
 
     /// Example:
     /// pub struct User {
@@ -89,26 +88,21 @@ pub struct ColumnAttributes {
     pub experimental_encode_as_json: Flag,
 }
 
-impl ColumnAttributes {
-    pub fn is_default(&self) -> bool {
-        self.default.value() || self.default_value.is_some()
-    }
-}
-
 #[cfg(test)]
 mod test {
+    use syn::{Attribute, parse_quote};
+
     use super::*;
-    use syn::{parse_quote, Attribute};
 
     #[test]
     fn test_default() {
         let attr: Attribute = parse_quote!(#[ormlite(default_value = "serde_json::Value::Null")]);
         let args: ColumnAttributes = attr.parse_args().unwrap();
-        assert!(args.is_default());
+        assert!(args.default_value.is_some());
 
         let attr: Attribute = parse_quote!(#[ormlite(default)]);
         let args: ColumnAttributes = attr.parse_args().unwrap();
-        assert!(args.is_default());
+        assert!(args.default.value());
     }
 
     #[test]

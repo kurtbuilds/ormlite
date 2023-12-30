@@ -3,9 +3,12 @@ use std::fmt::Formatter;
 
 use std::path::Path;
 use anyhow::Result;
-use sqlmo::{Schema, Table, schema::Column};
-use ormlite_attr::{ColumnMetadata, Ident, InnerType, ModelMetadata, TType};
-use ormlite_attr::{schema_from_filepaths};
+use sqlmo::{Schema, schema::Column, Table};
+use ormlite_attr::ModelMetadata;
+use ormlite_attr::schema_from_filepaths;
+use ormlite_attr::Ident;
+use ormlite_attr::ColumnMetadata;
+use ormlite_attr::{InnerType, TType};
 
 #[derive(Debug)]
 pub struct Options {
@@ -197,7 +200,7 @@ impl TryFromOrmlite for Schema {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use syn::{parse_str};
+    use syn::parse_str;
     use assert_matches::assert_matches;
     use ormlite_attr::TType;
     use sqlmo::Type;
