@@ -174,7 +174,7 @@ pub struct Event {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mut conn = ormlite::SqliteConnection::connect(":memory:").await.unwrap();
+    let mut conn = ormlite::sqlite::SqliteConnection::connect(":memory:").await.unwrap();
 
     let mut event = Event {
         id: Uuid::new_v4(),
@@ -374,7 +374,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         organization: Join::new(org),
     };
     
-    let mut conn = ormlite::SqliteConnection::connect(":memory:").await.unwrap();
+    let mut conn = ormlite::sqlite::SqliteConnection::connect(":memory:").await.unwrap();
 
     let user = user.insert(&mut conn).await?;
     assert_eq!(user.organization.loaded(), true);
