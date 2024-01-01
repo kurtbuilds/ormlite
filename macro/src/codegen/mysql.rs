@@ -20,4 +20,8 @@ impl OrmliteCodegen for MysqlBackend {
     fn placeholder(&self) -> Placeholder {
         Placeholder::question_mark()
     }
+
+    fn row(&self) -> TokenStream {
+        quote! { ::ormlite::mysql::MysqlRow }
+    }
 }
