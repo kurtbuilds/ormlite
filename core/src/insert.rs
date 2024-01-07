@@ -22,27 +22,7 @@ impl<'a, Acquire, Model, DB: sqlx::Database> Insertion<'a, Acquire, Model, DB> {
     }
 }
 
-
-#[cfg(feature = "sqlite")]
-impl<'a, Acquire, Model> std::future::IntoFuture for Insertion<'a, Acquire, Model, sqlx::sqlite::Sqlite>
-    where
-        Model: for<'r> sqlx::FromRow<'r, sqlx::sqlite::SqliteRow> + Send + Unpin,
-        Acquire: Send,
-{
-    type Output = Result<Model>;
-    type IntoFuture = BoxFuture<'a, Self::Output>;
-
-    fn into_future(self) -> Self::IntoFuture {
-        let q = self.insert.to_sql(Dialect::Sqlite);
-        (self.closure)(self.acquire, self.model, q)
-    }
-}
-
-#[cfg(feature = "postgres")]
-impl<'a, Acquire, Model> std::future::IntoFuture for Insertion<'a, Acquire, Model, sqlx::postgres::Postgres>
-    where
-        Model: for<'r> sqlx::FromRow<'r, sqlx::postgres::PgRow> + Send + Unpin
-{
+impl<'a, Acquire, Model: crate::model::Model<DB>, DB: sqlx::Database> std::future::IntoFuture for Insertion<'a, Acquire, Model, DB> {
     type Output = Result<Model>;
     type IntoFuture = BoxFuture<'a, Self::Output>;
 
