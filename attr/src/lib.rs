@@ -101,7 +101,7 @@ impl Intermediate {
 }
 
 pub fn schema_from_filepaths(paths: &[&Path]) -> anyhow::Result<OrmliteSchema> {
-    let cwd = env::var("PWD").unwrap_or_default();
+    let cwd = env::current_dir().unwrap_or_default();
     let cwd = PathBuf::from(cwd);
     let paths = paths.iter().map(|p| cwd.join(p)).collect::<Vec<_>>();
     let invalid_paths = paths.iter().filter(|p| fs::metadata(p).is_err()).collect::<Vec<_>>();
