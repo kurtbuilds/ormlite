@@ -1,21 +1,23 @@
 #![allow(unused)]
 #![allow(non_snake_case)]
 
-use ormlite_attr::{ColumnAttributes, ColumnMetadata, TableMetadata, TableMetadataBuilder, ColumnMetadataBuilder, ModelAttributes, SyndecodeError, schema_from_filepaths, LoadOptions, ModelMetadata};
-use ormlite_core::config::get_var_model_folders;
-use crate::codegen::common::OrmliteCodegen;
 use proc_macro::TokenStream;
 use std::borrow::Borrow;
-
-use quote::quote;
-use lazy_static::lazy_static;
-use syn::{Data, DeriveInput, Item, ItemStruct, parse_macro_input};
-use ormlite_attr::DeriveInputExt;
 use std::collections::HashMap;
 use std::ops::Deref;
+
 use once_cell::sync::OnceCell;
-use ormlite_core::Error::OrmliteError;
+use quote::quote;
+use syn::{Data, DeriveInput, parse_macro_input};
+
 use codegen::into_arguments::impl_IntoArguments;
+use ormlite_attr::DeriveInputExt;
+use ormlite_attr::ModelMetadata;
+use ormlite_attr::schema_from_filepaths;
+use ormlite_attr::TableMetadata;
+use ormlite_core::config::get_var_model_folders;
+
+use crate::codegen::common::OrmliteCodegen;
 use crate::codegen::from_row::{impl_from_row_using_aliases, impl_FromRow};
 use crate::codegen::insert::impl_InsertModel;
 use crate::codegen::insert_model::struct_InsertModel;

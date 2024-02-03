@@ -1,7 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use ormlite_attr::{ModelMetadata, TableMetadata};
-use crate::codegen::common::OrmliteCodegen;
+use ormlite_attr::TableMetadata;
+use ormlite_attr::ModelMetadata;
 
 pub fn impl_TableMeta(meta: &TableMetadata, pkey: Option<&str>) -> TokenStream {
     let model = &meta.struct_name;

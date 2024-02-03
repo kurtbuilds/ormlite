@@ -1,8 +1,7 @@
 
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::DeriveInput;
-use ormlite_attr::{Ident, TableMetadata};
+use ormlite_attr::TableMetadata;
 use crate::MetadataCache;
 
 pub fn static_join_descriptions(attr: &TableMetadata, metadata_cache: &MetadataCache) -> TokenStream {

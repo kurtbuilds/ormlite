@@ -1,12 +1,11 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::DeriveInput;
-use ormlite_attr::{Ident, ModelMetadata, TableMetadata};
-use crate::codegen::common::{insertion_binding, OrmliteCodegen};
+use ormlite_attr::TableMetadata;
+use ormlite_attr::ModelMetadata;
+use crate::codegen::common::OrmliteCodegen;
 use crate::codegen::insert::impl_ModelBuilder__insert;
 use crate::codegen::update::impl_ModelBuilder__update;
-use crate::MetadataCache;
-
 
 pub fn struct_ModelBuilder(ast: &DeriveInput, attr: &ModelMetadata) -> TokenStream {
     let model = &attr.inner.struct_name;

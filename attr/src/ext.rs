@@ -17,13 +17,3 @@ impl DeriveInputExt for DeriveInput {
         fields.iter()
     }
 }
-
-pub trait FieldExt {
-    fn name(&self) -> String;
-}
-
-impl FieldExt for Field {
-    fn name(&self) -> String {
-        self.ident.as_ref().unwrap().to_string().replace("r#", "")
-    }
-}

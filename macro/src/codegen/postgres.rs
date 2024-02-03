@@ -1,9 +1,7 @@
 use crate::codegen::common::{from_row_bounds, OrmliteCodegen};
-use ormlite_attr::TableMetadata;
 use ormlite_core::query_builder::Placeholder;
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::DeriveInput;
 use crate::MetadataCache;
 
 pub struct PostgresBackend;
@@ -34,7 +32,9 @@ impl OrmliteCodegen for PostgresBackend {
 #[cfg(test)]
 mod test {
     use super::*;
-    use ormlite_attr::*;
+    use ormlite_attr::ColumnMetadata;
+    use ormlite_attr::ModelMetadata;
+    use ormlite_attr::ttype::InnerType;
 
     #[test]
     fn test_all_bounds() {

@@ -1,8 +1,7 @@
 use proc_macro2::TokenStream;
 use quote::quote;
-use syn::DeriveInput;
-use ormlite_attr::{Ident, ModelMetadata, TableMetadata};
-use crate::codegen::common::{insertion_binding, OrmliteCodegen};
+use ormlite_attr::ModelMetadata;
+use crate::codegen::common::OrmliteCodegen;
 use crate::codegen::insert::impl_Model__insert;
 use crate::codegen::select::impl_Model__select;
 use crate::codegen::update::impl_Model__update_all_fields;
