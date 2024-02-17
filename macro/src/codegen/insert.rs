@@ -37,7 +37,6 @@ pub fn impl_Model__insert(db: &dyn OrmliteCodegen, attr: &TableMetadata, metadat
                 model: self,
                 closure: Box::new(|conn, mut model, query| {
                     Box::pin(async move {
-                        use ::ormlite::__private::StreamExt;
                         let mut conn = conn.acquire().await?;
                         #(
                             #insert_join
@@ -48,11 +47,10 @@ pub fn impl_Model__insert(db: &dyn OrmliteCodegen, attr: &TableMetadata, metadat
                         )*
                         // using fetch instead of fetch_one because of https://github.com/launchbadge/sqlx/issues/1370
                         let mut stream = q.fetch(&mut *conn);
-                        let mut model: Self = stream
-                            .try_next()
+                        let mut model: Self = ::ormlite::__private::StreamExt::try_next(&mut stream)
                             .await?
                             .ok_or_else(|| ::ormlite::Error::from(::ormlite::SqlxError::RowNotFound))?;
-                        stream.try_next().await?;
+                        ::ormlite::__private::StreamExt::try_next(&mut stream).await?;
                         #(
                             #late_bind
                         )*
@@ -87,7 +85,6 @@ pub fn impl_ModelBuilder__insert(db: &dyn OrmliteCodegen, attr: &TableMetadata) 
             E: 'e +::ormlite::Executor<'e, Database = #db>,
         {
             Box::pin(async move {
-                use ::ormlite::__private::StreamExt;
                 let mut placeholder = #placeholder;
                 let set_fields = self.modified_fields();
                 let query = format!(
@@ -95,15 +92,14 @@ pub fn impl_ModelBuilder__insert(db: &dyn OrmliteCodegen, attr: &TableMetadata) 
                     set_fields.join(", "),
                     set_fields.iter().map(|_| placeholder.next().unwrap()).collect::<Vec<_>>().join(", "),
                 );
-                let mut q =::ormlite::query_as::<#db, Self::Model>(&query);
+                let mut q = ::ormlite::query_as::<#db, Self::Model>(&query);
                 #(#bind_parameters)*
                 // using fetch instead of fetch_one because of https://github.com/launchbadge/sqlx/issues/1370
                 let mut stream = q.fetch(db);
-                let model = stream
-                    .try_next()
+                let model = ::ormlite::__private::StreamExt::try_next(&mut stream)
                     .await?
                     .ok_or_else(|| ::ormlite::Error::from(::ormlite::SqlxError::RowNotFound))?;
-                stream.try_next().await?;
+                ::ormlite::__private::StreamExt::try_next(&mut stream).await?;
                 Ok(model)
             })
         }
@@ -164,18 +160,16 @@ pub fn impl_InsertModel(db: &dyn OrmliteCodegen, meta: &ModelMetadata) -> TokenS
                 A: 'a + Send + ::ormlite::Acquire<'a, Database = #db>,
             {
                 Box::pin(async move {
-                    use ::ormlite::__private::StreamExt;
                     let mut conn = db.acquire().await?;
                     let mut q =::ormlite::query_as::<#db, Self::Model>(#query);
                     let mut model = self;
                     #(#insert_join)*
                     #(#query_bindings)*
                     let mut stream = q.fetch(&mut *conn);
-                    let mut model = stream
-                        .try_next()
+                    let mut model = ::ormlite::__private::StreamExt::try_next(&mut stream)
                         .await?
                         .ok_or_else(|| ::ormlite::Error::from(::ormlite::SqlxError::RowNotFound))?;
-                    stream.try_next().await?;
+                    ::ormlite::__private::StreamExt::try_next(&mut stream).await?;
                     #(#late_bind)*
                     Ok(model)
                 })
