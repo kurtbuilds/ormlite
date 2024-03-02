@@ -265,6 +265,7 @@ async fn builder_syntax_example() {
 }
 ```
 ### Upsert
+You can handle insertion on conflict using `OnConflict` ([docs](https://docs.rs/ormlite/latest/ormlite/query_builder/enum.OnConflict.html)).
 ```rust
 use ormlite::{
     model::*,
