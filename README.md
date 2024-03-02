@@ -496,7 +496,7 @@ You can log queries using sqlx's logger: `RUST_LOG=sqlx=info`
 - [ ] One to many joins
 - [ ] Make sure features are wired up correctly to support mysql and different runtimes & SSL libraries.
 - [ ] Macro option to auto adjust columns like updated_at
-- [ ] Upsert functionality
+- [x] Upsert functionality
 - [ ] Bulk insertions
 - [ ] Query builder for bulk update
 - [ ] Handle on conflict clauses for bulk update
