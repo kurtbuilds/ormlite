@@ -264,6 +264,34 @@ async fn builder_syntax_example() {
     println!("{:?}", john);
 }
 ```
+### Upsert
+```rust
+use ormlite::{
+    model::*,
+    query_builder::OnConflict,
+};
+
+#[derive(Debug, Model)]
+pub struct Users {
+    #[ormlite(primary_key)]
+    pub id:    i32,
+    pub name:  String,
+    pub email: String,
+}
+
+async fn upsert_example(conn: &mut PgConnection) {
+    Users {
+        id: 1,
+        name: String::from("New name"),
+        email: String::from("New email"),
+    }
+        .insert(&mut conn)
+        // update values of all columns on primary key conflict
+        .on_conflict(OnConflict::do_update_on_pkey("id"))
+        .await
+        .unwrap();
+}
+```
 
 # Select Query
 
