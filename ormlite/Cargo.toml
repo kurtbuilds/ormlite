@@ -10,6 +10,8 @@ homepage = "https://github.com/kurtbuilds/ormlite"
 documentation = "https://docs.rs/ormlite"
 autotests = false
 readme = "../README.md"
+keywords = ["sqlite", "postgres", "orm", "async", "mysql"]
+categories = ["database"]
 # autoexamples = false
 
 [package.metadata.docs.rs]
