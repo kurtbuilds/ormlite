@@ -264,6 +264,35 @@ async fn builder_syntax_example() {
     println!("{:?}", john);
 }
 ```
+### Upsert
+You can handle insertion on conflict using `OnConflict` ([docs](https://docs.rs/ormlite/latest/ormlite/query_builder/enum.OnConflict.html)).
+```rust
+use ormlite::{
+    model::*,
+    query_builder::OnConflict,
+};
+
+#[derive(Debug, Model)]
+pub struct Users {
+    #[ormlite(primary_key)]
+    pub id:    i32,
+    pub name:  String,
+    pub email: String,
+}
+
+async fn upsert_example(conn: &mut PgConnection) {
+    Users {
+        id: 1,
+        name: String::from("New name"),
+        email: String::from("New email"),
+    }
+        .insert(&mut conn)
+        // update values of all columns on primary key conflict
+        .on_conflict(OnConflict::do_update_on_pkey("id"))
+        .await
+        .unwrap();
+}
+```
 
 # Select Query
 
@@ -467,7 +496,7 @@ You can log queries using sqlx's logger: `RUST_LOG=sqlx=info`
 - [ ] One to many joins
 - [ ] Make sure features are wired up correctly to support mysql and different runtimes & SSL libraries.
 - [ ] Macro option to auto adjust columns like updated_at
-- [ ] Upsert functionality
+- [x] Upsert functionality
 - [ ] Bulk insertions
 - [ ] Query builder for bulk update
 - [ ] Handle on conflict clauses for bulk update
