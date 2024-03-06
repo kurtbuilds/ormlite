@@ -1225,14 +1225,19 @@ dependencies = [
  "assert_matches",
  "clap",
  "colored",
+ "heck",
+ "itertools 0.11.0",
  "ormlite",
  "ormlite-attr",
  "ormlite-core",
  "proc-macro2",
+ "quote",
  "regex",
+ "rust-format",
  "sha2",
  "sqlmo",
  "sqlmo_sqlx",
+ "sqlx",
  "syn 2.0.43",
  "time",
  "tokio",
@@ -1249,6 +1254,7 @@ dependencies = [
  "assert_matches",
  "async-trait",
  "futures",
+ "indexmap",
  "ormlite-attr",
  "serde",
  "sqlmo",
@@ -1375,6 +1381,16 @@ name = "ppv-lite86"
 version = "0.2.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5b40af805b3121feab8a3c29f04d8ad262fa8e0561883e7653e024ae4479e6de"
+
+[[package]]
+name = "prettyplease"
+version = "0.1.25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6c8646e95016a7a6c4adea95bafa8a16baab64b583356217f2c85db4a39d9a86"
+dependencies = [
+ "proc-macro2",
+ "syn 1.0.109",
+]
 
 [[package]]
 name = "proc-macro-crate"
@@ -1591,6 +1607,17 @@ dependencies = [
  "spki",
  "subtle",
  "zeroize",
+]
+
+[[package]]
+name = "rust-format"
+version = "0.3.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "60e7c00b6c3bf5e38a880eec01d7e829d12ca682079f8238a464def3c4b31627"
+dependencies = [
+ "prettyplease",
+ "proc-macro2",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -1868,9 +1895,9 @@ dependencies = [
 
 [[package]]
 name = "sqlparser"
-version = "0.35.0"
+version = "0.36.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca597d77c98894be1f965f2e4e2d2a61575d4998088e655476c73715c54b2b43"
+checksum = "2eaa1e88e78d2c2460d78b7dc3f0c08dbb606ab4222f9aff36f420d36e307d87"
 dependencies = [
  "log",
 ]

@@ -1,6 +1,8 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 pub use ormlite_core::BoxFuture;
 pub use ormlite_core::{Error, Result};
+pub use ormlite_core::fetch_linked;
+pub use ormlite_core::KVec;
 pub use model::{Model, FromRow, TableMeta, IntoArguments};
 pub use ::sqlx::{Row, ColumnIndex, Decode, Column, Database};
 

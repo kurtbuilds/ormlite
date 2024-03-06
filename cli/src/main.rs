@@ -30,6 +30,8 @@ pub enum Command {
     Down(Down),
     /// Initiailize the database for use with `ormlite`. Creates the migrations table.
     Init(Init),
+    /// Generate entities by reflecting database structure
+    Reflect(Reflect),
 }
 
 fn main() -> Result<()> {
@@ -51,5 +53,6 @@ fn main() -> Result<()> {
         Up(up) => up.run(),
         Down(down) => down.run(),
         Init(init) => init.run(),
+        Reflect(r) => r.run(),
     }
 }
