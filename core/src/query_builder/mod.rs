@@ -1,6 +1,6 @@
 pub mod args;
 pub mod placeholder;
-mod select;
+pub mod select;
 mod util;
 pub use placeholder::Placeholder;
 pub use select::SelectQueryBuilder;

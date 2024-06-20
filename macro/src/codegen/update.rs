@@ -54,6 +54,59 @@ pub fn impl_Model__update_all_fields(db: &dyn OrmliteCodegen, attr: &ModelMetada
 }
 
 
+pub fn impl_Model__update_all_fields_by_id(db: &dyn OrmliteCodegen, attr: &ModelMetadata) -> TokenStream {
+    let box_future = crate::util::box_fut_ts();
+    let mut placeholder = db.placeholder();
+    let db = db.database_ts();
+    let mut query = "UPDATE \"".to_string();
+    query.push_str(&attr.inner.table_name);
+    query.push_str("\" SET ");
+    for c in attr.database_columns_except_pkey() {
+        query.push_str(&c.column_name);
+        query.push_str(" = ");
+        query.push_str(&placeholder.next().unwrap());
+        query.push_str(", ");
+    }
+    // remove the final ", "
+    query.truncate(query.len() - 2);
+    query.push_str(" WHERE ");
+    query.push_str(&attr.pkey.column_name);
+    query.push_str(" = ");
+    query.push_str(&placeholder.next().unwrap());
+    query.push_str(" RETURNING *");
+
+    let id = &attr.pkey.identifier;
+    let query_bindings = attr.database_columns_except_pkey().map(|c| insertion_binding(c));
+
+    let unwind_joins = attr.many_to_one_joins().map(|c| {
+        let id = &c.identifier;
+        quote! {
+            let #id = &model.#id;
+        }
+    });
+
+    quote! {
+        fn update_all_fields_by_id<'e, 'a, Arg, E>(self, db: E) -> #box_future<'e, ::ormlite::Result<Self>>
+        where
+            'a: 'e,
+            Arg: 'a + Send + ::ormlite::Encode<'a, #db> + ::ormlite::types::Type<#db>,
+            E: 'e +::ormlite::Executor<'e, Database = #db>,
+        {
+            Box::pin(async move {
+                let mut q =::ormlite::query_as::<_, Self>(#query);
+                let model = self;
+                #(#unwind_joins)*
+                #(#query_bindings)*
+                q.bind(model.#id)
+                    .fetch_one(db)
+                    .await
+                    .map_err(::ormlite::Error::from)
+            })
+        }
+    }
+}
+
+
 pub fn impl_ModelBuilder__update(db: &dyn OrmliteCodegen, attr: &ModelMetadata) -> TokenStream {
     let box_future = crate::util::box_fut_ts();
     let placeholder = db.placeholder_ts();
@@ -98,4 +151,3 @@ pub fn impl_ModelBuilder__update(db: &dyn OrmliteCodegen, attr: &ModelMetadata) 
             }
         }
 }
-
