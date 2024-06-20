@@ -4,6 +4,7 @@ pub use ormlite_core::{Error, Result};
 pub use ormlite_core::fetch_linked;
 pub use ormlite_core::KVec;
 pub use model::{Model, FromRow, TableMeta, IntoArguments};
+pub use ormlite_core::query_builder::select::DatabaseMetadata;
 pub use ::sqlx::{Row, ColumnIndex, Decode, Column, Database};
 
 pub use ::sqlx::{query, query_as, query_as_with, Connection, Executor, Pool, Acquire, ConnectOptions, Encode, Arguments, query_with};

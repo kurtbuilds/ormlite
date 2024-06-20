@@ -6,21 +6,21 @@ use heck::{ToPascalCase, ToSnakeCase};
 use itertools::Itertools;
 use ormlite::Acquire;
 use ormlite_core::config::get_var_database_url;
-use proc_macro2::TokenStream;
+use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 use rust_format::{Formatter, PrettyPlease};
-use sqlx::{FromRow, PgConnection, Connection};
-use std::fs;
+use sqlx::{Connection, FromRow, PgConnection};
+use std::{collections::HashMap, fs};
 
 /* TODO
- * - Dynamically import required types
- * - Reserved words `r#` quoting
- * - Repeated field name detection
- * - Integrate `KVec` one-to-many implementation
- * - Properly support views
- * - Provide a mechanism to skip unwanted fields and other settings (via doc-comments or custom directive)
- * - `--split` option for generating one model per file
- * - `--domains` option for domains as `type` aliases
+ * [ ] Dynamically import required types
+ * [ ] Reserved words `r#` quoting
+ * [X] Repeated field name detection
+ * [ ] Integrate `KVec` one-to-many implementation
+ * [ ] Properly support views
+ * [ ] Provide a mechanism to skip unwanted fields and other settings (via doc-comments or custom directive)
+ * [ ] `--split` option for generating one model per file
+ * [ ] `--domains` option for domains as `type` aliases
  */
 
 #[allow(dead_code)]
@@ -125,7 +125,7 @@ impl ColumnDef {
             //"cid"           /* U:   29, 1012 */
             "json"            /* U:  114,  199 */
             | "jsonb"          /* U: 3802, 3807 */
-                => quote! { Json },
+                => quote! { JsonValue },
             //"jsonpath"      /* U: 4072, 4073 */
 
             //"pg_lsn"        /* U: 3220, 3221 */
@@ -160,6 +160,25 @@ impl ColumnDef {
 
 const SCHEMA_QUERY: &str = include_str!("reflect/schema.postgres.sql");
 
+struct Namer {
+    names: HashMap<String, u8>,
+}
+
+impl Namer {
+    pub fn new() -> Self {
+        Self { names: HashMap::new() }
+    }
+    pub fn mk_name(&mut self, name: &str) -> Ident {
+        let column_name = name.to_snake_case();
+        let idx = *self.names.entry(column_name.clone()).and_modify(|cnt| *cnt += 1).or_insert(0);
+        if idx > 0 {
+            format_ident!("{column_name}_{idx}")
+        } else {
+            format_ident!("{column_name}")
+        }
+    }
+}
+
 #[derive(Parser, Debug)]
 pub struct Reflect {
     /// Database schema name
@@ -185,6 +204,7 @@ impl Reflect {
             .group_by(|item| (item.table_schema.to_owned(), item.table_name.to_owned()))
             .into_iter()
             .map(|(key, items)| {
+                let mut namer = Namer::new();
                 let table_name_sql = &key.1;
                 let table_name_rs = format_ident!("{}", table_name_sql.to_pascal_case());
                 let q_table_alias = (table_name_rs != *table_name_sql).then_some(quote! {
@@ -194,47 +214,51 @@ impl Reflect {
                     let q_is_primary_key = col.is_primary_key.then_some(quote! {
                         #[ormlite(primary_key)]
                     });
+                    /*
                     if let (Some(_fk_column_name), Some(fk_table_name)) = (&col.fk_column_name, &col.fk_table_name) {
                         let column_name_sql = &col.column_name.clone();
                         let type_name_rs = format_ident!("{}", fk_table_name.to_pascal_case());
                         if col.is_rev_fk {
-                            let coulmn_name_rs = format_ident!("{}", fk_table_name.to_snake_case());
+                            let coulmn_name_rs = namer.mk_name(fk_table_name);
                             quote! {
                                 #[ormlite(skip)]
                                 pub #coulmn_name_rs: KVec<#type_name_rs>,
                             }
                         } else {
-                            let column_name_rs = format_ident!(
-                                "{}",
-                                col.column_name.strip_prefix("id_").unwrap_or(&col.column_name).to_snake_case()
-                            );
+                            let column_name_rs =
+                                namer.mk_name(col.column_name.strip_prefix("id_").strip_suffix("_id").unwrap_or(&col.column_name));
                             quote! {
                                 #[ormlite(join_column = #column_name_sql)]
                                 pub #column_name_rs: Join<#type_name_rs>,
                             }
                         }
-                    } else {
-                        let column_name_rs = format_ident!("{}", col.column_name.to_snake_case());
+                    } else */
+                    if !col.is_rev_fk {
+                        let column_name_rs = namer.mk_name(&col.column_name);
                         let column_type_rs = col.rust_type();
                         quote! {
                             #q_is_primary_key
                             pub #column_name_rs: #column_type_rs,
                         }
+                    } else {
+                        quote! {}
                     }
                 });
                 quote! {
-                    #[derive(Model, Debug, Serialize)]
+                    #[derive(Model, Debug, Serialize, Deserialize, JsonSchema)]
                     #q_table_alias
-                    struct #table_name_rs {
+                    pub struct #table_name_rs {
                         #(#q_columns)*
                     }
                 }
             })
             .concat();
 
+        //use ormlite::{Model, model::Join, KVec};
         let q_output = quote! {
-            use ormlite::{Model, model::Join};
-            use serde::Serialize;
+            use ormlite::Model;
+            use serde::{Serialize, Deserialize};
+            use schemars::JsonSchema;
             pub use ormlite::types::{
                 chrono::{
                     NaiveDate as Date,
@@ -247,7 +271,7 @@ impl Reflect {
                 },
                 // BigDecimal,
                 Decimal,
-                Json,
+                JsonValue,
                 Uuid
             };
             pub type DateTimeTz = ChronoDateTime<FixedOffset>;
