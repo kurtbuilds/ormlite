@@ -35,14 +35,14 @@ pub trait Loadable<DB, T: JoinMeta> {
             E: 'e + sqlx::Executor<'e, Database=DB>;
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Join<T: JoinMeta> {
     pub id: T::IdType,
     data: JoinData<T>,
 }
 
 /// Only represents a many-to-one relationship.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum JoinData<T: JoinMeta> {
     NotQueried,
     QueryResult(T),
