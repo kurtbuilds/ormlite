@@ -65,8 +65,8 @@ impl Up {
             eprintln!("{}: Created database snapshot.", file_path.display());
         }
 
-        let iter = pending.iter().take(if self.all { pending.len() } else { 1 });
-        for migration in iter {
+        let pending = pending.iter().take(if self.all { pending.len() } else { 1 });
+        for migration in pending {
             debug!("Running migration: {}", migration.name);
             let file_path = folder.join(&migration.name).with_extension(migration.migration_type().extension());
             let body = fs::read_to_string(&file_path)?;
