@@ -2,7 +2,7 @@ use std::collections::HashSet;
 use std::fs;
 use std::fs::File;
 use std::time::Instant;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::Parser;
 use ormlite::{Executor, Arguments, Acquire, Connection};
 use ormlite::postgres::{PgArguments, PgConnection};
@@ -40,15 +40,29 @@ impl Up {
             .into_iter()
             .filter(|m| m.migration_type() != MigrationType::Down)
             .collect::<Vec<_>>();
+        for e in &executed {
+            debug!("Executed: {}", e.full_name());
+        }
+        debug!("{} migrations executed", executed.len());
+        for p in &pending {
+            debug!("Pending: {}", p.full_name());
+        }
+        debug!("{} migrations pending", pending.len());
 
-        if executed.len() >= pending.len() {
+        let pending_hashset = pending.iter().map(|m| m.version).collect::<HashSet<_>>();
+        for e in &executed {
+            if !pending_hashset.contains(&e.version) {
+                return Err(anyhow!("Migration {} was executed on the database, but was not found in your migrations folder. Your migrations are out of sync.", e.full_name()));
+            }
+        }
+        if executed.len() == pending.len() {
             eprintln!("No migrations to run.");
             return Ok(());
         }
         let last_executed = executed.last().map(|m| m.name.clone()).unwrap_or("0_empty".to_string());
-        let executed = executed.into_iter().map(|m| m.name).collect::<HashSet<_>>();
+        let executed = executed.into_iter().map(|m| m.version).collect::<HashSet<_>>();
 
-        let pending = pending.into_iter().filter(|m| !executed.contains(&m.name)).collect::<Vec<_>>();
+        let pending = pending.into_iter().filter(|m| !executed.contains(&m.version)).collect::<Vec<_>>();
 
         let is_simple = pending.last().as_ref().unwrap().migration_type() == MigrationType::Simple;
         if (is_simple && !self.no_snapshot) || (!is_simple && self.snapshot) {

@@ -50,6 +50,10 @@ impl MigrationMetadata {
         }
     }
 
+    pub fn full_name(&self) -> String {
+        format!("{}_{}", self.version, self.description)
+    }
+
     pub fn version_str(&self) -> String {
         self.version.to_string()
     }
