@@ -104,6 +104,9 @@ fn get_databases(table_meta: &TableMetadata) -> Vec<Box<dyn OrmliteCodegen>> {
         #[cfg(feature = "mysql")]
         databases.push(Box::new(codegen::mysql::MysqlBackend {}));
     }
+    if databases.is_empty() {
+        panic!(r#"No database is enabled. Enable one of these features for the ormlite crate: postgres, mysql, sqlite"#);
+    }
     databases
 }
 
