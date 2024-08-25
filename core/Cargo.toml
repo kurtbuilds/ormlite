@@ -19,7 +19,7 @@ futures = "0.3"
 sqlx = "0.7"
 sqlparser = "0.36"
 thiserror = "1"
-sqlmo = "0.16"
+sqlmo = "0.17.0"
 ormlite-attr = { path = "../attr" , version = "0.18" }
 anyhow = "1"
 async-trait = "0.1"

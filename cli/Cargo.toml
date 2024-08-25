@@ -1,6 +1,6 @@
 [package]
 name = "ormlite-cli"
-version = "0.18.0"
+version = "0.18.1"
 edition = "2021"
 description = "An ORM for people who love SQL. Use the `ormlite` crate, not this one."
 authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
@@ -27,9 +27,9 @@ ormlite = { version = "0.18", path = "../ormlite" }
 ormlite-core = { version = "0.18", path = "../core" }
 ormlite-attr = { version = "0.18", path = "../attr" }
 tokio = { version = "1", features = ["full"] }
-sqlmo = { version = "0.16", features = ["tracing"] }
-sqlmo_sqlx = "0.16"
-sqlx = "0.7"
+sqlmo = { version = "0.17", features = ["tracing"] }
+sqlx = { version = "0.7" }
+sqlmo_sqlx = "0.17"
 syn = "2"
 proc-macro2 = "1"
 url = "2"

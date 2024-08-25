@@ -10,6 +10,8 @@ homepage = "https://github.com/kurtbuilds/ormlite"
 documentation = "https://docs.rs/ormlite"
 autotests = false
 readme = "../README.md"
+keywords = ["sqlite", "postgres", "orm", "async", "mysql"]
+categories = ["database"]
 # autoexamples = false
 
 [package.metadata.docs.rs]
@@ -57,7 +59,7 @@ tokio = { version = "1.24.1", features = ["full"] }
 ormlite-macro = { path = "../macro" , version = "0.18.0"}
 ormlite-core = { path = "../core" , version = "0.18.0"}
 sqlx-core = "0.7"
-sqlmo = "0.16"
+sqlmo = "0.17.0"
 tokio-stream = "0.1.14"
 
 [dev-dependencies]

@@ -50,6 +50,10 @@ impl MigrationMetadata {
         }
     }
 
+    pub fn full_name(&self) -> String {
+        format!("{}_{}", self.version, self.description)
+    }
+
     pub fn version_str(&self) -> String {
         self.version.to_string()
     }
@@ -197,6 +201,7 @@ fn autogenerate_migration(codebase_path: &[&Path], runtime: &Runtime, conn: &mut
 
     let migration = current.migrate_to(desired, &sqlmo::MigrationOptions {
         debug: opts.verbose,
+        allow_destructive: false,
     })?;
     Ok(migration)
 }
@@ -265,6 +270,7 @@ impl Migrate {
                         Statement::CreateIndex(s) => println!("Create index {} on {}", &s.name, &s.table),
                         Statement::AlterTable(s) => println!("Alter table {}", &s.name),
                         Statement::Update(s) => println!("Update table {}", &s.table),
+                        Statement::DropTable(s) => println!("Drop table {}", &s.name),
                     }
                 }
             }

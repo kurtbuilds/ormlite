@@ -4,6 +4,8 @@
 use proc_macro::TokenStream;
 use std::borrow::Borrow;
 use std::collections::HashMap;
+use std::env;
+use std::env::var;
 use std::ops::Deref;
 
 use once_cell::sync::OnceCell;
@@ -101,6 +103,9 @@ fn get_databases(table_meta: &TableMetadata) -> Vec<Box<dyn OrmliteCodegen>> {
         databases.push(Box::new(codegen::postgres::PostgresBackend));
         #[cfg(feature = "mysql")]
         databases.push(Box::new(codegen::mysql::MysqlBackend {}));
+    }
+    if databases.is_empty() {
+        panic!(r#"No database is enabled. Enable one of these features for the ormlite crate: postgres, mysql, sqlite"#);
     }
     databases
 }
