@@ -10,17 +10,17 @@ use std::ops::Deref;
 
 use once_cell::sync::OnceCell;
 use quote::quote;
-use syn::{Data, DeriveInput, parse_macro_input};
+use syn::{parse_macro_input, Data, DeriveInput};
 
 use codegen::into_arguments::impl_IntoArguments;
+use ormlite_attr::schema_from_filepaths;
 use ormlite_attr::DeriveInputExt;
 use ormlite_attr::ModelMetadata;
-use ormlite_attr::schema_from_filepaths;
 use ormlite_attr::TableMetadata;
 use ormlite_core::config::get_var_model_folders;
 
 use crate::codegen::common::OrmliteCodegen;
-use crate::codegen::from_row::{impl_from_row_using_aliases, impl_FromRow};
+use crate::codegen::from_row::{impl_FromRow, impl_from_row_using_aliases};
 use crate::codegen::insert::impl_InsertModel;
 use crate::codegen::insert_model::struct_InsertModel;
 use crate::codegen::join_description::static_join_descriptions;
@@ -28,8 +28,8 @@ use crate::codegen::meta::{impl_JoinMeta, impl_TableMeta};
 use crate::codegen::model::{impl_HasModelBuilder, impl_Model};
 use crate::codegen::model_builder::{impl_ModelBuilder, struct_ModelBuilder};
 
-mod util;
 mod codegen;
+mod util;
 
 pub(crate) type MetadataCache = HashMap<String, ModelMetadata>;
 
@@ -71,7 +71,9 @@ fn get_databases(table_meta: &TableMetadata) -> Vec<Box<dyn OrmliteCodegen>> {
                 "postgres" => databases.push(Box::new(codegen::postgres::PostgresBackend)),
                 #[cfg(feature = "mysql")]
                 "mysql" => databases.push(Box::new(codegen::mysql::MysqlBackend {})),
-                "sqlite" | "postgres" | "mysql" => panic!("Database {} is not enabled. Enable it with features = [\"{}\"]", db, db),
+                "sqlite" | "postgres" | "mysql" => {
+                    panic!("Database {} is not enabled. Enable it with features = [\"{}\"]", db, db)
+                }
                 _ => panic!("Unknown database: {}", db),
             }
         }
@@ -105,7 +107,9 @@ fn get_databases(table_meta: &TableMetadata) -> Vec<Box<dyn OrmliteCodegen>> {
         databases.push(Box::new(codegen::mysql::MysqlBackend {}));
     }
     if databases.is_empty() {
-        panic!(r#"No database is enabled. Enable one of these features for the ormlite crate: postgres, mysql, sqlite"#);
+        panic!(
+            r#"No database is enabled. Enable one of these features for the ormlite crate: postgres, mysql, sqlite"#
+        );
     }
     databases
 }
@@ -115,7 +119,9 @@ fn get_databases(table_meta: &TableMetadata) -> Vec<Box<dyn OrmliteCodegen>> {
 #[proc_macro_derive(Model, attributes(ormlite))]
 pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
-    let Data::Struct(data) = &ast.data else { panic!("Only structs can derive Model"); };
+    let Data::Struct(data) = &ast.data else {
+        panic!("Only structs can derive Model");
+    };
 
     let meta = ModelMetadata::from_derive(&ast).expect("Failed to parse table metadata");
 
@@ -174,7 +180,9 @@ pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(FromRow, attributes(ormlite))]
 pub fn expand_derive_fromrow(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
-    let Data::Struct(data) = &ast.data else { panic!("Only structs can derive Model"); };
+    let Data::Struct(data) = &ast.data else {
+        panic!("Only structs can derive Model");
+    };
 
     let meta = TableMetadata::from_derive(&ast).unwrap();
 
@@ -199,7 +207,9 @@ pub fn expand_derive_fromrow(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(TableMeta, attributes(ormlite))]
 pub fn expand_derive_table_meta(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
-    let Data::Struct(data) = &ast.data else { panic!("Only structs can derive Model"); };
+    let Data::Struct(data) = &ast.data else {
+        panic!("Only structs can derive Model");
+    };
 
     let table_meta = TableMetadata::from_derive(&ast).expect("Failed to parse table metadata");
     let databases = get_databases(&table_meta);
@@ -212,7 +222,9 @@ pub fn expand_derive_table_meta(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(IntoArguments, attributes(ormlite))]
 pub fn expand_derive_into_arguments(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
-    let Data::Struct(data) = &ast.data else { panic!("Only structs can derive Model"); };
+    let Data::Struct(data) = &ast.data else {
+        panic!("Only structs can derive Model");
+    };
 
     let meta = TableMetadata::from_derive(&ast).unwrap();
     let databases = get_databases(&meta);

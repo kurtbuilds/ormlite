@@ -1,18 +1,17 @@
 use crate::error::{Error, Result};
+use crate::model::Model;
 use crate::query_builder::args::QueryBuilderArgs;
 use crate::query_builder::{util, Placeholder};
-use crate::model::Model;
 use sqlmo::ToSql;
 
 use sqlx::database::HasArguments;
 
+use crate::join::JoinDescription;
+use sqlmo::{query::Where, Select};
 use sqlx::{Executor, IntoArguments};
 use std::marker::PhantomData;
-use crate::join::JoinDescription;
-use sqlmo::{Select, query::Where};
 
 pub use sqlmo::query::Direction;
-
 
 // Add additional information to the sqlx::Database
 pub trait DatabaseMetadata {
@@ -129,8 +128,8 @@ where
 
     /// Convenience method to add a `WHERE` and bind a value in one call.
     pub fn where_bind<T>(mut self, clause: &'static str, value: T) -> Self
-        where
-            T: 'args + Send + sqlx::Type<DB> + sqlx::Encode<'args, DB>,
+    where
+        T: 'args + Send + sqlx::Type<DB> + sqlx::Encode<'args, DB>,
     {
         self.query = self.query.where_raw(clause);
         self.arguments.add(value);
@@ -230,8 +229,7 @@ where
 impl<'args, DB: sqlx::Database + DatabaseMetadata, M: Model<DB>> Default for SelectQueryBuilder<'args, DB, M> {
     fn default() -> Self {
         Self {
-            query: Select::default()
-                .from(M::table_name()),
+            query: Select::default().from(M::table_name()),
             arguments: QueryBuilderArgs::default(),
             model: PhantomData,
             gen: DB::placeholder(),

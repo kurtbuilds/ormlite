@@ -1,15 +1,15 @@
+use crate::command::{get_executed_migrations, get_pending_migrations, MigrationType};
+use crate::util::{create_runtime, CommandSuccess};
+use anyhow::{anyhow, Result};
+use clap::Parser;
+use ormlite::postgres::{PgArguments, PgConnection};
+use ormlite::{Acquire, Arguments, Connection, Executor};
+use ormlite_core::config::{get_var_database_url, get_var_migration_folder, get_var_snapshot_folder};
+use sha2::{Digest, Sha384};
 use std::collections::HashSet;
 use std::fs;
 use std::fs::File;
 use std::time::Instant;
-use anyhow::{anyhow, Result};
-use clap::Parser;
-use ormlite::{Executor, Arguments, Acquire, Connection};
-use ormlite::postgres::{PgArguments, PgConnection};
-use crate::command::{get_executed_migrations, get_pending_migrations, MigrationType};
-use ormlite_core::config::{get_var_snapshot_folder, get_var_database_url, get_var_migration_folder};
-use crate::util::{CommandSuccess, create_runtime};
-use sha2::{Digest, Sha384};
 use tracing::debug;
 
 #[derive(Parser, Debug)]
@@ -36,7 +36,8 @@ impl Up {
         let conn = runtime.block_on(conn.acquire()).unwrap();
 
         let executed = runtime.block_on(get_executed_migrations(conn))?;
-        let pending = get_pending_migrations(&folder).unwrap()
+        let pending = get_pending_migrations(&folder)
+            .unwrap()
             .into_iter()
             .filter(|m| m.migration_type() != MigrationType::Down)
             .collect::<Vec<_>>();
@@ -62,7 +63,10 @@ impl Up {
         let last_executed = executed.last().map(|m| m.name.clone()).unwrap_or("0_empty".to_string());
         let executed = executed.into_iter().map(|m| m.version).collect::<HashSet<_>>();
 
-        let pending = pending.into_iter().filter(|m| !executed.contains(&m.version)).collect::<Vec<_>>();
+        let pending = pending
+            .into_iter()
+            .filter(|m| !executed.contains(&m.version))
+            .collect::<Vec<_>>();
 
         let is_simple = pending.last().as_ref().unwrap().migration_type() == MigrationType::Simple;
         if (is_simple && !self.no_snapshot) || (!is_simple && self.snapshot) {
@@ -82,7 +86,9 @@ impl Up {
         let pending = pending.iter().take(if self.all { pending.len() } else { 1 });
         for migration in pending {
             debug!("Running migration: {}", migration.name);
-            let file_path = folder.join(&migration.name).with_extension(migration.migration_type().extension());
+            let file_path = folder
+                .join(&migration.name)
+                .with_extension(migration.migration_type().extension());
             let body = fs::read_to_string(&file_path)?;
 
             let checksum = Sha384::digest(body.as_bytes()).to_vec();

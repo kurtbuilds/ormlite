@@ -59,11 +59,7 @@ impl Intermediate {
             .type_structs
             .into_iter()
             .map(|(s, a)| (s.ident.to_string(), a))
-            .chain(
-                self.type_enums
-                    .into_iter()
-                    .map(|(e, a)| (e.ident.to_string(), a)),
-            );
+            .chain(self.type_enums.into_iter().map(|(e, a)| (e.ident.to_string(), a)));
         (models, types)
     }
 
@@ -90,9 +86,7 @@ impl Intermediate {
                 }
                 Item::Enum(e) => {
                     let attrs = DeriveParser::from_attributes(&e.attrs);
-                    if attrs.has_derive("ormlite", "Type")
-                        || attrs.has_derive("ormlite", "ManualType")
-                    {
+                    if attrs.has_derive("ormlite", "Type") || attrs.has_derive("ormlite", "ManualType") {
                         tracing::debug!(r#type=%e.ident.to_string(), "Found");
                         let repr = Repr::from_attributes(&e.attrs);
                         type_enums.push((e, repr));
@@ -110,14 +104,12 @@ impl Intermediate {
 }
 
 pub fn schema_from_filepaths(paths: &[&Path]) -> anyhow::Result<OrmliteSchema> {
-    let cwd = env::var("CARGO_MANIFEST_DIR").map(PathBuf::from)
+    let cwd = env::var("CARGO_MANIFEST_DIR")
+        .map(PathBuf::from)
         .or_else(|_| env::current_dir())
         .expect("Failed to get current directory for schema");
     let paths = paths.iter().map(|p| cwd.join(p)).collect::<Vec<_>>();
-    let invalid_paths = paths
-        .iter()
-        .filter(|p| fs::metadata(p).is_err())
-        .collect::<Vec<_>>();
+    let invalid_paths = paths.iter().filter(|p| fs::metadata(p).is_err()).collect::<Vec<_>>();
     if !invalid_paths.is_empty() {
         for path in &invalid_paths {
             tracing::error!(path = path.display().to_string(), "Does not exist");
@@ -136,46 +128,32 @@ pub fn schema_from_filepaths(paths: &[&Path]) -> anyhow::Result<OrmliteSchema> {
         .map(|e| e.unwrap())
         .filter(|e| e.path().extension().map(|e| e == "rs").unwrap_or(false))
         .map(|e| e.into_path())
-        .chain(
-            paths
-                .iter()
-                .filter(|p| p.ends_with(".rs"))
-                .map(|p| p.to_path_buf()),
-        );
+        .chain(paths.iter().filter(|p| p.ends_with(".rs")).map(|p| p.to_path_buf()));
 
     let mut tables = vec![];
     let mut type_aliases = HashMap::new();
     for entry in walk {
-        let contents = fs::read_to_string(&entry)
-            .context(format!("failed to read file: {}", entry.display()))?;
+        let contents = fs::read_to_string(&entry).context(format!("failed to read file: {}", entry.display()))?;
         tracing::debug!(
             file = entry.display().to_string(),
             "Checking for Model, Type, ManualType derive attrs"
         );
-        if !(contents.contains("Model")
-            || contents.contains("Type")
-            || contents.contains("ManualType"))
-        {
+        if !(contents.contains("Model") || contents.contains("Type") || contents.contains("ManualType")) {
             continue;
         }
-        let ast = syn::parse_file(&contents)
-            .context(format!("Failed to parse file: {}", entry.display()))?;
+        let ast = syn::parse_file(&contents).context(format!("Failed to parse file: {}", entry.display()))?;
         let intermediate = Intermediate::from_file(ast);
         let (models, types) = intermediate.into_models_and_types();
 
         for item in models {
             let derive: DeriveInput = item.into();
-            let table = ModelMetadata::from_derive(&derive).context(format!(
-                "Failed to parse model: {}",
-                derive.ident.to_string()
-            ))?;
+            let table = ModelMetadata::from_derive(&derive)
+                .context(format!("Failed to parse model: {}", derive.ident.to_string()))?;
             tables.push(table);
         }
 
         for (name, repr) in types {
-            let ty = repr
-                .map(|s| s.to_string())
-                .unwrap_or_else(|| "String".to_string());
+            let ty = repr.map(|s| s.to_string()).unwrap_or_else(|| "String".to_string());
             type_aliases.insert(name, ty);
         }
     }

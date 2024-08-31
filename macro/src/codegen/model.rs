@@ -1,12 +1,11 @@
-use proc_macro2::TokenStream;
-use quote::quote;
-use ormlite_attr::ModelMetadata;
 use crate::codegen::common::OrmliteCodegen;
 use crate::codegen::insert::impl_Model__insert;
 use crate::codegen::select::impl_Model__select;
 use crate::codegen::update::impl_Model__update_all_fields;
 use crate::MetadataCache;
-
+use ormlite_attr::ModelMetadata;
+use proc_macro2::TokenStream;
+use quote::quote;
 
 pub fn impl_Model(db: &dyn OrmliteCodegen, attr: &ModelMetadata, metadata_cache: &MetadataCache) -> TokenStream {
     let model = &attr.inner.struct_name;
@@ -86,7 +85,6 @@ pub fn impl_Model__delete(db: &dyn OrmliteCodegen, attr: &ModelMetadata) -> Toke
     }
 }
 
-
 pub fn impl_Model__fetch_one(db: &dyn OrmliteCodegen, attr: &ModelMetadata) -> TokenStream {
     let mut placeholder = db.placeholder();
 
@@ -116,7 +114,6 @@ pub fn impl_Model__fetch_one(db: &dyn OrmliteCodegen, attr: &ModelMetadata) -> T
         }
     }
 }
-
 
 pub fn impl_Model__builder(attr: &ModelMetadata) -> TokenStream {
     let partial_model = &attr.builder_struct();

@@ -1,7 +1,7 @@
+use crate::ident::Ident;
 use proc_macro2::TokenStream;
 use quote::TokenStreamExt;
 use syn::PathArguments;
-use crate::ident::Ident;
 
 /// Token type. A rust AST token, representing a type.
 #[derive(Clone, Debug, PartialEq, Hash)]
@@ -167,11 +167,7 @@ impl From<&syn::Path> for InnerType {
         };
         let mut path = path.segments.iter().map(|s| Ident::from(&s.ident)).collect::<Vec<_>>();
         let ident = path.pop().expect("path must have at least one segment");
-        InnerType {
-            path,
-            args,
-            ident,
-        }
+        InnerType { path, args, ident }
     }
 }
 
@@ -187,7 +183,6 @@ impl quote::ToTokens for InnerType {
         tokens.append_all(quote::quote! { #(#path ::)* #ident #args });
     }
 }
-
 
 #[cfg(test)]
 mod tests {

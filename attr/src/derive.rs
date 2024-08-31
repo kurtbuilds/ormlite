@@ -1,6 +1,6 @@
-use syn::{Meta, Path, Token};
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
+use syn::{Meta, Path, Token};
 
 use crate::cfg_attr::CfgAttr;
 
@@ -75,15 +75,21 @@ impl DeriveParser {
     pub fn from_attributes(attrs: &[syn::Attribute]) -> Self {
         let mut result = Self::default();
         for attr in attrs {
-            let Some(ident) = attr.path().get_ident() else { continue; };
+            let Some(ident) = attr.path().get_ident() else {
+                continue;
+            };
             if ident == Self::ATTRIBUTE {
                 result.merge(attr.parse_args().unwrap());
             } else if ident == "cfg_attr" {
                 let cfg: CfgAttr = attr.parse_args().unwrap();
                 for attr in cfg.attrs {
-                    let Some(ident) = attr.path().get_ident() else { continue; };
+                    let Some(ident) = attr.path().get_ident() else {
+                        continue;
+                    };
                     if ident == Self::ATTRIBUTE {
-                        let Meta::List(attrs) = attr else { panic!("Expected a list of attributes") };
+                        let Meta::List(attrs) = attr else {
+                            panic!("Expected a list of attributes")
+                        };
                         result.merge(attrs.parse_args().unwrap());
                     }
                 }
@@ -108,8 +114,8 @@ impl Parse for Derive {
 
 #[cfg(test)]
 mod tests {
-    use crate::repr::Repr;
     use super::*;
+    use crate::repr::Repr;
 
     #[test]
     fn test_repr() {
@@ -182,7 +188,9 @@ pub enum Privacy {
 }
 "#;
         let file: syn::File = syn::parse_str(code).unwrap();
-        let syn::Item::Enum(item) = file.items.first().unwrap() else { panic!() };
+        let syn::Item::Enum(item) = file.items.first().unwrap() else {
+            panic!()
+        };
         let attr = DeriveParser::from_attributes(&item.attrs);
         assert!(attr.has_derive2(&["ormlite", "sqlx"], "Type"));
     }
@@ -209,7 +217,9 @@ pub enum Privacy {
 }
 "#;
         let file: syn::File = syn::parse_str(code).unwrap();
-        let syn::Item::Enum(item) = file.items.first().unwrap() else { panic!() };
+        let syn::Item::Enum(item) = file.items.first().unwrap() else {
+            panic!()
+        };
         let attr = DeriveParser::from_attributes(&item.attrs);
         assert_eq!(attr.has_derive("ormlite", "ManualType"), true);
     }

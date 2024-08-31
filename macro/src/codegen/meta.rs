@@ -1,7 +1,7 @@
+use ormlite_attr::ModelMetadata;
+use ormlite_attr::TableMetadata;
 use proc_macro2::TokenStream;
 use quote::quote;
-use ormlite_attr::TableMetadata;
-use ormlite_attr::ModelMetadata;
 
 pub fn impl_TableMeta(meta: &TableMetadata, pkey: Option<&str>) -> TokenStream {
     let model = &meta.struct_name;
@@ -11,8 +11,7 @@ pub fn impl_TableMeta(meta: &TableMetadata, pkey: Option<&str>) -> TokenStream {
         None => quote! { None },
     };
 
-    let field_names = meta.database_columns()
-        .map(|c| c.column_name.to_string());
+    let field_names = meta.database_columns().map(|c| c.column_name.to_string());
 
     quote! {
         impl ::ormlite::model::TableMeta for #model {

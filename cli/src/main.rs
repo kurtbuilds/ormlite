@@ -1,5 +1,5 @@
-use clap::{Parser, Subcommand};
 use anyhow::Result;
+use clap::{Parser, Subcommand};
 use tracing::Level;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -8,7 +8,6 @@ mod command;
 mod util;
 
 use command::*;
-
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
@@ -36,13 +35,12 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
     let level = if cli.verbose { Level::DEBUG } else { Level::INFO };
     tracing_subscriber::registry()
-        .with(tracing_subscriber::fmt::layer()
-            .without_time()
-        )
-        .with(tracing_subscriber::filter::Targets::new()
-            .with_target(env!("CARGO_BIN_NAME"), level)
-            .with_target("ormlite_attr", level)
-            .with_target("sqlmo", level)
+        .with(tracing_subscriber::fmt::layer().without_time())
+        .with(
+            tracing_subscriber::filter::Targets::new()
+                .with_target(env!("CARGO_BIN_NAME"), level)
+                .with_target("ormlite_attr", level)
+                .with_target("sqlmo", level),
         )
         .init();
     use Command::*;

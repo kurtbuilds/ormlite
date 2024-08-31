@@ -1,8 +1,8 @@
-use futures::future::BoxFuture;
-#[allow(unused_imports)]
-use sqlmo::{Insert, Dialect, ToSql};
-pub use sqlmo::query::OnConflict;
 use crate::Result;
+use futures::future::BoxFuture;
+pub use sqlmo::query::OnConflict;
+#[allow(unused_imports)]
+use sqlmo::{Dialect, Insert, ToSql};
 
 /// Represents an insert query.
 /// We had to turn this into a model because we need to pass in the on_conflict configuration.
@@ -14,7 +14,6 @@ pub struct Insertion<'a, Acquire, Model, DB: sqlx::Database> {
     pub _db: std::marker::PhantomData<DB>,
 }
 
-
 impl<'a, Acquire, Model, DB: sqlx::Database> Insertion<'a, Acquire, Model, DB> {
     pub fn on_conflict(mut self, c: OnConflict) -> Self {
         self.insert.on_conflict = c;
@@ -22,7 +21,9 @@ impl<'a, Acquire, Model, DB: sqlx::Database> Insertion<'a, Acquire, Model, DB> {
     }
 }
 
-impl<'a, Acquire, Model: crate::model::Model<DB>, DB: sqlx::Database> std::future::IntoFuture for Insertion<'a, Acquire, Model, DB> {
+impl<'a, Acquire, Model: crate::model::Model<DB>, DB: sqlx::Database> std::future::IntoFuture
+    for Insertion<'a, Acquire, Model, DB>
+{
     type Output = Result<Model>;
     type IntoFuture = BoxFuture<'a, Self::Output>;
 

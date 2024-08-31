@@ -1,15 +1,14 @@
-use std::borrow::Cow;
-use ormlite_core::query_builder::Placeholder;
-use proc_macro2::TokenStream;
-use quote::{quote, ToTokens};
 use crate::MetadataCache;
 use itertools::Itertools;
-use ormlite_attr::Ident;
 use ormlite_attr::ColumnMetadata;
+use ormlite_attr::Ident;
 use ormlite_attr::ModelMetadata;
 use ormlite_attr::TableMetadata;
 use ormlite_attr::{InnerType, TType};
-
+use ormlite_core::query_builder::Placeholder;
+use proc_macro2::TokenStream;
+use quote::{quote, ToTokens};
+use std::borrow::Cow;
 
 pub fn generate_conditional_bind(c: &ColumnMetadata) -> TokenStream {
     let name = &c.identifier;
@@ -37,13 +36,9 @@ fn ty_is_string(ty: &syn::Type) -> bool {
     p.path.segments.last().map(|s| s.ident == "String").unwrap_or(false)
 }
 
-
-
 fn recursive_primitive_types_ty<'a>(ty: &'a TType, cache: &'a MetadataCache) -> Vec<Cow<'a, InnerType>> {
     match ty {
-        TType::Option(ty) => {
-            recursive_primitive_types_ty(ty, cache)
-        }
+        TType::Option(ty) => recursive_primitive_types_ty(ty, cache),
         TType::Vec(ty) => {
             let inner = recursive_primitive_types_ty(ty, cache);
             let inner = inner.into_iter().next().expect("Vec must have inner type");
@@ -62,18 +57,19 @@ fn recursive_primitive_types_ty<'a>(ty: &'a TType, cache: &'a MetadataCache) -> 
     }
 }
 
-
 fn recursive_primitive_types<'a>(table: &'a ModelMetadata, cache: &'a MetadataCache) -> Vec<Cow<'a, InnerType>> {
-    table.inner.columns.iter()
-        .map(|c| {
-            recursive_primitive_types_ty(&c.column_type, cache)
-        })
+    table
+        .inner
+        .columns
+        .iter()
+        .map(|c| recursive_primitive_types_ty(&c.column_type, cache))
         .flatten()
         .collect()
 }
 
 pub(crate) fn table_primitive_types<'a>(attr: &'a TableMetadata, cache: &'a MetadataCache) -> Vec<Cow<'a, InnerType>> {
-    attr.columns.iter()
+    attr.columns
+        .iter()
         .filter(|c| !c.skip)
         .filter(|c| !c.experimental_encode_as_json)
         .map(|c| recursive_primitive_types_ty(&c.column_type, cache))
@@ -82,16 +78,18 @@ pub(crate) fn table_primitive_types<'a>(attr: &'a TableMetadata, cache: &'a Meta
         .collect()
 }
 
-pub fn from_row_bounds<'a>(db: &dyn OrmliteCodegen, attr: &'a TableMetadata, cache: &'a MetadataCache) -> impl Iterator<Item=proc_macro2::TokenStream> + 'a {
+pub fn from_row_bounds<'a>(
+    db: &dyn OrmliteCodegen,
+    attr: &'a TableMetadata,
+    cache: &'a MetadataCache,
+) -> impl Iterator<Item = proc_macro2::TokenStream> + 'a {
     let database = db.database_ts();
-    table_primitive_types(attr, cache)
-        .into_iter()
-        .map(move |ty| {
-            quote! {
-                #ty: ::ormlite::decode::Decode<'a, #database>,
-                #ty: ::ormlite::types::Type<#database>,
-            }
-        })
+    table_primitive_types(attr, cache).into_iter().map(move |ty| {
+        quote! {
+            #ty: ::ormlite::decode::Decode<'a, #database>,
+            #ty: ::ormlite::types::Type<#database>,
+        }
+    })
 }
 
 fn is_vec(p: &syn::Path) -> bool {
@@ -125,5 +123,4 @@ pub trait OrmliteCodegen {
     // Compare to placeholder_ts, which is just the tokens of a placeholder, and therefore can't be "used" until runtime.
     fn placeholder(&self) -> Placeholder;
     fn row(&self) -> TokenStream;
-
 }

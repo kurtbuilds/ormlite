@@ -1,8 +1,8 @@
-use proc_macro2::TokenStream;
-use syn::Field;
-use crate::{ColumnAttributes, SyndecodeError};
 use crate::ident::Ident;
 use crate::ttype::{InnerType, TType};
+use crate::{ColumnAttributes, SyndecodeError};
+use proc_macro2::TokenStream;
+use syn::Field;
 
 #[derive(Debug, Clone)]
 pub enum Join {
@@ -110,7 +110,6 @@ impl ColumnMetadata {
     }
 }
 
-
 impl TryFrom<&Field> for ColumnMetadata {
     type Error = SyndecodeError;
 
@@ -176,7 +175,6 @@ impl TryFrom<&Field> for ColumnMetadata {
     }
 }
 
-
 #[derive(Clone, Debug)]
 pub struct ForeignKey {
     pub model: String,
@@ -185,18 +183,23 @@ pub struct ForeignKey {
 
 #[cfg(test)]
 mod tests {
-    use syn::{Fields, ItemStruct};
     use super::*;
+    use syn::{Fields, ItemStruct};
 
     #[test]
     fn test_from_field() {
-        let item: ItemStruct = syn::parse_str(r#"
+        let item: ItemStruct = syn::parse_str(
+            r#"
 struct Foo {
 #[ormlite(default_value = "\"foo\".to_string()")]
 pub name: String
 }
-"#).unwrap();
-        let Fields::Named(fields) = item.fields else { panic!(); };
+"#,
+        )
+        .unwrap();
+        let Fields::Named(fields) = item.fields else {
+            panic!();
+        };
         let field = fields.named.first().unwrap();
         let column = ColumnMetadata::try_from(field).unwrap();
         assert_eq!(column.column_name, "name");

@@ -1,8 +1,8 @@
-use syn::DeriveInput;
 use crate::ident::Ident;
 use crate::metadata::column::ColumnMetadata;
-use crate::{ModelAttributes, SyndecodeError};
 use crate::metadata::table::TableMetadata;
+use crate::{ModelAttributes, SyndecodeError};
+use syn::DeriveInput;
 
 /// Metadata used for IntoArguments, TableMeta, and (subset of) Model
 #[derive(Debug, Clone)]
@@ -16,10 +16,7 @@ impl ModelMetadata {
     pub fn new(name: &str, columns: Vec<ColumnMetadata>) -> Self {
         let inner = TableMetadata::new(name, columns);
         Self {
-            pkey: inner.columns.iter()
-                .find(|c| c.column_name == "id")
-                .unwrap()
-                .clone(),
+            pkey: inner.columns.iter().find(|c| c.column_name == "id").unwrap().clone(),
             inner,
             insert_struct: None,
         }
@@ -38,21 +35,23 @@ impl ModelMetadata {
         Ident(s)
     }
 
-    pub fn database_columns_except_pkey(&self) -> impl Iterator<Item=&ColumnMetadata> + '_ {
-        self.inner.columns.iter()
+    pub fn database_columns_except_pkey(&self) -> impl Iterator<Item = &ColumnMetadata> + '_ {
+        self.inner
+            .columns
+            .iter()
             .filter(|&c| !c.skip)
             .filter(|&c| self.pkey.column_name != c.column_name)
     }
 
-    pub fn database_columns(&self) -> impl Iterator<Item=&ColumnMetadata> + '_ {
+    pub fn database_columns(&self) -> impl Iterator<Item = &ColumnMetadata> + '_ {
         self.inner.database_columns()
     }
 
-    pub fn many_to_one_joins(&self) -> impl Iterator<Item=&ColumnMetadata> + '_ {
+    pub fn many_to_one_joins(&self) -> impl Iterator<Item = &ColumnMetadata> + '_ {
         self.inner.many_to_one_joins()
     }
 
-    pub fn columns(&self) -> impl Iterator<Item=&ColumnMetadata> + '_ {
+    pub fn columns(&self) -> impl Iterator<Item = &ColumnMetadata> + '_ {
         self.inner.columns.iter()
     }
 
@@ -65,13 +64,16 @@ impl ModelMetadata {
         let pkey = inner.columns.iter().find(|&c| c.column_name == pkey).unwrap().clone();
         let mut insert_struct = None;
         for attr in ast.attrs.iter().filter(|a| a.path().is_ident("ormlite")) {
-            let args: ModelAttributes = attr.parse_args()
-                .map_err(|e| SyndecodeError(e.to_string()))?;
+            let args: ModelAttributes = attr.parse_args().map_err(|e| SyndecodeError(e.to_string()))?;
             if let Some(value) = args.insertable {
                 insert_struct = Some(value.to_string());
             }
         }
-        Ok(Self { inner, insert_struct, pkey })
+        Ok(Self {
+            inner,
+            insert_struct,
+            pkey,
+        })
     }
 }
 
@@ -85,15 +87,18 @@ impl std::ops::Deref for ModelMetadata {
 
 #[cfg(test)]
 mod tests {
-    use syn::ItemStruct;
     use super::*;
+    use syn::ItemStruct;
 
     #[test]
     fn test_decode_metadata() {
-        let ast = syn::parse_str::<ItemStruct>(r#"struct User {
+        let ast = syn::parse_str::<ItemStruct>(
+            r#"struct User {
             #[ormlite(column = "Id")]
             id: i32,
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
         let input = DeriveInput::from(ast);
         let meta = ModelMetadata::from_derive(&input).unwrap();
         assert_eq!(meta.pkey.column_name, "Id");

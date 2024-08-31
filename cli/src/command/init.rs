@@ -3,12 +3,11 @@ use clap::Parser;
 use colored::Colorize;
 use ormlite::{Acquire, Connection};
 
-
-use ormlite::Executor;
 use ormlite::postgres::PgConnection;
+use ormlite::Executor;
 
-use ormlite_core::config::{get_var_database_url};
-use crate::util::{create_runtime};
+use crate::util::create_runtime;
+use ormlite_core::config::get_var_database_url;
 
 const INIT_QUERY: &str = r#"
 CREATE TABLE public._sqlx_migrations (
@@ -33,7 +32,11 @@ impl Init {
             let conn = conn.acquire().await?;
             let table_exists = conn.execute("select 1 from _sqlx_migrations limit 1").await.is_ok();
             if table_exists {
-                eprintln!("{} Database {} already initialized. No actions taken.", "SUCCESS".green(), url);
+                eprintln!(
+                    "{} Database {} already initialized. No actions taken.",
+                    "SUCCESS".green(),
+                    url
+                );
                 return Ok(());
             }
             conn.execute(INIT_QUERY).await?;

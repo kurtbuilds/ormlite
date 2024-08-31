@@ -3,10 +3,7 @@ use structmeta::StructMeta;
 use syn::Path;
 
 #[derive(StructMeta)]
-pub struct Repr(
-    #[struct_meta(unnamed)]
-    Path,
-);
+pub struct Repr(#[struct_meta(unnamed)] Path);
 
 impl std::fmt::Debug for Repr {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -31,7 +28,9 @@ impl Repr {
 
     pub fn from_attributes(attrs: &[syn::Attribute]) -> Option<Self> {
         for a in attrs {
-            let Some(ident) = a.path().get_ident() else { continue; };
+            let Some(ident) = a.path().get_ident() else {
+                continue;
+            };
             if ident == Self::ATTRIBUTE {
                 // semantically, the parse error and returning Some are different,
                 // so we're writing out Some() instead of using `.ok()`

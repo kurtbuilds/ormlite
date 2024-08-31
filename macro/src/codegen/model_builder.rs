@@ -1,11 +1,11 @@
-use proc_macro2::TokenStream;
-use quote::quote;
-use syn::DeriveInput;
-use ormlite_attr::TableMetadata;
-use ormlite_attr::ModelMetadata;
 use crate::codegen::common::OrmliteCodegen;
 use crate::codegen::insert::impl_ModelBuilder__insert;
 use crate::codegen::update::impl_ModelBuilder__update;
+use ormlite_attr::ModelMetadata;
+use ormlite_attr::TableMetadata;
+use proc_macro2::TokenStream;
+use quote::quote;
+use syn::DeriveInput;
 
 pub fn struct_ModelBuilder(ast: &DeriveInput, attr: &ModelMetadata) -> TokenStream {
     let model = &attr.inner.struct_name;
@@ -46,45 +46,42 @@ pub fn struct_ModelBuilder(ast: &DeriveInput, attr: &ModelMetadata) -> TokenStre
     });
 
     quote! {
-            #vis struct #model_builder<'a> {
-                #(#settable,)*
-                updating: Option<&'a #model>,
-            }
+        #vis struct #model_builder<'a> {
+            #(#settable,)*
+            updating: Option<&'a #model>,
+        }
 
-            impl<'a> std::default::Default for #model_builder<'a> {
-                fn default() -> Self {
-                    Self {
-                        #(#fields_none,)*
-                        updating: None,
-                    }
+        impl<'a> std::default::Default for #model_builder<'a> {
+            fn default() -> Self {
+                Self {
+                    #(#fields_none,)*
+                    updating: None,
                 }
             }
-
-            impl<'a> #model_builder<'a> {
-                #(#methods)*
-
-            }
         }
+
+        impl<'a> #model_builder<'a> {
+            #(#methods)*
+
+        }
+    }
 }
 
 pub fn impl_ModelBuilder__build(attr: &TableMetadata) -> TokenStream {
-    let unpack = attr.database_columns()
-        .map(|c| {
-            let c = &c.identifier;
-            let msg = format!("Tried to build a model, but the field `{}` was not set.", c);
-            quote! { let #c = self.#c.expect(#msg); }
-        });
+    let unpack = attr.database_columns().map(|c| {
+        let c = &c.identifier;
+        let msg = format!("Tried to build a model, but the field `{}` was not set.", c);
+        quote! { let #c = self.#c.expect(#msg); }
+    });
 
-    let fields = attr.database_columns()
-        .map(|c| &c.identifier);
+    let fields = attr.database_columns().map(|c| &c.identifier);
 
-    let skipped_fields = attr.columns.iter().filter(|&c| c.skip)
-        .map(|c| {
-            let id = &c.identifier;
-            quote! {
-                #id: Default::default()
-            }
-        });
+    let skipped_fields = attr.columns.iter().filter(|&c| c.skip).map(|c| {
+        let id = &c.identifier;
+        quote! {
+            #id: Default::default()
+        }
+    });
 
     quote! {
         fn build(self) -> Self::Model {
@@ -96,7 +93,6 @@ pub fn impl_ModelBuilder__build(attr: &TableMetadata) -> TokenStream {
         }
     }
 }
-
 
 pub fn impl_ModelBuilder(db: &dyn OrmliteCodegen, attr: &ModelMetadata) -> TokenStream {
     let partial_model = attr.builder_struct();

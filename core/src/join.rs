@@ -1,10 +1,10 @@
-use std::ops::{Deref, DerefMut};
+use crate::model::Model;
 use async_trait::async_trait;
 use serde::{Serialize, Serializer};
-use sqlmo::query::{Join as JoinQueryFragment};
+use sqlmo::query::Join as JoinQueryFragment;
 use sqlmo::query::SelectColumn;
 use sqlx::{Database, Decode, Encode, Type};
-use crate::model::Model;
+use std::ops::{Deref, DerefMut};
 
 pub trait JoinMeta {
     type IdType: Clone + Send + Eq + PartialEq + std::hash::Hash;
@@ -30,9 +30,9 @@ impl<T: JoinMeta> JoinMeta for Join<T> {
 #[async_trait]
 pub trait Loadable<DB, T: JoinMeta> {
     async fn load<'s, 'e, E>(&'s mut self, db: E) -> crate::error::Result<&'s T>
-        where
-            T::IdType: 'e + Send + Sync,
-            E: 'e + sqlx::Executor<'e, Database=DB>;
+    where
+        T::IdType: 'e + Send + Sync,
+        E: 'e + sqlx::Executor<'e, Database = DB>;
 }
 
 #[derive(Debug)]
@@ -48,7 +48,6 @@ pub enum JoinData<T: JoinMeta> {
     QueryResult(T),
     Modified(T),
 }
-
 
 impl<T: JoinMeta> Join<T> {
     pub fn new_with_id(id: T::IdType) -> Self {
@@ -89,15 +88,15 @@ impl<T: JoinMeta> Join<T> {
         match owned {
             JoinData::NotQueried => None,
             JoinData::QueryResult(_) => None,
-            JoinData::Modified(obj) => {
-                Some(obj)
-            }
+            JoinData::Modified(obj) => Some(obj),
         }
     }
     fn transition_to_modified(&mut self) -> &mut T {
         let owned = std::mem::replace(&mut self.data, JoinData::NotQueried);
         match owned {
-            JoinData::NotQueried => panic!("Tried to deref_mut a joined object, but it has not been queried."),
+            JoinData::NotQueried => {
+                panic!("Tried to deref_mut a joined object, but it has not been queried.")
+            }
             JoinData::QueryResult(r) => {
                 self.data = JoinData::Modified(r);
             }
@@ -122,14 +121,17 @@ impl<T: JoinMeta> Join<T> {
 
 #[async_trait]
 impl<DB, T> Loadable<DB, T> for Join<T>
-    where
-        DB: Database,
-        T: JoinMeta + Model<DB> + Send,
-        T::IdType: for<'a> Encode<'a, DB> + for<'a> Decode<'a, DB> + Type<DB>,
+where
+    DB: Database,
+    T: JoinMeta + Model<DB> + Send,
+    T::IdType: for<'a> Encode<'a, DB> + for<'a> Decode<'a, DB> + Type<DB>,
 {
-    async fn load<'s, 'e, E: sqlx::Executor<'e, Database=DB> + 'e>(&'s mut self, conn: E) -> crate::error::Result<&'s T>
-        where
-            T::IdType: 'e + Send + Sync,
+    async fn load<'s, 'e, E: sqlx::Executor<'e, Database = DB> + 'e>(
+        &'s mut self,
+        conn: E,
+    ) -> crate::error::Result<&'s T>
+    where
+        T::IdType: 'e + Send + Sync,
     {
         let model = T::fetch_one(self.id.clone(), conn).await?;
         self.data = JoinData::QueryResult(model);
@@ -143,7 +145,9 @@ impl<T: JoinMeta> Deref for Join<T> {
 
     fn deref(&self) -> &Self::Target {
         match &self.data {
-            JoinData::NotQueried => panic!("Tried to deref a joined object, but it has not been queried."),
+            JoinData::NotQueried => {
+                panic!("Tried to deref a joined object, but it has not been queried.")
+            }
             JoinData::QueryResult(r) => r,
             JoinData::Modified(r) => r,
         }
@@ -194,15 +198,13 @@ impl JoinDescription {
                 unimplemented!()
             }
         };
-        JoinQueryFragment::new(table)
-            .alias(self.relation)
-            .on_raw(join)
+        JoinQueryFragment::new(table).alias(self.relation).on_raw(join)
     }
 
-    pub fn select_clause(&self) -> impl Iterator<Item=SelectColumn> + '_ {
-        self.joined_columns.iter()
-            .map(|c| SelectColumn::table_column(self.relation, c)
-                .alias(self.alias(c)))
+    pub fn select_clause(&self) -> impl Iterator<Item = SelectColumn> + '_ {
+        self.joined_columns
+            .iter()
+            .map(|c| SelectColumn::table_column(self.relation, c).alias(self.alias(c)))
     }
 
     pub fn alias(&self, column: &str) -> String {
@@ -213,11 +215,12 @@ impl JoinDescription {
 impl<T: JoinMeta + Serialize> Serialize for Join<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: Serializer {
-            match &self.data {
-                JoinData::Modified(data) => data.serialize(serializer),
-                JoinData::NotQueried => serializer.serialize_none(),
-                JoinData::QueryResult(data) => data.serialize(serializer),
-            }
+        S: Serializer,
+    {
+        match &self.data {
+            JoinData::Modified(data) => data.serialize(serializer),
+            JoinData::NotQueried => serializer.serialize_none(),
+            JoinData::QueryResult(data) => data.serialize(serializer),
+        }
     }
 }

@@ -1,8 +1,7 @@
-
+use crate::MetadataCache;
+use ormlite_attr::TableMetadata;
 use proc_macro2::TokenStream;
 use quote::quote;
-use ormlite_attr::TableMetadata;
-use crate::MetadataCache;
 
 pub fn static_join_descriptions(attr: &TableMetadata, metadata_cache: &MetadataCache) -> TokenStream {
     let model = &attr.struct_name;
@@ -10,7 +9,9 @@ pub fn static_join_descriptions(attr: &TableMetadata, metadata_cache: &MetadataC
         let id = &c.identifier;
         let id_s = &c.identifier.to_string();
         let struct_name = c.joined_struct_name().unwrap();
-        let joined_table = metadata_cache.get(&struct_name).expect(&format!("Did not find metadata for joined struct: {}", struct_name));
+        let joined_table = metadata_cache
+            .get(&struct_name)
+            .expect(&format!("Did not find metadata for joined struct: {}", struct_name));
 
         let column_name = c.many_to_one_column_name.as_ref().unwrap();
         let foreign_key = &joined_table.pkey.column_name;
@@ -24,9 +25,12 @@ pub fn static_join_descriptions(attr: &TableMetadata, metadata_cache: &MetadataC
             panic!("Unknown join type");
         };
         let table_name = &joined_table.inner.table_name;
-        let columns = joined_table.inner.columns.iter().filter(|c| !c.is_join()).map(|c| {
-            c.identifier.to_string()
-        });
+        let columns = joined_table
+            .inner
+            .columns
+            .iter()
+            .filter(|c| !c.is_join())
+            .map(|c| c.identifier.to_string());
         quote! {
             pub fn #id() -> ::ormlite::__private::JoinDescription {
                 ::ormlite::__private::JoinDescription {

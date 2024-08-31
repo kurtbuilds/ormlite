@@ -10,17 +10,14 @@ pub struct Person {
     pub age: i16,
 }
 
-pub static CREATE_TABLE_SQL: &str =
-    "CREATE TABLE person (id INTEGER PRIMARY KEY, name TEXT, age INTEGER)";
+pub static CREATE_TABLE_SQL: &str = "CREATE TABLE person (id INTEGER PRIMARY KEY, name TEXT, age INTEGER)";
 
 #[tokio::test]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut conn = ormlite::sqlite::SqliteConnection::connect(":memory:").await.unwrap();
     env_logger::init();
 
-    ormlite::query(CREATE_TABLE_SQL)
-        .execute(&mut conn)
-        .await?;
+    ormlite::query(CREATE_TABLE_SQL).execute(&mut conn).await?;
 
     // You can insert the model directly.
     let mut john = Person {
@@ -33,11 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{:?}", john);
 
     println!("select");
-    let people = Person::select()
-        .where_("age > ?")
-        .bind(50)
-        .fetch_all(&mut conn)
-        .await?;
+    let people = Person::select().where_("age > ?").bind(50).fetch_all(&mut conn).await?;
     println!("select query builder {:?}", people);
 
     let r = sqlx::query_as::<_, Person>("select * from person where age > ?")
@@ -54,9 +47,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Lastly, you can delete the object.
     john.delete(&mut conn).await?;
     // You can get a single user.
-    Person::fetch_one(1, &mut conn)
-        .await
-        .expect_err("Should not exist");
+    Person::fetch_one(1, &mut conn).await.expect_err("Should not exist");
 
     Person {
         id: 1,
@@ -87,11 +78,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
     println!("built {:?}", kurt);
     // // You can create a query builder.
-    let people = Person::select()
-        .where_("age > ?")
-        .bind(50)
-        .fetch_all(&mut conn)
-        .await?;
+    let people = Person::select().where_("age > ?").bind(50).fetch_all(&mut conn).await?;
     println!("select builder {:?}", people);
 
     let people = Person::query("SELECT * FROM person WHERE age > ?")

@@ -1,20 +1,23 @@
-use proc_macro2::TokenStream;
-use quote::quote;
-use ormlite_attr::TableMetadata;
-use ormlite_attr::Ident;
-use ormlite_attr::ColumnMetadata;
-use ormlite_attr::ModelMetadata;
-use ormlite_attr::TType;
 use crate::codegen::common::{generate_conditional_bind, insertion_binding, OrmliteCodegen};
 use crate::MetadataCache;
+use ormlite_attr::ColumnMetadata;
+use ormlite_attr::Ident;
+use ormlite_attr::ModelMetadata;
+use ormlite_attr::TType;
+use ormlite_attr::TableMetadata;
+use proc_macro2::TokenStream;
+use quote::quote;
 
-pub fn impl_Model__insert(db: &dyn OrmliteCodegen, attr: &TableMetadata, metadata_cache: &MetadataCache) -> TokenStream {
+pub fn impl_Model__insert(
+    db: &dyn OrmliteCodegen,
+    attr: &TableMetadata,
+    metadata_cache: &MetadataCache,
+) -> TokenStream {
     let box_future = crate::util::box_fut_ts();
     let mut placeholder = db.placeholder();
     let db = db.database_ts();
     let table = &attr.table_name;
-    let params = attr.database_columns()
-        .map(|_| placeholder.next().unwrap());
+    let params = attr.database_columns().map(|_| placeholder.next().unwrap());
 
     let query_bindings = attr.database_columns().map(|c| insertion_binding(c));
 
@@ -67,15 +70,11 @@ pub fn impl_Model__insert(db: &dyn OrmliteCodegen, attr: &TableMetadata, metadat
     }
 }
 
-
 pub fn impl_ModelBuilder__insert(db: &dyn OrmliteCodegen, attr: &TableMetadata) -> TokenStream {
     let box_future = crate::util::box_fut_ts();
     let placeholder = db.placeholder_ts();
     let db = db.database_ts();
-    let query = format!(
-        "INSERT INTO \"{}\" ({{}}) VALUES ({{}}) RETURNING *",
-        attr.table_name
-    );
+    let query = format!("INSERT INTO \"{}\" ({{}}) VALUES ({{}}) RETURNING *", attr.table_name);
 
     let bind_parameters = attr.database_columns().map(generate_conditional_bind);
 
@@ -115,12 +114,14 @@ pub fn impl_InsertModel(db: &dyn OrmliteCodegen, meta: &ModelMetadata) -> TokenS
     let mut placeholder = db.placeholder();
     let db = db.database_ts();
     let insert_model = Ident::new(&insert_struct);
-    let fields = meta.database_columns()
+    let fields = meta
+        .database_columns()
         .filter(|&c| !c.has_database_default)
         .map(|c| c.column_name.clone())
         .collect::<Vec<_>>()
         .join(",");
-    let placeholders = meta.database_columns()
+    let placeholders = meta
+        .database_columns()
         .filter(|&c| !c.has_database_default)
         .map(|_| placeholder.next().unwrap())
         .collect::<Vec<_>>()
@@ -130,17 +131,15 @@ pub fn impl_InsertModel(db: &dyn OrmliteCodegen, meta: &ModelMetadata) -> TokenS
         meta.inner.table_name, fields, placeholders,
     );
 
-    let query_bindings = meta.database_columns()
-        .filter(|&c| !c.has_database_default)
-        .map(|c| {
-            if let Some(rust_default) = &c.rust_default {
-                let default: syn::Expr = syn::parse_str(&rust_default).expect("Failed to parse default_value");
-                return quote! {
-                    q = q.bind(#default);
-                }
-            }
-            insertion_binding(c)
-        });
+    let query_bindings = meta.database_columns().filter(|&c| !c.has_database_default).map(|c| {
+        if let Some(rust_default) = &c.rust_default {
+            let default: syn::Expr = syn::parse_str(&rust_default).expect("Failed to parse default_value");
+            return quote! {
+                q = q.bind(#default);
+            };
+        }
+        insertion_binding(c)
+    });
 
     let insert_join = meta.inner.many_to_one_joins().map(|c| insert_join(c));
 
@@ -177,7 +176,6 @@ pub fn impl_InsertModel(db: &dyn OrmliteCodegen, meta: &ModelMetadata) -> TokenS
         }
     }
 }
-
 
 /// Insert joined structs
 /// Assumed bindings:

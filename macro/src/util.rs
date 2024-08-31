@@ -7,5 +7,3 @@ use syn::{DataStruct, DeriveInput, Field, Fields, FieldsNamed};
 pub fn box_fut_ts() -> TokenStream {
     quote!(::ormlite::BoxFuture)
 }
-
-

@@ -90,7 +90,7 @@ pub struct ColumnAttributes {
 
 #[cfg(test)]
 mod test {
-    use syn::{Attribute, parse_quote};
+    use syn::{parse_quote, Attribute};
 
     use super::*;
 
