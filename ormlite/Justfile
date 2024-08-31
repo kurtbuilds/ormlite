@@ -25,8 +25,8 @@ test *args:
     # var in the test runner's process environment.
     # To solve that dependence, we need to set --test-threads=1.
     # If trybuild was modified to allow passing env for a test run, then
-    cargo test --features sqlite,uuid -- --test-threads=1
-    cargo test --features postgres,uuid,chrono -- --test-threads=1
+    cargo test --features sqlite,uuid --tests -- --test-threads=1
+    cargo test --features postgres,uuid,chrono --tests -- --test-threads=1
 
 check:
     cargo check
@@ -68,12 +68,15 @@ alias r := run
 # 5. Edit the macro code, so that it achieves the same output as your manual edits to the expanded code.
 # 6. Dance a jig because you're now a macro wizard and developing macros with 1/100th the guesswork of before.
 expand-run:
+    mkdir -p examples
+    touch examples/expand.rs
+    cp tests/postgres/complex.rs examples/expandable.rs
     printf '#![allow(unused)]\n' > examples/expand.rs
     printf '#![feature(fmt_internals)]\n' >> examples/expand.rs
     printf '#![feature(fmt_helpers_for_derive)]\n' >> examples/expand.rs
     printf '#![feature(print_internals)]\n' >> examples/expand.rs
     printf '#![feature(core_panic)]\n' >> examples/expand.rs
-    cargo expand --example simple --features sqlite,uuid >> examples/expand.rs
+    cargo expand --example expandable --features sqlite,uuid >> examples/expand.rs
     sd '::alloc::' '::std::' examples/expand.rs -f
     sd '# ?\[ormlite.*' '' examples/expand.rs -f
     sd -s '#[rustc_box]' '' examples/expand.rs -f

@@ -26,7 +26,7 @@ pub fn impl_Model(db: &dyn OrmliteCodegen, attr: &ModelMetadata, metadata_cache:
             #impl_Model__fetch_one
             #impl_Model__select
 
-           fn query(query: &str) -> ::ormlite::query::QueryAs<#db, Self, <#db as ::ormlite::database::HasArguments>::Arguments> {
+           fn query(query: &str) -> ::ormlite::query::QueryAs<#db, Self, <#db as ::ormlite::Database>::Arguments<'_>> {
                 ::ormlite::query_as::<_, Self>(query)
             }
         }

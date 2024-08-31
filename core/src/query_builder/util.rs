@@ -60,7 +60,6 @@ where
     'r: 'q,
     DB: sqlx::Database,
     Model: for<'s> sqlx::FromRow<'s, DB::Row>,
-    // <DB as HasArguments<'q>>::Arguments: IntoArguments<'q, DB>,
 {
     // unsafe is safe b/c 'r: 'q. Rust isn't smart enough to know that downcasting of traits is safe, because when traits get lifetimes, it doesn't
     // know if the lifetime is covariant or contravariant, so it enforces equivalence. See: https://www.reddit.com/r/rust/comments/rox4j9/lifetime_inference_fails_when_lifetime_is_part_of/

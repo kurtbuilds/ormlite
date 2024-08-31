@@ -4,8 +4,6 @@ use crate::query_builder::args::QueryBuilderArgs;
 use crate::query_builder::{util, Placeholder};
 use sqlmo::ToSql;
 
-use sqlx::database::HasArguments;
-
 use crate::join::JoinDescription;
 use sqlmo::{query::Where, Select};
 use sqlx::{Executor, IntoArguments};
@@ -55,7 +53,7 @@ impl<'args, DB, M> SelectQueryBuilder<'args, DB, M>
 where
     M: Sized + Send + Sync + Unpin + for<'r> sqlx::FromRow<'r, DB::Row> + 'static + Model<DB>,
     DB: sqlx::Database + DatabaseMetadata,
-    <DB as HasArguments<'args>>::Arguments: IntoArguments<'args, DB>,
+    DB::Arguments<'args>: IntoArguments<'args, DB>,
 {
     pub async fn fetch_all<'executor, E>(self, db: E) -> Result<Vec<M>>
     where

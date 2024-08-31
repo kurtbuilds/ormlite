@@ -12,6 +12,7 @@ use ormlite::Arguments;
 use ormlite::{Acquire, Connection, Executor};
 use ormlite_core::config::{get_var_database_url, get_var_migration_folder, get_var_snapshot_folder};
 use url::Url;
+use anyhow::anyhow;
 
 #[derive(Parser, Debug)]
 pub struct Down {
@@ -147,7 +148,7 @@ impl Down {
                     let conn = &mut *conn;
                     runtime.block_on(conn.execute(&*body))?;
                     let mut args = PgArguments::default();
-                    args.add(migration.version);
+                    args.add(migration.version).map_err(|e| anyhow!(e))?;
                     let q = ormlite::query_with("DELETE FROM _sqlx_migrations WHERE version = $1", args);
                     runtime.block_on(q.execute(conn))?;
                 }

@@ -62,7 +62,7 @@ pub fn impl_Model__insert(
                 }),
                 insert: ::ormlite::__private::Insert::new(#table)
                     .columns(<Self as ::ormlite::TableMeta>::table_columns())
-                    .one_value(&[#(#params,)*])
+                    .values(::ormlite::__private::Values::from([#(#params,)*].as_slice()))
                     .returning(<Self as ::ormlite::TableMeta>::table_columns()),
                 _db: ::std::marker::PhantomData,
             }

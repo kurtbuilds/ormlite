@@ -98,10 +98,10 @@ impl Up {
             let elapsed = start.elapsed();
 
             let mut args = PgArguments::default();
-            args.add(migration.version);
-            args.add(&migration.description);
-            args.add(checksum);
-            args.add(elapsed.as_nanos() as i64);
+            args.add(migration.version).map_err(|e| anyhow!(e))?;
+            args.add(&migration.description).map_err(|e| anyhow!(e))?;
+            args.add(checksum).map_err(|e| anyhow!(e))?;
+            args.add(elapsed.as_nanos() as i64).map_err(|e| anyhow!(e))?;
             let q = ormlite::query_with("INSERT INTO _sqlx_migrations (version, description, installed_on, success, checksum, execution_time) VALUES ($1, $2, NOW(), true, $3, $4)", args);
             runtime.block_on(q.execute(&mut *conn))?;
             eprintln!("{}: Executed migration", file_path.display());

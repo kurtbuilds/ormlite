@@ -20,14 +20,14 @@ pub fn impl_IntoArguments(db: &dyn OrmliteCodegen, attr: &TableMetadata) -> Toke
             }
         };
         quote! {
-            ::ormlite::Arguments::add(&mut args, #value);
+            ::ormlite::Arguments::add(&mut args, #value).unwrap();
         }
     });
 
     quote! {
         impl<'a> ::ormlite::IntoArguments<'a, #db> for #model {
-            fn into_arguments(self) -> <#db as ::ormlite::database::HasArguments<'a>>::Arguments {
-                let mut args = <#db as ::ormlite::database::HasArguments<'a>>::Arguments::default();
+            fn into_arguments(self) -> <#db as ::ormlite::Database>::Arguments<'a> {
+                let mut args = <#db as ::ormlite::Database>::Arguments::<'a>::default();
                 #(
                     #params
                 )*
