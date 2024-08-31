@@ -83,9 +83,7 @@ pub struct ColumnAttributes {
     /// Skip serializing this field to/from the database. Note the field must implement `Default`.
     pub skip: Flag,
 
-    /// Experimental: Encode this field as JSON in the database.
-    /// Only applies to `derive(IntoArguments)`. For Model structs, wrap the object in `Json<..>`.
-    pub experimental_encode_as_json: Flag,
+    pub json: Flag,
 }
 
 #[cfg(test)]

@@ -113,7 +113,6 @@ pub fn impl_from_row_using_aliases(
         impl #model {
             pub fn from_row_using_aliases<'a>(row: &'a #row, aliases: &'a [&str]) -> ::std::result::Result<Self, ::ormlite::SqlxError>
                 where
-                    // &'a str: ::ormlite::ColumnIndex<#row>,
                     #(
                         #bounds
                     )*
@@ -141,7 +140,7 @@ pub fn from_row_for_column(get_value: TokenStream, col: &ColumnMetadata) -> Toke
             let #id_id: <#ty as ::ormlite::model::JoinMeta>::IdType = ::ormlite::Row::try_get(row, #get_value)?;
             let #id = ::ormlite::model::Join::new_with_id(#id_id);
         }
-    } else if col.experimental_encode_as_json {
+    } else if col.json {
         quote! {
             let #id: ::ormlite::types::Json<#ty> = ::ormlite::Row::try_get(row, #get_value)?;
             let #id = #id.0;

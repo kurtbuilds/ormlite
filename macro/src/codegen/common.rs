@@ -18,6 +18,12 @@ pub fn generate_conditional_bind(c: &ColumnMetadata) -> TokenStream {
                 q = q.bind(value._id());
             }
         }
+    } else if c.json {
+        quote! {
+            if let Some(value) = self.#name {
+                q = q.bind(::ormlite::types::Json(value));
+            }
+        }
     } else {
         quote! {
             if let Some(value) = self.#name {
@@ -71,7 +77,7 @@ pub(crate) fn table_primitive_types<'a>(attr: &'a TableMetadata, cache: &'a Meta
     attr.columns
         .iter()
         .filter(|c| !c.skip)
-        .filter(|c| !c.experimental_encode_as_json)
+        .filter(|c| !c.json)
         .map(|c| recursive_primitive_types_ty(&c.column_type, cache))
         .flatten()
         .unique()
@@ -82,7 +88,7 @@ pub fn from_row_bounds<'a>(
     db: &dyn OrmliteCodegen,
     attr: &'a TableMetadata,
     cache: &'a MetadataCache,
-) -> impl Iterator<Item = proc_macro2::TokenStream> + 'a {
+) -> impl Iterator<Item=proc_macro2::TokenStream> + 'a {
     let database = db.database_ts();
     table_primitive_types(attr, cache).into_iter().map(move |ty| {
         quote! {
@@ -108,6 +114,10 @@ pub fn insertion_binding(c: &ColumnMetadata) -> TokenStream {
     if c.is_join() {
         quote! {
             q = q.bind(#name._id());
+        }
+    } else if c.json {
+        quote! {
+            q = q.bind(::ormlite::types::Json(model.#name));
         }
     } else {
         quote! {

@@ -46,8 +46,7 @@ impl TableMetadata {
         let mut columns = ast
             .fields()
             .map(ColumnMetadata::try_from)
-            .collect::<Result<Vec<_>, _>>()
-            .unwrap();
+            .collect::<Result<Vec<_>, _>>()?;
         let mut pkey = columns
             .iter()
             .find(|&c| c.marked_primary_key)

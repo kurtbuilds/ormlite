@@ -454,8 +454,9 @@ pub struct Person {
 
 ## Json/Jsonb Columns
 
-You can use `ormlite::types::Json` for JSON or JSONB fields. For unstructured data, use `serde_json::Value` as the inner
-type. Use a struct with `Deserialize + Serialize` as the generic for structured data.
+You can either use `ormlite::types::Json` for JSON or JSONB fields, or you can use the `json` attribute. 
+For unstructured data, use `serde_json::Value` as the inner type. Use a struct with `Deserialize + Serialize` as the 
+generic for structured data.
 
 ```rust
 use ormlite::model::*;
@@ -472,6 +473,8 @@ pub struct Job {
     pub id: i32,
     pub structured_data: Json<JobData>,
     pub unstructured_data: Json<Value>,
+    #[ormlite(json)]
+    pub other_data: Value,
 }
 ```
 

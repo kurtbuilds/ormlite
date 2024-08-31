@@ -10,7 +10,7 @@ pub fn impl_IntoArguments(db: &dyn OrmliteCodegen, attr: &TableMetadata) -> Toke
     let model = &attr.struct_name;
     let params = attr.database_columns().map(|c| {
         let field = &c.identifier;
-        let value = if c.is_json() || c.experimental_encode_as_json {
+        let value = if c.is_json() {
             quote! {
                 ::ormlite::types::Json(self.#field)
             }

@@ -25,6 +25,8 @@ struct Job {
     typ: JobType,
     name: String,
     data: Json<JobData>,
+    #[ormlite(json)]
+    data2: JobData,
     #[allow(dead_code)]
     #[ormlite(skip)]
     skipped: Option<Uuid>,
@@ -35,7 +37,7 @@ struct ApiJob {
     id: i32,
     typ: JobType,
     name: String,
-    #[ormlite(experimental_encode_as_json)]
+    #[ormlite(json)]
     data: JobData,
 }
 
@@ -46,5 +48,6 @@ async fn main() {
         "typ".to_string(),
         "name".to_string(),
         "data".to_string(),
+        "data2".to_string(),
     ]);
 }

@@ -32,9 +32,9 @@ pub struct ColumnMetadata {
     pub one_to_many_foreign_key: Option<ForeignKey>,
 
     pub skip: bool,
-    pub experimental_encode_as_json: bool,
     pub rust_default: Option<String>,
     pub join: Option<Join>,
+    pub json: bool,
 }
 
 impl ColumnMetadata {
@@ -55,9 +55,9 @@ impl Default for ColumnMetadata {
             many_to_many_table: None,
             one_to_many_foreign_key: None,
             skip: false,
-            experimental_encode_as_json: false,
             rust_default: None,
             join: None,
+            json: false,
         }
     }
 }
@@ -94,7 +94,7 @@ impl ColumnMetadata {
     }
 
     pub fn is_json(&self) -> bool {
-        self.column_type.is_json()
+        self.column_type.is_json() || self.json
     }
 
     /// We expect this to only return a `Model` of some kind.
@@ -158,8 +158,8 @@ impl TryFrom<&Field> for ColumnMetadata {
             if args.skip.value() {
                 result.skip = true;
             }
-            if args.experimental_encode_as_json.value() {
-                result.experimental_encode_as_json = true;
+            if args.json.value() {
+                result.json = true;
             }
             if let Some(default_value) = args.default_value {
                 result.rust_default = Some(default_value.value());
