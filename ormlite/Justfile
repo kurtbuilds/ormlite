@@ -20,7 +20,7 @@ install:
 bootstrap:
     cargo install cargo-edit
 
-test *args:
+test *ARGS:
     # Because trybuild doesn't support passing environment directly, tests are dependent on state, namely the state of the MODEL_FOLDERS
     # var in the test runner's process environment.
     # To solve that dependence, we need to set --test-threads=1.

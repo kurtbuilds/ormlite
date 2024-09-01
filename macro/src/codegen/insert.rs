@@ -1,6 +1,7 @@
 use crate::codegen::common::{generate_conditional_bind, insertion_binding, OrmliteCodegen};
 use crate::MetadataCache;
 use ormlite_attr::ColumnMeta;
+use ormlite_attr::Ident;
 use ormlite_attr::ModelMeta;
 use ormlite_attr::TableMeta;
 use ormlite_attr::Type;
@@ -101,11 +102,14 @@ pub fn impl_ModelBuilder__insert(db: &dyn OrmliteCodegen, attr: &TableMeta) -> T
 }
 
 pub fn impl_InsertModel(db: &dyn OrmliteCodegen, meta: &ModelMeta) -> TokenStream {
-    let Some(insert_model) = &meta.insert_struct else {
-        return quote! {};
+    let Some(insert_struct) = &meta.insert_struct else {
+        return TokenStream::new();
     };
+    impl_Insert(db, meta, insert_struct, &meta.ident)
+}
+
+pub fn impl_Insert(db: &dyn OrmliteCodegen, meta: &TableMeta, model: &Ident, returns: &Ident) -> TokenStream {
     let box_future = crate::util::box_fut_ts();
-    let model = &meta.ident;
     let mut placeholder = db.placeholder();
     let db = db.database_ts();
     let fields = meta
@@ -124,7 +128,6 @@ pub fn impl_InsertModel(db: &dyn OrmliteCodegen, meta: &ModelMeta) -> TokenStrea
         "INSERT INTO \"{}\" ({}) VALUES ({}) RETURNING *",
         meta.name, fields, placeholders,
     );
-
     let query_bindings = meta.database_columns().filter(|&c| !c.has_database_default).map(|c| {
         if let Some(rust_default) = &c.rust_default {
             let default: syn::Expr = syn::parse_str(&rust_default).expect("Failed to parse default_value");
@@ -135,7 +138,7 @@ pub fn impl_InsertModel(db: &dyn OrmliteCodegen, meta: &ModelMeta) -> TokenStrea
         insertion_binding(c)
     });
 
-    let insert_join = meta.table.many_to_one_joins().map(|c| insert_join(c));
+    let insert_join = meta.many_to_one_joins().map(|c| insert_join(c));
 
     let late_bind = meta.many_to_one_joins().map(|c| {
         let id = &c.ident;
@@ -145,8 +148,8 @@ pub fn impl_InsertModel(db: &dyn OrmliteCodegen, meta: &ModelMeta) -> TokenStrea
     });
 
     quote! {
-        impl ::ormlite::model::Insert<#db> for #insert_model {
-            type Model = #model;
+        impl ::ormlite::model::Insert<#db> for #model {
+            type Model = #returns;
 
             fn insert<'a, A>(self, db: A) -> #box_future<'a, ::ormlite::Result<Self::Model>>
             where

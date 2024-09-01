@@ -1,6 +1,8 @@
 #![allow(unused)]
 #![allow(non_snake_case)]
 
+use codegen::insert::impl_Insert;
+use ormlite_attr::InsertMeta;
 use proc_macro::TokenStream;
 use std::borrow::Borrow;
 use std::collections::HashMap;
@@ -31,6 +33,7 @@ use crate::codegen::model_builder::{impl_ModelBuilder, struct_ModelBuilder};
 mod codegen;
 mod util;
 
+/// Mapping from StructName -> ModelMeta
 pub(crate) type MetadataCache = HashMap<String, ModelMeta>;
 
 static TABLES: OnceCell<MetadataCache> = OnceCell::new();
@@ -119,15 +122,9 @@ fn get_databases(table_meta: &TableMeta) -> Vec<Box<dyn OrmliteCodegen>> {
 #[proc_macro_derive(Model, attributes(ormlite))]
 pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
-    let Data::Struct(data) = &ast.data else {
-        panic!("Only structs can derive Model");
-    };
-
     let meta = ModelMeta::from_derive(&ast);
-
     let mut databases = get_databases(&meta.table);
     let tables = get_tables();
-
     let first = databases.remove(0);
 
     let primary = {
@@ -177,13 +174,24 @@ pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
     })
 }
 
+#[proc_macro_derive(Insert, attributes(ormlite))]
+pub fn expand_ormlite_insert(input: TokenStream) -> TokenStream {
+    let ast = parse_macro_input!(input as DeriveInput);
+    let mut meta = InsertMeta::from_derive(&ast);
+    let mut databases = get_databases(&meta.table);
+    let tables = get_tables();
+    if meta.name.is_none() {
+        if let Some(m) = tables.get(meta.returns.as_ref()) {
+            meta.table.name = m.name.clone();
+        }
+    }
+    let first = databases.remove(0);
+    TokenStream::from(impl_Insert(first.as_ref(), &meta.table, &meta.ident, &meta.returns))
+}
+
 #[proc_macro_derive(FromRow, attributes(ormlite))]
 pub fn expand_derive_fromrow(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
-    let Data::Struct(data) = &ast.data else {
-        panic!("Only structs can derive Model");
-    };
-
     let meta = TableMeta::from_derive(&ast);
 
     let databases = get_databases(&meta);

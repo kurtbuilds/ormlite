@@ -1,6 +1,6 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 pub use ::sqlx::{Column, ColumnIndex, Database, Decode, Row};
-pub use model::{FromRow, IntoArguments, Model, TableMeta};
+pub use model::{FromRow, Insert, IntoArguments, Model, TableMeta};
 pub use ormlite_core::BoxFuture;
 pub use ormlite_core::{Error, Result};
 
@@ -36,9 +36,9 @@ pub mod database {
 pub mod __private {
     pub use ormlite_core::insert::Insertion;
     pub use ormlite_core::join::{JoinDescription, SemanticJoinType};
+    pub use sqlmo::query::Values;
     pub use sqlmo::Insert;
     pub use tokio_stream::StreamExt;
-    pub use sqlmo::query::Values;
 }
 
 #[cfg(feature = "postgres")]
