@@ -11,7 +11,7 @@ use crate::Result;
 use crate::SelectQueryBuilder;
 use futures::future::BoxFuture;
 
-/// A struct that is `Insertable` is expected to have same fields as the model, excluding fields
+/// A struct that is `Insert` is expected to have same fields as the model, excluding fields
 /// that have sane defaults at the database level. Concretely, if you have a Person struct:
 /// #[derive(ormlite::Model)]
 /// struct Person {
@@ -20,12 +20,12 @@ use futures::future::BoxFuture;
 ///     age: i32,
 /// }
 ///
-/// Then the `Insertable` struct looks like:
+/// Then the `Insert` struct looks like:
 /// struct InsertPerson {
 ///     name: String,
 ///     age: i32,
 /// }
-pub trait Insertable<DB>
+pub trait Insert<DB>
 where
     Self: Sized + Send + Sync,
     DB: sqlx::Database,

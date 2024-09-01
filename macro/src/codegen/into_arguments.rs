@@ -1,15 +1,15 @@
 use crate::codegen::common::OrmliteCodegen;
-use ormlite_attr::TableMetadata;
+use ormlite_attr::TableMeta;
 use proc_macro2::TokenStream;
 use quote::quote;
 
 /// Allows the model to be turned into arguments. This can be used for bulk insertion.
-pub fn impl_IntoArguments(db: &dyn OrmliteCodegen, attr: &TableMetadata) -> TokenStream {
+pub fn impl_IntoArguments(db: &dyn OrmliteCodegen, attr: &TableMeta) -> TokenStream {
     let mut placeholder = db.placeholder();
     let db = db.database_ts();
-    let model = &attr.struct_name;
+    let model = &attr.ident;
     let params = attr.database_columns().map(|c| {
-        let field = &c.identifier;
+        let field = &c.ident;
         let value = if c.is_json() {
             quote! {
                 ::ormlite::types::Json(self.#field)

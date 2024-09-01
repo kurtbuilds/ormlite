@@ -1,26 +1,26 @@
 use crate::codegen::common::OrmliteCodegen;
 use crate::codegen::insert::impl_ModelBuilder__insert;
 use crate::codegen::update::impl_ModelBuilder__update;
-use ormlite_attr::ModelMetadata;
-use ormlite_attr::TableMetadata;
+use ormlite_attr::ModelMeta;
+use ormlite_attr::TableMeta;
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::DeriveInput;
 
-pub fn struct_ModelBuilder(ast: &DeriveInput, attr: &ModelMetadata) -> TokenStream {
-    let model = &attr.inner.struct_name;
+pub fn struct_ModelBuilder(ast: &DeriveInput, attr: &ModelMeta) -> TokenStream {
+    let model = &attr.ident;
     let model_builder = attr.builder_struct();
     let vis = &ast.vis;
 
     let settable = attr.database_columns().map(|c| {
-        let name = &c.identifier;
-        let ty = &c.column_type;
+        let name = &c.ident;
+        let ty = &c.ty;
         quote! { #name: std::option::Option<#ty> }
     });
 
     let methods = attr.database_columns().map(|c| {
-        let name = &c.identifier;
-        let ty = &c.column_type;
+        let name = &c.ident;
+        let ty = &c.ty;
         if ty.is_string() {
             quote! {
                 pub fn #name<T: Into<String>>(mut self, #name: T) -> Self {
@@ -39,7 +39,7 @@ pub fn struct_ModelBuilder(ast: &DeriveInput, attr: &ModelMetadata) -> TokenStre
     });
 
     let fields_none = attr.database_columns().map(|c| {
-        let name = &c.identifier;
+        let name = &c.ident;
         quote! {
             #name: None
         }
@@ -67,17 +67,17 @@ pub fn struct_ModelBuilder(ast: &DeriveInput, attr: &ModelMetadata) -> TokenStre
     }
 }
 
-pub fn impl_ModelBuilder__build(attr: &TableMetadata) -> TokenStream {
+pub fn impl_ModelBuilder__build(attr: &TableMeta) -> TokenStream {
     let unpack = attr.database_columns().map(|c| {
-        let c = &c.identifier;
+        let c = &c.ident;
         let msg = format!("Tried to build a model, but the field `{}` was not set.", c);
         quote! { let #c = self.#c.expect(#msg); }
     });
 
-    let fields = attr.database_columns().map(|c| &c.identifier);
+    let fields = attr.database_columns().map(|c| &c.ident);
 
     let skipped_fields = attr.columns.iter().filter(|&c| c.skip).map(|c| {
-        let id = &c.identifier;
+        let id = &c.ident;
         quote! {
             #id: Default::default()
         }
@@ -94,17 +94,17 @@ pub fn impl_ModelBuilder__build(attr: &TableMetadata) -> TokenStream {
     }
 }
 
-pub fn impl_ModelBuilder(db: &dyn OrmliteCodegen, attr: &ModelMetadata) -> TokenStream {
+pub fn impl_ModelBuilder(db: &dyn OrmliteCodegen, attr: &ModelMeta) -> TokenStream {
     let partial_model = attr.builder_struct();
-    let model = &attr.struct_name();
+    let model = &attr.ident;
 
-    let impl_ModelBuilder__insert = impl_ModelBuilder__insert(db, &attr.inner);
+    let impl_ModelBuilder__insert = impl_ModelBuilder__insert(db, &attr.table);
     let impl_ModelBuilder__update = impl_ModelBuilder__update(db, attr);
-    let impl_ModelBuilder__build = impl_ModelBuilder__build(&attr.inner);
+    let impl_ModelBuilder__build = impl_ModelBuilder__build(&attr.table);
 
     let build_modified_fields = attr.database_columns().map(|c| {
-        let name = &c.identifier;
-        let name_str = &c.column_name;
+        let name = &c.ident;
+        let name_str = &c.name;
         quote! {
             if self.#name.is_some() {
                 ret.push(#name_str);

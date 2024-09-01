@@ -23,7 +23,7 @@ impl DeriveTrait {
         }
     }
 
-    pub fn has_derive2(&self, pkg: &[&str], name: &str) -> bool {
+    pub fn has_any_derive(&self, pkg: &[&str], name: &str) -> bool {
         if self.name != name {
             return false;
         }
@@ -58,11 +58,11 @@ impl DeriveParser {
         self.derives.iter().any(|d| d.has_derive(pkg, name))
     }
 
-    pub fn has_derive2(&self, pkg: &[&str], name: &str) -> bool {
-        self.derives.iter().any(|d| d.has_derive2(pkg, name))
+    pub fn has_any_derive(&self, pkg: &[&str], name: &str) -> bool {
+        self.derives.iter().any(|d| d.has_any_derive(pkg, name))
     }
 
-    pub(crate) fn merge(&mut self, other: Derive) {
+    pub(crate) fn update(&mut self, other: Derive) {
         for path in other.inner {
             self.derives.push(path.into());
         }
@@ -79,7 +79,7 @@ impl DeriveParser {
                 continue;
             };
             if ident == Self::ATTRIBUTE {
-                result.merge(attr.parse_args().unwrap());
+                result.update(attr.parse_args().unwrap());
             } else if ident == "cfg_attr" {
                 let cfg: CfgAttr = attr.parse_args().unwrap();
                 for attr in cfg.attrs {
@@ -90,7 +90,7 @@ impl DeriveParser {
                         let Meta::List(attrs) = attr else {
                             panic!("Expected a list of attributes")
                         };
-                        result.merge(attrs.parse_args().unwrap());
+                        result.update(attrs.parse_args().unwrap());
                     }
                 }
             }
@@ -131,7 +131,7 @@ mod tests {
         let derive = DeriveParser::from_attributes(&item.attrs);
         let repr = Repr::from_attributes(&item.attrs).unwrap();
         dbg!(&derive);
-        assert!(derive.has_derive2(&["ormlite", "sqlx"], "Type"));
+        assert!(derive.has_any_derive(&["ormlite", "sqlx"], "Type"));
         assert_eq!(repr, "u8");
     }
 
@@ -157,7 +157,7 @@ pub struct QuerySet {
         let repr = Repr::from_attributes(&item.attrs).unwrap();
         assert_eq!(repr, "u8");
         assert!(attr.has_derive("ormlite", "Model"));
-        assert!(attr.has_derive2(&["ormlite", "sqlx"], "Type"));
+        assert!(attr.has_any_derive(&["ormlite", "sqlx"], "Type"));
         assert!(!attr.has_derive("ormlite", "ManualType"));
     }
 
@@ -192,7 +192,7 @@ pub enum Privacy {
             panic!()
         };
         let attr = DeriveParser::from_attributes(&item.attrs);
-        assert!(attr.has_derive2(&["ormlite", "sqlx"], "Type"));
+        assert!(attr.has_any_derive(&["ormlite", "sqlx"], "Type"));
     }
 
     #[test]

@@ -1,5 +1,5 @@
 use ormlite::Model;
-use ormlite::model::{Insertable, Join, JoinMeta};
+use ormlite::model::{Insert, Join, JoinMeta};
 use sqlmo::ToSql;
 
 use ormlite::Connection;

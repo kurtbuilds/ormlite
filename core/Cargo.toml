@@ -24,6 +24,8 @@ ormlite-attr = { path = "../attr" , version = "0.18" }
 anyhow = "1"
 async-trait = "0.1"
 serde = { version = "1", features = ["derive"] }
+syn = "2.0.77"
+proc-macro2 = "1.0.86"
 
 [dev-dependencies]
 syn = "2"

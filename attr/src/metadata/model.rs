@@ -1,87 +1,70 @@
-use crate::ident::Ident;
-use crate::metadata::column::ColumnMetadata;
-use crate::metadata::table::TableMetadata;
-use crate::{ModelAttributes, SyndecodeError};
+use crate::metadata::column::ColumnMeta;
+use crate::metadata::table::TableMeta;
+use crate::Ident;
+use crate::TableAttr;
 use syn::DeriveInput;
 
 /// Metadata used for IntoArguments, TableMeta, and (subset of) Model
 #[derive(Debug, Clone)]
-pub struct ModelMetadata {
-    pub inner: TableMetadata,
-    pub insert_struct: Option<String>,
-    pub pkey: ColumnMetadata,
+pub struct ModelMeta {
+    pub table: TableMeta,
+    pub insert_struct: Option<Ident>,
+    pub pkey: ColumnMeta,
 }
 
-impl ModelMetadata {
-    pub fn new(name: &str, columns: Vec<ColumnMetadata>) -> Self {
-        let inner = TableMetadata::new(name, columns);
+impl ModelMeta {
+    pub fn builder_struct(&self) -> Ident {
+        Ident::from(format!("{}Builder", self.ident.as_ref()))
+    }
+
+    pub fn database_columns_except_pkey(&self) -> impl Iterator<Item = &ColumnMeta> + '_ {
+        self.columns
+            .iter()
+            .filter(|&c| !c.skip)
+            .filter(|&c| self.pkey.name != c.name)
+    }
+
+    pub fn from_derive(ast: &DeriveInput) -> Self {
+        let attrs = TableAttr::from_attrs(&ast.attrs);
+        let table = TableMeta::new(ast, &attrs);
+        let pkey = table.pkey.as_deref().expect(&format!(
+            "No column marked with #[ormlite(primary_key)], and no column named id, uuid, {0}_id, or {0}_uuid",
+            table.name,
+        ));
+        let mut insert_struct = None;
+        for attr in attrs {
+            if let Some(v) = attr.insert {
+                insert_struct = Some(v.value());
+            }
+            if let Some(v) = attr.insertable {
+                insert_struct = Some(v.to_string());
+            }
+        }
+        let pkey = table.columns.iter().find(|&c| c.name == pkey).unwrap().clone();
+        let insert_struct = insert_struct.map(|v| Ident::from(v));
         Self {
-            pkey: inner.columns.iter().find(|c| c.column_name == "id").unwrap().clone(),
-            inner,
+            table,
+            insert_struct,
+            pkey,
+        }
+    }
+
+    #[doc(hidden)]
+    pub fn mock(name: &str, columns: Vec<ColumnMeta>) -> Self {
+        let inner = TableMeta::mock(name, columns);
+        Self {
+            pkey: inner.columns.iter().find(|c| c.name == "id").unwrap().clone(),
+            table: inner,
             insert_struct: None,
         }
     }
-    pub fn table(&self) -> &str {
-        &self.inner.table_name
-    }
-
-    pub fn struct_name(&self) -> &Ident {
-        &self.inner.struct_name
-    }
-
-    pub fn builder_struct(&self) -> Ident {
-        let mut s = self.inner.struct_name.0.clone();
-        s.push_str("Builder");
-        Ident(s)
-    }
-
-    pub fn database_columns_except_pkey(&self) -> impl Iterator<Item = &ColumnMetadata> + '_ {
-        self.inner
-            .columns
-            .iter()
-            .filter(|&c| !c.skip)
-            .filter(|&c| self.pkey.column_name != c.column_name)
-    }
-
-    pub fn database_columns(&self) -> impl Iterator<Item = &ColumnMetadata> + '_ {
-        self.inner.database_columns()
-    }
-
-    pub fn many_to_one_joins(&self) -> impl Iterator<Item = &ColumnMetadata> + '_ {
-        self.inner.many_to_one_joins()
-    }
-
-    pub fn columns(&self) -> impl Iterator<Item = &ColumnMetadata> + '_ {
-        self.inner.columns.iter()
-    }
-
-    pub fn from_derive(ast: &DeriveInput) -> Result<Self, SyndecodeError> {
-        let inner = TableMetadata::from_derive(ast)?;
-        let pkey = inner.pkey.clone().expect(&format!(
-            "No column marked with #[ormlite(primary_key)], and no column named id, uuid, {0}_id, or {0}_uuid",
-            inner.table_name,
-        ));
-        let pkey = inner.columns.iter().find(|&c| c.column_name == pkey).unwrap().clone();
-        let mut insert_struct = None;
-        for attr in ast.attrs.iter().filter(|a| a.path().is_ident("ormlite")) {
-            let args: ModelAttributes = attr.parse_args().map_err(|e| SyndecodeError(e.to_string()))?;
-            if let Some(value) = args.insertable {
-                insert_struct = Some(value.to_string());
-            }
-        }
-        Ok(Self {
-            inner,
-            insert_struct,
-            pkey,
-        })
-    }
 }
 
-impl std::ops::Deref for ModelMetadata {
-    type Target = TableMetadata;
+impl std::ops::Deref for ModelMeta {
+    type Target = TableMeta;
 
     fn deref(&self) -> &Self::Target {
-        &self.inner
+        &self.table
     }
 }
 
@@ -100,7 +83,7 @@ mod tests {
         )
         .unwrap();
         let input = DeriveInput::from(ast);
-        let meta = ModelMetadata::from_derive(&input).unwrap();
-        assert_eq!(meta.pkey.column_name, "Id");
+        let meta = ModelMeta::from_derive(&input);
+        assert_eq!(meta.pkey.name, "Id");
     }
 }

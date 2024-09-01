@@ -1,22 +1,17 @@
 use crate::codegen::common::{generate_conditional_bind, insertion_binding, OrmliteCodegen};
 use crate::MetadataCache;
-use ormlite_attr::ColumnMetadata;
-use ormlite_attr::Ident;
-use ormlite_attr::ModelMetadata;
-use ormlite_attr::TType;
-use ormlite_attr::TableMetadata;
+use ormlite_attr::ColumnMeta;
+use ormlite_attr::ModelMeta;
+use ormlite_attr::TableMeta;
+use ormlite_attr::Type;
 use proc_macro2::TokenStream;
 use quote::quote;
 
-pub fn impl_Model__insert(
-    db: &dyn OrmliteCodegen,
-    attr: &TableMetadata,
-    metadata_cache: &MetadataCache,
-) -> TokenStream {
+pub fn impl_Model__insert(db: &dyn OrmliteCodegen, attr: &TableMeta, metadata_cache: &MetadataCache) -> TokenStream {
     let box_future = crate::util::box_fut_ts();
     let mut placeholder = db.placeholder();
     let db = db.database_ts();
-    let table = &attr.table_name;
+    let table = &attr.name;
     let params = attr.database_columns().map(|_| placeholder.next().unwrap());
 
     let query_bindings = attr.database_columns().map(|c| insertion_binding(c));
@@ -24,7 +19,7 @@ pub fn impl_Model__insert(
     let insert_join = attr.many_to_one_joins().map(|c| insert_join(c));
 
     let late_bind = attr.many_to_one_joins().map(|c| {
-        let id = &c.identifier;
+        let id = &c.ident;
         quote! {
             model.#id = #id;
         }
@@ -70,11 +65,11 @@ pub fn impl_Model__insert(
     }
 }
 
-pub fn impl_ModelBuilder__insert(db: &dyn OrmliteCodegen, attr: &TableMetadata) -> TokenStream {
+pub fn impl_ModelBuilder__insert(db: &dyn OrmliteCodegen, attr: &TableMeta) -> TokenStream {
     let box_future = crate::util::box_fut_ts();
     let placeholder = db.placeholder_ts();
     let db = db.database_ts();
-    let query = format!("INSERT INTO \"{}\" ({{}}) VALUES ({{}}) RETURNING *", attr.table_name);
+    let query = format!("INSERT INTO \"{}\" ({{}}) VALUES ({{}}) RETURNING *", attr.name);
 
     let bind_parameters = attr.database_columns().map(generate_conditional_bind);
 
@@ -105,19 +100,18 @@ pub fn impl_ModelBuilder__insert(db: &dyn OrmliteCodegen, attr: &TableMetadata) 
     }
 }
 
-pub fn impl_InsertModel(db: &dyn OrmliteCodegen, meta: &ModelMetadata) -> TokenStream {
-    let Some(insert_struct) = &meta.insert_struct else {
+pub fn impl_InsertModel(db: &dyn OrmliteCodegen, meta: &ModelMeta) -> TokenStream {
+    let Some(insert_model) = &meta.insert_struct else {
         return quote! {};
     };
     let box_future = crate::util::box_fut_ts();
-    let model = &meta.inner.struct_name;
+    let model = &meta.ident;
     let mut placeholder = db.placeholder();
     let db = db.database_ts();
-    let insert_model = Ident::new(&insert_struct);
     let fields = meta
         .database_columns()
         .filter(|&c| !c.has_database_default)
-        .map(|c| c.column_name.clone())
+        .map(|c| c.name.clone())
         .collect::<Vec<_>>()
         .join(",");
     let placeholders = meta
@@ -128,7 +122,7 @@ pub fn impl_InsertModel(db: &dyn OrmliteCodegen, meta: &ModelMetadata) -> TokenS
         .join(",");
     let query = format!(
         "INSERT INTO \"{}\" ({}) VALUES ({}) RETURNING *",
-        meta.inner.table_name, fields, placeholders,
+        meta.name, fields, placeholders,
     );
 
     let query_bindings = meta.database_columns().filter(|&c| !c.has_database_default).map(|c| {
@@ -141,17 +135,17 @@ pub fn impl_InsertModel(db: &dyn OrmliteCodegen, meta: &ModelMetadata) -> TokenS
         insertion_binding(c)
     });
 
-    let insert_join = meta.inner.many_to_one_joins().map(|c| insert_join(c));
+    let insert_join = meta.table.many_to_one_joins().map(|c| insert_join(c));
 
     let late_bind = meta.many_to_one_joins().map(|c| {
-        let id = &c.identifier;
+        let id = &c.ident;
         quote! {
             model.#id = #id;
         }
     });
 
     quote! {
-        impl ::ormlite::model::Insertable<#db> for #insert_model {
+        impl ::ormlite::model::Insert<#db> for #insert_model {
             type Model = #model;
 
             fn insert<'a, A>(self, db: A) -> #box_future<'a, ::ormlite::Result<Self::Model>>
@@ -181,12 +175,12 @@ pub fn impl_InsertModel(db: &dyn OrmliteCodegen, meta: &ModelMetadata) -> TokenS
 /// Assumed bindings:
 /// - `model`: model struct
 /// - `#id`: Other code relies on this binding being created
-pub fn insert_join(c: &ColumnMetadata) -> TokenStream {
-    let id = &c.identifier;
-    let joined_ty = c.column_type.joined_type().unwrap();
+pub fn insert_join(c: &ColumnMeta) -> TokenStream {
+    let id = &c.ident;
+    let joined_ty = c.ty.joined_type().unwrap();
 
     let preexisting = match joined_ty {
-        TType::Option(joined_ty) => {
+        Type::Option(joined_ty) => {
             quote! {
                 if let Some(id) = model.#id._id() {
                     #joined_ty::fetch_one(id, &mut *conn).await?

@@ -1,20 +1,20 @@
-use ormlite_attr::ModelMetadata;
-use ormlite_attr::TableMetadata;
+use ormlite_attr::ModelMeta;
+use ormlite_attr::TableMeta;
 use proc_macro2::TokenStream;
 use quote::quote;
 
-pub fn impl_TableMeta(meta: &TableMetadata, pkey: Option<&str>) -> TokenStream {
-    let model = &meta.struct_name;
-    let table_name = &meta.table_name;
+pub fn impl_TableMeta(table: &TableMeta, pkey: Option<&str>) -> TokenStream {
+    let ident = &table.ident;
+    let table_name = &table.name;
     let id = match pkey {
         Some(id) => quote! { Some(#id) },
         None => quote! { None },
     };
 
-    let field_names = meta.database_columns().map(|c| c.column_name.to_string());
+    let field_names = table.database_columns().map(|c| c.name.to_string());
 
     quote! {
-        impl ::ormlite::model::TableMeta for #model {
+        impl ::ormlite::model::TableMeta for #ident {
             fn table_name() -> &'static str {
                 #table_name
             }
@@ -30,10 +30,10 @@ pub fn impl_TableMeta(meta: &TableMetadata, pkey: Option<&str>) -> TokenStream {
     }
 }
 
-pub fn impl_JoinMeta(attr: &ModelMetadata) -> TokenStream {
-    let model = &attr.inner.struct_name;
-    let id_type = &attr.pkey.column_type;
-    let id = &attr.pkey.identifier;
+pub fn impl_JoinMeta(attr: &ModelMeta) -> TokenStream {
+    let model = &attr.ident;
+    let id_type = &attr.pkey.ty;
+    let id = &attr.pkey.ident;
 
     quote! {
         impl ::ormlite::model::JoinMeta for #model {

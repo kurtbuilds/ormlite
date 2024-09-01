@@ -1,17 +1,17 @@
 use crate::codegen::common::{generate_conditional_bind, insertion_binding, OrmliteCodegen};
-use ormlite_attr::ModelMetadata;
+use ormlite_attr::ModelMeta;
 use proc_macro2::TokenStream;
 use quote::quote;
 
-pub fn impl_Model__update_all_fields(db: &dyn OrmliteCodegen, attr: &ModelMetadata) -> TokenStream {
+pub fn impl_Model__update_all_fields(db: &dyn OrmliteCodegen, attr: &ModelMeta) -> TokenStream {
     let box_future = crate::util::box_fut_ts();
     let mut placeholder = db.placeholder();
     let db = db.database_ts();
     let mut query = "UPDATE \"".to_string();
-    query.push_str(&attr.inner.table_name);
+    query.push_str(&attr.name);
     query.push_str("\" SET ");
     for c in attr.database_columns_except_pkey() {
-        query.push_str(&c.column_name);
+        query.push_str(&c.name);
         query.push_str(" = ");
         query.push_str(&placeholder.next().unwrap());
         query.push_str(", ");
@@ -19,16 +19,16 @@ pub fn impl_Model__update_all_fields(db: &dyn OrmliteCodegen, attr: &ModelMetada
     // remove the final ", "
     query.truncate(query.len() - 2);
     query.push_str(" WHERE ");
-    query.push_str(&attr.pkey.column_name);
+    query.push_str(&attr.pkey.name);
     query.push_str(" = ");
     query.push_str(&placeholder.next().unwrap());
     query.push_str(" RETURNING *");
 
-    let id = &attr.pkey.identifier;
+    let id = &attr.pkey.ident;
     let query_bindings = attr.database_columns_except_pkey().map(|c| insertion_binding(c));
 
     let unwind_joins = attr.many_to_one_joins().map(|c| {
-        let id = &c.identifier;
+        let id = &c.ident;
         quote! {
             let #id = &model.#id;
         }
@@ -53,19 +53,18 @@ pub fn impl_Model__update_all_fields(db: &dyn OrmliteCodegen, attr: &ModelMetada
     }
 }
 
-pub fn impl_ModelBuilder__update(db: &dyn OrmliteCodegen, attr: &ModelMetadata) -> TokenStream {
+pub fn impl_ModelBuilder__update(db: &dyn OrmliteCodegen, attr: &ModelMeta) -> TokenStream {
     let box_future = crate::util::box_fut_ts();
     let placeholder = db.placeholder_ts();
     let db = db.database_ts();
 
     let query = format!(
         "UPDATE \"{}\" SET {{}} WHERE {} = {{}} RETURNING *",
-        attr.table(),
-        attr.pkey.column_name,
+        attr.name, attr.pkey.name,
     );
 
     let bind_update = attr.database_columns().map(generate_conditional_bind);
-    let id = &attr.pkey.identifier;
+    let id = &attr.pkey.ident;
     quote! {
         fn update<'e: 'a, E>(self, db: E) -> #box_future<'a, ::ormlite::Result<Self::Model>>
         where

@@ -1,12 +1,11 @@
 use std::collections::BTreeMap;
-use std::fmt::Formatter;
 
 use anyhow::Result;
 use ormlite_attr::schema_from_filepaths;
-use ormlite_attr::ColumnMetadata;
+use ormlite_attr::ColumnMeta;
 use ormlite_attr::Ident;
-use ormlite_attr::ModelMetadata;
-use ormlite_attr::{InnerType, TType};
+use ormlite_attr::ModelMeta;
+use ormlite_attr::{InnerType, Type};
 use sqlmo::{schema::Column, Schema, Table};
 use std::path::Path;
 
@@ -19,63 +18,55 @@ pub trait TryFromOrmlite: Sized {
     fn try_from_ormlite_project(path: &[&Path]) -> Result<Self>;
 }
 
-trait SqlDiffTableExt {
-    fn from_metadata(metadata: &ModelMetadata) -> Result<Self, TypeTranslationError>
-    where
-        Self: Sized;
+trait FromMeta: Sized {
+    type Input;
+    fn from_meta(meta: &Self::Input) -> Self;
 }
 
-impl SqlDiffTableExt for Table {
-    fn from_metadata(model: &ModelMetadata) -> Result<Self, TypeTranslationError> {
-        Ok(Self {
+impl FromMeta for Table {
+    type Input = ModelMeta;
+    fn from_meta(model: &ModelMeta) -> Self {
+        let columns = model
+            .columns
+            .iter()
+            .flat_map(|c| {
+                if c.skip {
+                    return None;
+                }
+                let mut col = Option::<Column>::from_meta(c)?;
+                col.primary_key = model.pkey.name == col.name;
+                Some(col)
+            })
+            .collect();
+        Self {
             schema: None,
-            name: model.inner.table_name.clone(),
-            columns: model
-                .inner
-                .columns
-                .iter()
-                .map(|c| {
-                    if c.skip {
-                        return Ok(None);
-                    }
-                    let Some(mut col) = Column::from_metadata(c)? else {
-                        return Ok(None);
-                    };
-                    col.primary_key = model.pkey.column_name == col.name;
-                    Ok(Some(col))
-                })
-                .filter_map(|c| c.transpose())
-                .collect::<Result<Vec<_>, _>>()?,
+            name: model.name.clone(),
+            columns,
             indexes: vec![],
+        }
+    }
+}
+
+impl FromMeta for Option<Column> {
+    type Input = ColumnMeta;
+    fn from_meta(meta: &Self::Input) -> Self {
+        let ty = Nullable::from_type(&meta.ty)?;
+        Some(Column {
+            name: meta.name.clone(),
+            typ: ty.ty,
+            default: None,
+            nullable: ty.nullable,
+            primary_key: meta.marked_primary_key,
         })
     }
 }
 
-trait SqlDiffColumnExt {
-    fn from_metadata(metadata: &ColumnMetadata) -> Result<Option<Column>, TypeTranslationError>;
-}
-
-impl SqlDiffColumnExt for Column {
-    fn from_metadata(metadata: &ColumnMetadata) -> Result<Option<Column>, TypeTranslationError> {
-        let Some(ty) = SqlType::from_type(&metadata.column_type) else {
-            return Ok(None);
-        };
-        Ok(Some(Self {
-            name: metadata.column_name.clone(),
-            typ: ty.ty,
-            default: None,
-            nullable: ty.nullable,
-            primary_key: metadata.marked_primary_key,
-        }))
-    }
-}
-
-struct SqlType {
+struct Nullable {
     pub ty: sqlmo::Type,
     pub nullable: bool,
 }
 
-impl From<sqlmo::Type> for SqlType {
+impl From<sqlmo::Type> for Nullable {
     fn from(value: sqlmo::Type) -> Self {
         Self {
             ty: value,
@@ -84,39 +75,28 @@ impl From<sqlmo::Type> for SqlType {
     }
 }
 
-#[derive(Debug)]
-pub struct TypeTranslationError(pub String);
-
-impl std::error::Error for TypeTranslationError {}
-
-impl std::fmt::Display for TypeTranslationError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Could not translate type: {}", self.0)
-    }
-}
-
-impl SqlType {
-    fn from_type(ty: &TType) -> Option<Self> {
+impl Nullable {
+    fn from_type(ty: &Type) -> Option<Self> {
         use sqlmo::Type::*;
         match ty {
-            TType::Vec(v) => {
-                if let TType::Inner(p) = v.as_ref() {
-                    if p.ident.0 == "u8" {
-                        return Some(SqlType {
+            Type::Vec(v) => {
+                if let Type::Inner(p) = v.as_ref() {
+                    if p.ident == "u8" {
+                        return Some(Nullable {
                             ty: Bytes,
                             nullable: false,
                         });
                     }
                 }
                 let v = Self::from_type(v.as_ref())?;
-                Some(SqlType {
+                Some(Nullable {
                     ty: Array(Box::new(v.ty)),
                     nullable: true,
                 })
             }
-            TType::Inner(p) => {
-                let ident = p.ident.0.as_str();
-                let ty = match ident {
+            Type::Inner(p) => {
+                let ident = p.ident.to_string();
+                let ty = match ident.as_str() {
                     // signed
                     "i8" => I16,
                     "i16" => I16,
@@ -153,16 +133,16 @@ impl SqlType {
                     "Json" => Jsonb,
                     z => Other(z.to_string()),
                 };
-                Some(SqlType { ty, nullable: false })
+                Some(Nullable { ty, nullable: false })
             }
-            TType::Option(o) => {
+            Type::Option(o) => {
                 let inner = Self::from_type(o)?;
-                Some(SqlType {
+                Some(Nullable {
                     ty: inner.ty,
                     nullable: true,
                 })
             }
-            TType::Join(_) => None,
+            Type::Join(_) => None,
         }
     }
 }
@@ -175,29 +155,29 @@ impl TryFromOrmlite for Schema {
             .tables
             .iter()
             .map(|t| {
-                let pkey_ty = t.pkey.column_type.inner_type().clone();
-                (t.inner.struct_name.to_string(), pkey_ty)
+                let pkey_ty = t.pkey.ty.inner_type().clone();
+                (t.ident.to_string(), pkey_ty)
             })
             .collect();
         for t in &mut fs_schema.tables {
-            for c in &mut t.inner.columns {
+            for c in &mut t.table.columns {
                 // replace alias types with the real type.
-                let inner = c.column_type.inner_type_mut();
-                if let Some(f) = fs_schema.type_reprs.get(&inner.ident.0) {
-                    inner.ident = Ident(f.clone());
+                let inner = c.ty.inner_type_mut();
+                if let Some(f) = fs_schema.type_reprs.get(&inner.ident.to_string()) {
+                    inner.ident = Ident::from(f);
                 }
                 // replace join types with the primary key type.
-                if c.column_type.is_join() {
-                    let model_name = c.column_type.inner_type_name();
+                if c.ty.is_join() {
+                    let model_name = c.ty.inner_type_name();
                     let pkey = primary_key_type
                         .get(&model_name)
                         .expect(&format!("Could not find model {} for join", model_name));
-                    c.column_type = TType::Inner(pkey.clone());
+                    c.ty = Type::Inner(pkey.clone());
                 }
             }
         }
         for table in fs_schema.tables {
-            let table = Table::from_metadata(&table)?;
+            let table = Table::from_meta(&table);
             schema.tables.push(table);
         }
         Ok(schema)
@@ -208,29 +188,30 @@ impl TryFromOrmlite for Schema {
 mod tests {
     use super::*;
     use assert_matches::assert_matches;
-    use ormlite_attr::TType;
-    use sqlmo::Type;
+    use ormlite_attr::Type;
     use syn::parse_str;
 
     #[test]
     fn test_convert_type() -> Result<()> {
-        let s = TType::from(&parse_str::<syn::Path>("String").unwrap());
-        assert_matches!(SqlType::from_type(&s).unwrap().ty, Type::Text);
-        let s = TType::from(&parse_str::<syn::Path>("u32").unwrap());
-        assert_matches!(SqlType::from_type(&s).unwrap().ty, Type::I64);
-        let s = TType::from(&parse_str::<syn::Path>("Option<String>").unwrap());
-        let s = SqlType::from_type(&s).unwrap();
-        assert_matches!(s.ty, Type::Text);
+        use sqlmo::Type as SqlType;
+        let s = Type::from(&parse_str::<syn::Path>("String").unwrap());
+        assert_matches!(Nullable::from_type(&s).unwrap().ty, SqlType::Text);
+        let s = Type::from(&parse_str::<syn::Path>("u32").unwrap());
+        assert_matches!(Nullable::from_type(&s).unwrap().ty, SqlType::I64);
+        let s = Type::from(&parse_str::<syn::Path>("Option<String>").unwrap());
+        let s = Nullable::from_type(&s).unwrap();
+        assert_matches!(s.ty, SqlType::Text);
         assert!(s.nullable);
         Ok(())
     }
 
     #[test]
     fn test_support_vec() {
-        let s = TType::from(&parse_str::<syn::Path>("Vec<Uuid>").unwrap());
-        let Type::Array(inner) = SqlType::from_type(&s).unwrap().ty else {
+        use sqlmo::Type as SqlType;
+        let s = Type::from(&parse_str::<syn::Path>("Vec<Uuid>").unwrap());
+        let SqlType::Array(inner) = Nullable::from_type(&s).unwrap().ty else {
             panic!("Expected array");
         };
-        assert_eq!(*inner, Type::Uuid);
+        assert_eq!(*inner, SqlType::Uuid);
     }
 }

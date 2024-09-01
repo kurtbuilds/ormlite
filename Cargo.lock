@@ -1201,6 +1201,7 @@ dependencies = [
  "async-trait",
  "futures",
  "ormlite-attr",
+ "proc-macro2",
  "serde",
  "sqlmo",
  "sqlparser",

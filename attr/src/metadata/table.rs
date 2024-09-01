@@ -1,16 +1,17 @@
-use crate::ident::Ident;
-use crate::metadata::column::ColumnMetadata;
-use crate::{DeriveInputExt, ModelAttributes, SyndecodeError};
+use crate::metadata::column::ColumnMeta;
+use crate::DeriveInputExt;
+use crate::Ident;
 use convert_case::{Case, Casing};
-use syn::DeriveInput;
+use structmeta::StructMeta;
+use syn::{Attribute, DeriveInput, LitStr};
 
 /// Metadata used for IntoArguments, TableMeta, and (subset of) Model
 /// This structs are constructed from the *Attribute structs in crate::attr.
 #[derive(Debug, Clone)]
-pub struct TableMetadata {
-    pub table_name: String,
-    pub struct_name: Ident,
-    pub columns: Vec<ColumnMetadata>,
+pub struct TableMeta {
+    pub name: String,
+    pub ident: Ident,
+    pub columns: Vec<ColumnMeta>,
     pub databases: Vec<String>,
 
     /// If you're using this, consider whether you should be using a ModelMetadata and its pkey,
@@ -18,66 +19,118 @@ pub struct TableMetadata {
     pub pkey: Option<String>,
 }
 
-impl TableMetadata {
-    pub fn new(name: &str, columns: Vec<ColumnMetadata>) -> Self {
-        TableMetadata {
-            table_name: name.to_string(),
-            struct_name: Ident(name.to_case(Case::Pascal)),
+impl TableMeta {
+    pub fn new(ast: &DeriveInput, attrs: &[TableAttr]) -> Self {
+        let ident = &ast.ident;
+        let name = if let Some(value) = attrs.iter().find_map(|a| a.table.as_ref()) {
+            value.value()
+        } else {
+            ident.to_string().to_case(Case::Snake)
+        };
+        let mut columns = ColumnMeta::from_fields(ast.fields());
+        let mut pkey = columns
+            .iter()
+            .find(|&c| c.marked_primary_key)
+            .map(|c| c.clone())
+            .map(|c| c.name.clone());
+        if pkey.is_none() {
+            let candidates = sqlmo::util::pkey_column_names(&name);
+            if let Some(c) = columns.iter_mut().find(|c| candidates.iter().any(|n| c.ident == n)) {
+                c.has_database_default = true;
+                pkey = Some(c.name.clone());
+            }
+        }
+        let databases = attrs.iter().flat_map(|d| &d.database).map(|d| d.value()).collect();
+        Self {
+            name,
+            ident: Ident::from(ident),
+            columns,
+            databases,
+            pkey,
+        }
+    }
+
+    pub fn from_derive(ast: &DeriveInput) -> Self {
+        let attr = TableAttr::from_attrs(&ast.attrs);
+        Self::new(ast, &attr)
+    }
+
+    pub fn all_fields(&self) -> impl Iterator<Item = &Ident> + '_ {
+        self.columns.iter().map(|c| &c.ident)
+    }
+
+    pub fn database_columns(&self) -> impl Iterator<Item = &ColumnMeta> + '_ {
+        self.columns.iter().filter(|&c| !c.skip)
+    }
+
+    pub fn many_to_one_joins(&self) -> impl Iterator<Item = &ColumnMeta> + '_ {
+        self.columns.iter().filter(|&c| c.many_to_one_column_name.is_some())
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn mock(name: &str, columns: Vec<ColumnMeta>) -> Self {
+        TableMeta {
+            name: name.to_string(),
+            ident: Ident::from(name.to_case(Case::Pascal)),
             pkey: None,
             columns,
             databases: vec![],
         }
     }
+}
 
-    pub fn from_derive(ast: &DeriveInput) -> Result<TableMetadata, SyndecodeError> {
-        let mut databases = vec![];
-        let struct_name = Ident::from(&ast.ident);
-        let mut table_name = None;
-        for attr in ast.attrs.iter().filter(|a| a.path().is_ident("ormlite")) {
-            let args: ModelAttributes = attr.parse_args().map_err(|e| SyndecodeError(e.to_string()))?;
-            if let Some(value) = args.table {
-                table_name = Some(value.value());
-            }
-            if let Some(value) = args.database {
-                databases.push(value.value());
-            }
-        }
-        let table_name = table_name.unwrap_or_else(|| struct_name.to_string().to_case(Case::Snake));
-        let mut columns = ast
-            .fields()
-            .map(ColumnMetadata::try_from)
-            .collect::<Result<Vec<_>, _>>()?;
-        let mut pkey = columns
+/// Available attributes on a struct
+#[derive(StructMeta)]
+pub struct TableAttr {
+    /// The name of the table in the database. Defaults to the struct name.
+    /// Example:
+    /// #[ormlite(table = "users")]
+    /// pub struct User {
+    ///    pub id: i32,
+    /// }
+    pub table: Option<LitStr>,
+
+    /// Deprecated name for insert
+    /// Used as `#[ormlite(insertable = InsertUser)]`
+    pub insertable: Option<syn::Ident>,
+
+    /// The struct name of an insertion struct.
+    /// Example:
+    /// #[ormlite(insert = "InsertUser")]
+    /// pub struct User {
+    ///   pub id: i32,
+    /// }
+    ///
+    pub insert: Option<LitStr>,
+
+    /// Only used for derive(Insert)
+    /// Example:
+    /// #[ormlite(returns = "User")]
+    /// pub struct InsertUser {}
+    pub returns: Option<LitStr>,
+
+    /// Set the target database. Only needed if you have multiple databases enabled.
+    /// If you have a single database enabled, you don't need to set this.
+    /// Even with multiple databases, you can skip this by setting a default database with the `default-<db>` feature.
+    ///
+    /// Currently, because methods conflict, you
+    /// You can use this attribute multiple times to set multiple databases.
+    /// Example:
+    /// #[ormlite(database = "postgres")]
+    /// #[ormlite(database = "sqlite")]
+    /// pub struct User {
+    ///  pub id: i32,
+    /// }
+    /// This will generate orm code for `User` for both the `postgres` and `sqlite` databases.
+    pub database: Option<LitStr>,
+}
+
+impl TableAttr {
+    pub fn from_attrs(attrs: &[Attribute]) -> Vec<Self> {
+        attrs
             .iter()
-            .find(|&c| c.marked_primary_key)
-            .map(|c| c.clone())
-            .map(|c| c.column_name.clone());
-        if pkey.is_none() {
-            let candidates = sqlmo::util::pkey_column_names(&table_name);
-            let c = columns.iter_mut().find(|c| candidates.contains(c.identifier.as_ref()));
-            if let Some(c) = c {
-                c.has_database_default = true;
-                pkey = Some(c.column_name.clone());
-            }
-        }
-        Ok(Self {
-            table_name,
-            struct_name,
-            columns,
-            databases,
-            pkey,
-        })
-    }
-
-    pub fn all_fields(&self) -> impl Iterator<Item = &Ident> + '_ {
-        self.columns.iter().map(|c| &c.identifier)
-    }
-
-    pub fn database_columns(&self) -> impl Iterator<Item = &ColumnMetadata> + '_ {
-        self.columns.iter().filter(|&c| !c.skip)
-    }
-
-    pub fn many_to_one_joins(&self) -> impl Iterator<Item = &ColumnMetadata> + '_ {
-        self.columns.iter().filter(|&c| c.many_to_one_column_name.is_some())
+            .filter(|&a| a.path().is_ident("ormlite"))
+            .map(|a| a.parse_args().unwrap())
+            .collect()
     }
 }

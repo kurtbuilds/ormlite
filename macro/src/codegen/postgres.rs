@@ -32,40 +32,44 @@ impl OrmliteCodegen for PostgresBackend {
 mod test {
     use super::*;
     use ormlite_attr::ttype::InnerType;
-    use ormlite_attr::ColumnMetadata;
-    use ormlite_attr::ModelMetadata;
+    use ormlite_attr::ColumnMeta;
+    use ormlite_attr::ModelMeta;
 
     #[test]
     fn test_all_bounds() {
         let db = PostgresBackend;
         let mut cache = MetadataCache::new();
-        let table = ModelMetadata::new(
+        let table = ModelMeta::mock(
             "user",
             vec![
-                ColumnMetadata::new("id", "u32"),
-                ColumnMetadata::new("name", "String"),
-                ColumnMetadata::new("organization_id", "u32"),
-                ColumnMetadata::new_join("organization", "Organization"),
+                ColumnMeta::mock("id", "u32"),
+                ColumnMeta::mock("name", "String"),
+                ColumnMeta::mock("organization_id", "u32"),
+                ColumnMeta::mock_join("organization", "Organization"),
             ],
         );
         cache.insert("User".to_string(), table.clone());
-        let table = ModelMetadata::new(
+        let table = ModelMeta::mock(
             "organization",
             vec![
-                ColumnMetadata::new("id", "u32"),
-                ColumnMetadata::new("name", "String"),
-                ColumnMetadata::new("is_active", "bool"),
+                ColumnMeta::mock("id", "u32"),
+                ColumnMeta::mock("name", "String"),
+                ColumnMeta::mock("is_active", "bool"),
             ],
         );
         cache.insert("Organization".to_string(), table.clone());
 
-        let types_for_bound = crate::codegen::common::table_primitive_types(&table.inner, &cache);
+        let types_for_bound = crate::codegen::common::table_primitive_types(&table.table, &cache);
         let types_for_bound = types_for_bound.into_iter().map(|c| c.into_owned()).collect::<Vec<_>>();
         assert_eq!(
             types_for_bound,
-            vec![InnerType::new("u32"), InnerType::new("String"), InnerType::new("bool"),]
+            vec![
+                InnerType::mock("u32"),
+                InnerType::mock("String"),
+                InnerType::mock("bool"),
+            ]
         );
-        let bounds = from_row_bounds(&db, &table.inner, &cache);
+        let bounds = from_row_bounds(&db, &table.table, &cache);
         let bounds = quote! {
             #(#bounds)*
         };

@@ -1,25 +1,25 @@
 use crate::codegen::common::{from_row_bounds, OrmliteCodegen};
 use crate::MetadataCache;
-use ormlite_attr::ColumnMetadata;
+use ormlite_attr::ColumnMeta;
 use ormlite_attr::Ident;
-use ormlite_attr::TableMetadata;
+use ormlite_attr::TableMeta;
 use proc_macro2::TokenStream;
 use quote::quote;
 
-pub fn impl_FromRow(db: &dyn OrmliteCodegen, attr: &TableMetadata, cache: &MetadataCache) -> TokenStream {
+pub fn impl_FromRow(db: &dyn OrmliteCodegen, attr: &TableMeta, cache: &MetadataCache) -> TokenStream {
     let bounds = from_row_bounds(db, attr, cache);
     let row = db.row();
 
     let prefix_branches = attr.columns.iter().filter(|c| c.is_join()).map(|c| {
-        let name = &c.identifier.to_string();
-        let iden = &c.identifier;
+        let name = &c.ident.to_string();
+        let iden = &c.ident;
         let meta = cache
             .get(c.joined_struct_name().unwrap().as_str())
             .expect("Joined struct not found");
         let result = if c.is_join_many() {
             unimplemented!("Join<Vec<...>> isn't supported quite yet...");
         } else {
-            let prefixed_columns = meta.database_columns().map(|c| format!("__{}__{}", iden, c.identifier));
+            let prefixed_columns = meta.database_columns().map(|c| format!("__{}__{}", iden, c.ident));
             let path = c.joined_model();
             quote! {
                 #path::from_row_using_aliases(row, &[
@@ -36,7 +36,7 @@ pub fn impl_FromRow(db: &dyn OrmliteCodegen, attr: &TableMetadata, cache: &Metad
         }
     });
 
-    let field_names = attr.database_columns().map(|c| &c.column_name);
+    let field_names = attr.database_columns().map(|c| &c.name);
 
     let map_join = if attr.columns.iter().any(|c| c.is_join()) {
         quote! {
@@ -67,7 +67,7 @@ pub fn impl_FromRow(db: &dyn OrmliteCodegen, attr: &TableMetadata, cache: &Metad
     } else {
         TokenStream::new()
     };
-    let model = &attr.struct_name;
+    let model = &attr.ident;
     quote! {
         impl<'a> ::ormlite::model::FromRow<'a, #row> for #model
             where
@@ -91,7 +91,7 @@ pub fn impl_FromRow(db: &dyn OrmliteCodegen, attr: &TableMetadata, cache: &Metad
 
 pub fn impl_from_row_using_aliases(
     db: &dyn OrmliteCodegen,
-    attr: &TableMetadata,
+    attr: &TableMeta,
     metadata_cache: &MetadataCache,
 ) -> TokenStream {
     let row = db.row();
@@ -108,7 +108,7 @@ pub fn impl_from_row_using_aliases(
         })
         .collect::<Vec<_>>();
 
-    let model = &attr.struct_name;
+    let model = &attr.ident;
     quote! {
         impl #model {
             pub fn from_row_using_aliases<'a>(row: &'a #row, aliases: &'a [&str]) -> ::std::result::Result<Self, ::ormlite::SqlxError>
@@ -127,15 +127,15 @@ pub fn impl_from_row_using_aliases(
 }
 
 /// `name` renames the column. Can pass `col.column_name` if it's not renamed.
-pub fn from_row_for_column(get_value: TokenStream, col: &ColumnMetadata) -> TokenStream {
-    let id = &col.identifier;
-    let ty = &col.column_type;
+pub fn from_row_for_column(get_value: TokenStream, col: &ColumnMeta) -> TokenStream {
+    let id = &col.ident;
+    let ty = &col.ty;
     if col.skip {
         quote! {
             let #id = Default::default();
         }
     } else if col.is_join() {
-        let id_id = Ident::new(&format!("{}_id", id));
+        let id_id = Ident::from(format!("{}_id", id));
         quote! {
             let #id_id: <#ty as ::ormlite::model::JoinMeta>::IdType = ::ormlite::Row::try_get(row, #get_value)?;
             let #id = ::ormlite::model::Join::new_with_id(#id_id);

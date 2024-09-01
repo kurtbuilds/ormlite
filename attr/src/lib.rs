@@ -10,14 +10,12 @@ use syn::{DeriveInput, Item};
 
 use crate::derive::DeriveParser;
 use crate::repr::Repr;
-pub use attr::*;
 pub use error::*;
 pub use ext::*;
 pub use ident::*;
 pub use metadata::*;
 pub use ttype::*;
 
-mod attr;
 mod cfg_attr;
 mod derive;
 mod error;
@@ -35,7 +33,7 @@ pub struct LoadOptions {
 /// This is an intermediate representation of the schema.
 ///
 pub struct OrmliteSchema {
-    pub tables: Vec<ModelMetadata>,
+    pub tables: Vec<ModelMeta>,
     // map of rust structs (e.g. enums) to database encodings.
     // note that these are not bona fide postgres types.
     pub type_reprs: HashMap<String, String>,
@@ -74,7 +72,7 @@ impl Intermediate {
                     if attrs.has_derive("ormlite", "Model") {
                         tracing::debug!(model=%s.ident.to_string(), "Found");
                         model_structs.push(s);
-                    } else if attrs.has_derive2(&["ormlite", "sqlx"], "Type") {
+                    } else if attrs.has_any_derive(&["ormlite", "sqlx"], "Type") {
                         tracing::debug!(r#type=%s.ident.to_string(), "Found");
                         let repr = Repr::from_attributes(&s.attrs);
                         type_structs.push((s, repr));
@@ -147,9 +145,7 @@ pub fn schema_from_filepaths(paths: &[&Path]) -> anyhow::Result<OrmliteSchema> {
 
         for item in models {
             let derive: DeriveInput = item.into();
-            let table = ModelMetadata::from_derive(&derive)
-                .context(format!("Failed to parse model: {}", derive.ident.to_string()))?;
-            tables.push(table);
+            tables.push(ModelMeta::from_derive(&derive));
         }
 
         for (name, repr) in types {

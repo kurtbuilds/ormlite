@@ -11,7 +11,7 @@ fn test_sqlite() {
     set_path_and_run("tests/sqlite/03-many-to-one-join.rs");
     set_path_and_run("tests/sqlite/04-allow-clone-primary-key.rs");
     set_path_and_run("tests/sqlite/05-keyword-column.rs");
-    set_path_and_run("tests/sqlite/06-insertable.rs");
+    set_path_and_run("tests/sqlite/06-insert.rs");
     // t.pass("tests/03-many-to-many.rs");
     // t.pass("tests/04-one-to-many.rs");
 }

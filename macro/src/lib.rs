@@ -15,8 +15,8 @@ use syn::{parse_macro_input, Data, DeriveInput};
 use codegen::into_arguments::impl_IntoArguments;
 use ormlite_attr::schema_from_filepaths;
 use ormlite_attr::DeriveInputExt;
-use ormlite_attr::ModelMetadata;
-use ormlite_attr::TableMetadata;
+use ormlite_attr::ModelMeta;
+use ormlite_attr::TableMeta;
 use ormlite_core::config::get_var_model_folders;
 
 use crate::codegen::common::OrmliteCodegen;
@@ -31,7 +31,7 @@ use crate::codegen::model_builder::{impl_ModelBuilder, struct_ModelBuilder};
 mod codegen;
 mod util;
 
-pub(crate) type MetadataCache = HashMap<String, ModelMetadata>;
+pub(crate) type MetadataCache = HashMap<String, ModelMeta>;
 
 static TABLES: OnceCell<MetadataCache> = OnceCell::new();
 
@@ -45,14 +45,14 @@ fn load_metadata_cache() -> MetadataCache {
     let paths = paths.iter().map(|p| p.as_path()).collect::<Vec<_>>();
     let schema = schema_from_filepaths(&paths).expect("Failed to preload models");
     for meta in schema.tables {
-        let name = meta.struct_name().to_string();
+        let name = meta.ident.to_string();
         tables.insert(name, meta);
     }
     tables
 }
 
 /// For a given struct, determine what codegen to use.
-fn get_databases(table_meta: &TableMetadata) -> Vec<Box<dyn OrmliteCodegen>> {
+fn get_databases(table_meta: &TableMeta) -> Vec<Box<dyn OrmliteCodegen>> {
     let mut databases: Vec<Box<dyn OrmliteCodegen>> = Vec::new();
     let dbs = table_meta.databases.clone();
     if dbs.is_empty() {
@@ -123,22 +123,22 @@ pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
         panic!("Only structs can derive Model");
     };
 
-    let meta = ModelMetadata::from_derive(&ast).expect("Failed to parse table metadata");
+    let meta = ModelMeta::from_derive(&ast);
 
-    let mut databases = get_databases(&meta.inner);
+    let mut databases = get_databases(&meta.table);
     let tables = get_tables();
 
     let first = databases.remove(0);
 
     let primary = {
         let db = first.as_ref();
-        let impl_TableMeta = impl_TableMeta(&meta.inner, Some(meta.pkey.column_name.as_str()));
+        let impl_TableMeta = impl_TableMeta(&meta.table, Some(meta.pkey.name.as_str()));
         let impl_JoinMeta = impl_JoinMeta(&meta);
-        let static_join_descriptions = static_join_descriptions(&meta.inner, &tables);
+        let static_join_descriptions = static_join_descriptions(&meta.table, &tables);
         let impl_Model = impl_Model(db, &meta, tables);
         let impl_HasModelBuilder = impl_HasModelBuilder(db, &meta);
-        let impl_FromRow = impl_FromRow(db, &meta.inner, &tables);
-        let impl_from_row_using_aliases = impl_from_row_using_aliases(db, &meta.inner, &tables);
+        let impl_FromRow = impl_FromRow(db, &meta.table, &tables);
+        let impl_from_row_using_aliases = impl_from_row_using_aliases(db, &meta.table, &tables);
 
         let struct_ModelBuilder = struct_ModelBuilder(&ast, &meta);
         let impl_ModelBuilder = impl_ModelBuilder(db, &meta);
@@ -184,7 +184,7 @@ pub fn expand_derive_fromrow(input: TokenStream) -> TokenStream {
         panic!("Only structs can derive Model");
     };
 
-    let meta = TableMetadata::from_derive(&ast).unwrap();
+    let meta = TableMeta::from_derive(&ast);
 
     let databases = get_databases(&meta);
     let tables = get_tables();
@@ -211,11 +211,9 @@ pub fn expand_derive_table_meta(input: TokenStream) -> TokenStream {
         panic!("Only structs can derive Model");
     };
 
-    let table_meta = TableMetadata::from_derive(&ast).expect("Failed to parse table metadata");
+    let table_meta = TableMeta::from_derive(&ast);
     let databases = get_databases(&table_meta);
-    let db = databases.first().expect("No database configured");
-
-    let impl_TableMeta = impl_TableMeta(&table_meta, table_meta.pkey.as_ref().map(|pkey| pkey.as_str()));
+    let impl_TableMeta = impl_TableMeta(&table_meta, table_meta.pkey.as_deref());
     TokenStream::from(impl_TableMeta)
 }
 
@@ -226,7 +224,7 @@ pub fn expand_derive_into_arguments(input: TokenStream) -> TokenStream {
         panic!("Only structs can derive Model");
     };
 
-    let meta = TableMetadata::from_derive(&ast).unwrap();
+    let meta = TableMeta::from_derive(&ast);
     let databases = get_databases(&meta);
 
     let expanded = databases.iter().map(|db| {
