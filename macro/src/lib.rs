@@ -27,7 +27,7 @@ use crate::codegen::insert::impl_InsertModel;
 use crate::codegen::insert_model::struct_InsertModel;
 use crate::codegen::join_description::static_join_descriptions;
 use crate::codegen::meta::{impl_JoinMeta, impl_TableMeta};
-use crate::codegen::model::{impl_HasModelBuilder, impl_Model};
+use crate::codegen::model::impl_Model;
 use crate::codegen::model_builder::{impl_ModelBuilder, struct_ModelBuilder};
 
 mod codegen;
@@ -133,7 +133,6 @@ pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
         let impl_JoinMeta = impl_JoinMeta(&meta);
         let static_join_descriptions = static_join_descriptions(&meta.table, &tables);
         let impl_Model = impl_Model(db, &meta, tables);
-        let impl_HasModelBuilder = impl_HasModelBuilder(db, &meta);
         let impl_FromRow = impl_FromRow(db, &meta.table, &tables);
         let impl_from_row_using_aliases = impl_from_row_using_aliases(db, &meta.table, &tables);
 
@@ -149,7 +148,6 @@ pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
 
             #static_join_descriptions
             #impl_Model
-            #impl_HasModelBuilder
             #impl_FromRow
             #impl_from_row_using_aliases
 

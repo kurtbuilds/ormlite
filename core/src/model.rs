@@ -59,26 +59,16 @@ where
     fn build(self) -> Self::Model;
 }
 
-pub trait HasModelBuilder<'slf, DB>
-where
-    DB: sqlx::Database,
-    Self: Sized + TableMeta,
-{
-    type ModelBuilder: ModelBuilder<'slf, DB>;
-
-    /// Create a builder-pattern object to update one or more columns.
-    /// You can also use `update_all_fields` to update all columns.
-    fn update_partial(&'slf self) -> Self::ModelBuilder;
-
-    fn builder() -> Self::ModelBuilder;
-}
-
 /// The core trait. a struct that implements `Model` can also implement `HasModelBuilder`, (and is required to implement `Insertable`)
 pub trait Model<DB>
 where
     DB: sqlx::Database,
     Self: Sized + TableMeta,
 {
+    type ModelBuilder<'a>: ModelBuilder<'a, DB>
+    where
+        Self: 'a;
+
     /// Insert the model into the database.
     fn insert<'a, A>(self, conn: A) -> crate::insert::Insertion<'a, A, Self, DB>
     where
@@ -107,6 +97,12 @@ where
 
     /// Create a `SelectQueryBuilder` to build a query.
     fn select<'args>() -> SelectQueryBuilder<'args, DB, Self>;
+
+    /// Create a builder-pattern object to update one or more columns.
+    /// You can also use `update_all_fields` to update all columns.
+    fn update_partial(&self) -> Self::ModelBuilder<'_>;
+
+    fn builder() -> Self::ModelBuilder<'static>;
 }
 
 pub trait TableMeta {

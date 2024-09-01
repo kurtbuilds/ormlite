@@ -16,10 +16,13 @@ pub fn impl_Model(db: &dyn OrmliteCodegen, attr: &ModelMeta, metadata_cache: &Me
     let impl_Model__delete = impl_Model__delete(db, attr);
     let impl_Model__fetch_one = impl_Model__fetch_one(db, attr);
     let impl_Model__select = impl_Model__select(db, &attr.table);
-
+    let impl_Model__builder = impl_Model__builder(attr);
+    let impl_Model__update_partial = impl_Model__update_partial(attr);
     let db = db.database_ts();
     quote! {
         impl ::ormlite::model::Model<#db> for #model {
+            type ModelBuilder<'a> = #partial_model<'a> where Self: 'a;
+
             #impl_Model__insert
             #impl_Model__update_all_fields
             #impl_Model__delete
@@ -29,24 +32,10 @@ pub fn impl_Model(db: &dyn OrmliteCodegen, attr: &ModelMeta, metadata_cache: &Me
            fn query(query: &str) -> ::ormlite::query::QueryAs<#db, Self, <#db as ::ormlite::Database>::Arguments<'_>> {
                 ::ormlite::query_as::<_, Self>(query)
             }
-        }
-    }
-}
-
-pub fn impl_HasModelBuilder(db: &dyn OrmliteCodegen, attr: &ModelMeta) -> TokenStream {
-    let model = &attr.ident;
-    let partial_model = attr.builder_struct();
-
-    let impl_Model__builder = impl_Model__builder(attr);
-    let impl_Model__update_partial = impl_Model__update_partial(attr);
-
-    let db = db.database_ts();
-    quote! {
-        impl<'slf> ::ormlite::model::HasModelBuilder<'slf, #db> for #model {
-            type ModelBuilder = #partial_model<'slf>;
 
             #impl_Model__builder
             #impl_Model__update_partial
+
         }
     }
 }
@@ -127,7 +116,7 @@ pub fn impl_Model__builder(attr: &ModelMeta) -> TokenStream {
 pub fn impl_Model__update_partial(attr: &ModelMeta) -> TokenStream {
     let partial_model = &attr.builder_struct();
     quote! {
-        fn update_partial(&'slf self) -> #partial_model<'slf> {
+        fn update_partial(&self) -> #partial_model<'_> {
             let mut partial = #partial_model::default();
             partial.updating = Some(&self);
             partial
