@@ -198,7 +198,7 @@ use ormlite::types::Json;
 use serde_json::Value;
 
 #[derive(Model, Debug)]
-#[ormlite(insertable = InsertPerson)]
+#[ormlite(insert = "InsertPerson")]
 pub struct Person {
     pub id: i32,
     // Because the other fields are the primary key, and marked as default and default_value respectively,
@@ -228,7 +228,7 @@ specifying `table = "<table>"` to route the struct to the same database table.
 
 ```rust
 #[derive(Model, Debug)]
-#[ormlite(table = "person")]
+#[ormlite(returns = "User")]
 pub struct InsertPerson {
     pub name: String,
     pub age: i32,
@@ -354,12 +354,12 @@ This example shows them in action:
 
 ```rust
 #[derive(Model, Debug)]
-#[ormlite(table = "people", insertable = InsertPerson)]
+#[ormlite(table = "people", insert = "InsertPerson")]
 pub struct Person {
     #[ormlite(primary_key)]
     pub id: i32,
     pub name: String,
-    #[ormlite(column = "name_of_column_in_db")]
+    #[ormlite(column = "name_of_db_column")]
     pub age: i32,
 }
 ```
@@ -474,7 +474,9 @@ pub struct Job {
     pub structured_data: Json<JobData>,
     pub unstructured_data: Json<Value>,
     #[ormlite(json)]
-    pub other_data: Value,
+    pub unstructured_data2: Value,
+    #[ormlite(json)]
+    pub structured_data2: JobData,
 }
 ```
 
@@ -504,7 +506,6 @@ You can log queries using sqlx's logger: `RUST_LOG=sqlx=info`
 - [ ] Query builder for bulk update
 - [ ] Handle on conflict clauses for bulk update
 - [ ] Benchmarks against raw sql, sqlx, ormx, seaorm, sqlite3-sys, pg, diesel
-- [ ] Macro option to delete with deleted_at rather than `DELETE`
 - [ ] Support for patch records, i.e. update with static fields.
 - [ ] Consider a blocking interface, perhaps for sqlite/Rusqlite only.
 
