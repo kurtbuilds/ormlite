@@ -50,7 +50,10 @@ impl FromMeta for Table {
 impl FromMeta for Option<Column> {
     type Input = ColumnMeta;
     fn from_meta(meta: &Self::Input) -> Self {
-        let ty = Nullable::from_type(&meta.ty)?;
+        let mut ty = Nullable::from_type(&meta.ty)?;
+        if meta.json {
+            ty.ty = sqlmo::Type::Jsonb;
+        }
         Some(Column {
             name: meta.name.clone(),
             typ: ty.ty,

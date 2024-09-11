@@ -1155,7 +1155,7 @@ dependencies = [
 
 [[package]]
 name = "ormlite-attr"
-version = "0.20.0"
+version = "0.20.1"
 dependencies = [
  "anyhow",
  "convert_case",
