@@ -496,6 +496,8 @@ You can log queries using sqlx's logger: `RUST_LOG=sqlx=info`
 - [x] Automatically generate migrations
 - [x] Eliminate need for FromRow macro
 - [x] Many to one joins
+- [ ] created_at should naturally default to now()
+- [ ] id: i32 should default to identity by default
 - [ ] Autogenerate indexes for migrations
 - [ ] Many to many joins
 - [ ] One to many joins
