@@ -5,3 +5,4 @@ expanded.rs
 !.env.example
 expand.rs
 .cargo
+Cargo.lock
