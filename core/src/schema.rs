@@ -94,7 +94,7 @@ impl Nullable {
                 let v = Self::from_type(v.as_ref())?;
                 Some(Nullable {
                     ty: Array(Box::new(v.ty)),
-                    nullable: true,
+                    nullable: false,
                 })
             }
             Type::Inner(p) => {
