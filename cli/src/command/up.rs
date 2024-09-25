@@ -94,7 +94,8 @@ impl Up {
             let checksum = Sha384::digest(body.as_bytes()).to_vec();
 
             let start = Instant::now();
-            runtime.block_on(conn.execute(&*body))?;
+            runtime.block_on(conn.execute(&*body))
+                .map_err(|e| anyhow!("Error while running migration {}: {}", &migration.name, e))?;
             let elapsed = start.elapsed();
 
             let mut args = PgArguments::default();
