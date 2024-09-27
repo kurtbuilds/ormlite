@@ -1,6 +1,6 @@
 use crate::codegen::common::{from_row_bounds, OrmliteCodegen};
 use crate::MetadataCache;
-use ormlite_attr::ColumnMeta;
+use ormlite_attr::{ColumnMeta, Type};
 use ormlite_attr::Ident;
 use ormlite_attr::TableMeta;
 use proc_macro2::TokenStream;
@@ -141,9 +141,16 @@ pub fn from_row_for_column(get_value: TokenStream, col: &ColumnMeta) -> TokenStr
             let #id = ::ormlite::model::Join::new_with_id(#id_id);
         }
     } else if col.json {
-        quote! {
-            let #id: ::ormlite::types::Json<#ty> = ::ormlite::Row::try_get(row, #get_value)?;
-            let #id = #id.0;
+        if let Type::Option(inner) = ty {
+            quote! {
+                let #id: Option<::ormlite::types::Json<#inner>> = ::ormlite::Row::try_get(row, #get_value)?;
+                let #id = #id.map(|j| j.0);
+            }
+        } else {
+            quote! {
+                let #id: ::ormlite::types::Json<#ty> = ::ormlite::Row::try_get(row, #get_value)?;
+                let #id = #id.0;
+            }
         }
     } else {
         quote! {
