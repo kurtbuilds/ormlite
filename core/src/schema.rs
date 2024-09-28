@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 use anyhow::Result;
 use ormlite_attr::schema_from_filepaths;
@@ -6,8 +6,9 @@ use ormlite_attr::ColumnMeta;
 use ormlite_attr::Ident;
 use ormlite_attr::ModelMeta;
 use ormlite_attr::{InnerType, Type};
-use sqlmo::{schema::Column, Schema, Table};
+use sqlmo::{schema::Column, Schema, Table, Constraint};
 use std::path::Path;
+
 
 #[derive(Debug)]
 pub struct Options {
@@ -60,6 +61,7 @@ impl FromMeta for Option<Column> {
             default: None,
             nullable: ty.nullable,
             primary_key: meta.marked_primary_key,
+            constraint: None,
         })
     }
 }
@@ -182,6 +184,23 @@ impl TryFromOrmlite for Schema {
         for table in fs_schema.tables {
             let table = Table::from_meta(&table);
             schema.tables.push(table);
+        }
+        let table_names: HashSet<String> = schema.tables.iter().map(|t| t.name.clone()).collect();
+        for table in &mut schema.tables {
+            for column in &mut table.columns {
+                if column.primary_key {
+                    continue;
+                }
+                if column.name.ends_with("_id") || column.name.ends_with("_uuid") {
+                    let Some((model_name, _)) = column.name.rsplit_once('_') else {
+                        continue;
+                    };
+                    if table_names.contains(model_name) {
+                        let constraint = Constraint::foreign_key(model_name.to_string(), Vec::new());
+                        column.constraint = Some(constraint);
+                    }
+                }
+            }
         }
         Ok(schema)
     }

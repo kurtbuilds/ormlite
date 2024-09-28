@@ -54,17 +54,17 @@ default-sqlite = ["sqlite", "ormlite-macro/default-sqlite"]
 default-mysql = ["mysql", "ormlite-macro/default-mysql"]
 
 [dependencies]
-sqlx = { version = "0.8.1" }
-tokio = { version = "1.24.1", features = ["full"] }
+sqlx = { version = "0.8.2" }
+tokio = { version = "1.40.0", features = ["full"] }
 ormlite-macro = { path = "../macro" , version = "0.20.0"}
 ormlite-core = { path = "../core" , version = "0.20.0"}
-sqlx-core = "0.8.1"
-sqlmo = "0.17.0"
-tokio-stream = "0.1.14"
+sqlx-core = "0.8.2"
+sqlmo = "0.21.0"
+tokio-stream = "0.1.16"
 
 [dev-dependencies]
-trybuild = { version = "1.0.49", features = ["diff"] }
+trybuild = { version = "1.0.99", features = ["diff"] }
 env_logger = "0.11.5"
-uuid = { version = "1.1.2", features = ["serde", "v4"] }
-serde = { version = "1.0.130", features = ["derive"] }
-chrono = { version = "0.4.23", features = ["serde"] }
+uuid = { version = "1.10.0", features = ["serde", "v4"] }
+serde = { version = "1.0.210", features = ["derive"] }
+chrono = { version = "0.4.38", features = ["serde"] }

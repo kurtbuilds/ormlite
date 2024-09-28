@@ -29,6 +29,8 @@ pub enum Command {
     Down(Down),
     /// Initiailize the database for use with `ormlite`. Creates the migrations table.
     Init(Init),
+    /// Initiailize the database for use with `ormlite`. Creates the migrations table.
+    Debug(Info),
 }
 
 fn main() -> Result<()> {
@@ -49,5 +51,6 @@ fn main() -> Result<()> {
         Up(up) => up.run(),
         Down(down) => down.run(),
         Init(init) => init.run(),
+        Debug(info) => info.run(),
     }
 }
