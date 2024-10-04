@@ -1,6 +1,6 @@
 [package]
 name = "ormlite"
-version = "0.22.0"
+version = "0.22.1"
 edition = "2021"
 authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
 description = "An ORM for people who love SQL"
@@ -56,8 +56,8 @@ default-mysql = ["mysql", "ormlite-macro/default-mysql"]
 [dependencies]
 sqlx = { version = "0.8.2" }
 tokio = { version = "1.40.0", features = ["full"] }
-ormlite-macro = { path = "../macro" , version = "0.22.0" }
-ormlite-core = { path = "../core" , version = "0.22.0" }
+ormlite-macro = { path = "../macro" , version = "0.22.1" }
+ormlite-core = { path = "../core" , version = "0.22.1" }
 sqlx-core = "0.8.2"
 sqlmo = "0.22"
 tokio-stream = "0.1.16"
