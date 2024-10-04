@@ -38,9 +38,12 @@ pub fn schema_from_ormlite_project(paths: &[&Path], c: &Config) -> AnyResult<Sch
         let table = Table::from_meta(&table);
         schema.tables.push(table);
     }
-    let mut table_names: HashMap<String, String> =
-        schema.tables.iter().map(|t| (t.name.clone(), t.name.clone())).collect();
+    let mut table_names: HashMap<String, (String, String)> =
+        schema.tables.iter().map(|t| (t.name.clone(), (t.name.clone(), t.primary_key().unwrap().name.clone()))).collect();
     for (alias, real) in &c.table.aliases {
+        let Some(real) = table_names.get(real) else {
+            continue;
+        };
         table_names.insert(alias.clone(), real.clone());
     }
     for table in &mut schema.tables {
@@ -52,8 +55,8 @@ pub fn schema_from_ormlite_project(paths: &[&Path], c: &Config) -> AnyResult<Sch
                 let Some((model_name, _)) = column.name.rsplit_once('_') else {
                     continue;
                 };
-                if let Some(t) = table_names.get(model_name) {
-                    let constraint = Constraint::foreign_key(t.to_string(), Vec::new());
+                if let Some((t, pkey)) = table_names.get(model_name) {
+                    let constraint = Constraint::foreign_key(t.to_string(), vec![pkey.clone()]);
                     column.constraint = Some(constraint);
                 }
             }

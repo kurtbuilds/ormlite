@@ -273,13 +273,7 @@ impl Migrate {
                     .join("\n")
             })
             .unwrap_or_default();
-        if self.reversible {
-            create_migration(&folder, file_name.clone(), MigrationType::Up, &migration_body)?;
-            create_migration(&folder, file_name.clone(), MigrationType::Down, "")?;
-        } else {
-            create_migration(&folder, file_name.clone(), MigrationType::Simple, &migration_body)?;
-        }
-        if let Some(migration) = migration {
+        if let Some(migration) = &migration {
             if migration.statements.is_empty() {
                 println!("No changes were detected. Generated an empty migration file.");
             } else {
@@ -304,6 +298,12 @@ impl Migrate {
                     }
                 }
             }
+        }
+        if self.reversible {
+            create_migration(&folder, file_name.clone(), MigrationType::Up, &migration_body)?;
+            create_migration(&folder, file_name.clone(), MigrationType::Down, "")?;
+        } else {
+            create_migration(&folder, file_name.clone(), MigrationType::Simple, &migration_body)?;
         }
         Ok(())
     }
