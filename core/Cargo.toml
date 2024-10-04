@@ -1,6 +1,6 @@
 [package]
 name = "ormlite-core"
-version = "0.20.1"
+version = "0.21.0"
 edition = "2021"
 description = "An ORM for people who love SQL. Use the `ormlite` crate, not this one."
 authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
@@ -20,7 +20,7 @@ sqlx = "0.8.2"
 sqlparser = "0.51.0"
 thiserror = "1"
 sqlmo = "0.21.0"
-ormlite-attr = { path = "../attr" , version = "0.20" }
+ormlite-attr = { path = "../attr" , version = "0.21" }
 anyhow = "1"
 async-trait = "0.1"
 serde = { version = "1", features = ["derive"] }
