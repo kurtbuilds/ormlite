@@ -1,6 +1,5 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use indexmap::indexmap;
 use tracing::Level;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -11,7 +10,6 @@ mod config;
 mod schema;
 
 use command::*;
-use crate::config::{Config, Table};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]

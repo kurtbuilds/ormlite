@@ -1,6 +1,6 @@
 [package]
 name = "ormlite-attr"
-version = "0.21.0"
+version = "0.22.0"
 edition = "2021"
 description = "See `ormlite`."
 authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
@@ -22,7 +22,7 @@ structmeta = "0.3.0"
 convert_case = "0.6"
 anyhow = "1.0"
 ignore = "0.4"
-sqlmo = "0.21.0"
+sqlmo = "0.22"
 tracing = "0.1"
 
 [dev-dependencies]
