@@ -52,8 +52,8 @@ pub fn schema_from_ormlite_project(paths: &[&Path], c: &Config) -> AnyResult<Sch
                 let Some((model_name, _)) = column.name.rsplit_once('_') else {
                     continue;
                 };
-                if table_names.contains_key(model_name) {
-                    let constraint = Constraint::foreign_key(model_name.to_string(), Vec::new());
+                if let Some(t) = table_names.get(model_name) {
+                    let constraint = Constraint::foreign_key(t.to_string(), Vec::new());
                     column.constraint = Some(constraint);
                 }
             }
