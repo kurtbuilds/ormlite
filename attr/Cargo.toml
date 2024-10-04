@@ -24,6 +24,7 @@ anyhow = "1.0"
 ignore = "0.4"
 sqlmo = "0.22"
 tracing = "0.1"
+sqlformat = "=0.2.6"
 
 [dev-dependencies]
 syn = { version = "2.0.79", features = ["full", "extra-traits"] }

@@ -1,7 +1,6 @@
 use anyhow::Result as AnyResult;
-use indexmap::IndexMap;
-use serde::{Deserialize, Serialize};
 use std::{fs::File, io::Read, path::Path};
+pub use ormlite_core::config::Config;
 
 static CONFIG_REL_PATHS: [&str; 2] = [".ormlite/config.toml", ".ormlite.toml"];
 
@@ -30,15 +29,4 @@ pub fn read(path: impl AsRef<Path>) -> AnyResult<Config> {
     Ok(config)
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, Default)]
-pub struct Config {
-    pub table: Table,
-}
 
-#[derive(Debug, Serialize, Deserialize, Clone, Default)]
-pub struct Table {
-    /// When auto detecting foreign keys, use this aliases
-    /// For example, if you have a table organization, but the foreign key is org_id,
-    /// you'd define the alias as "org" => "organization"
-    pub aliases: IndexMap<String, String>,
-}
