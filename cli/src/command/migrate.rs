@@ -16,8 +16,8 @@ use ormlite::Row;
 use ormlite::{Acquire, Connection};
 use ormlite_core::config;
 use ormlite_core::config::get_var_model_folders;
-use ormlite_core::schema::TryFromOrmlite;
-
+use crate::config::Config;
+use crate::schema::schema_from_ormlite_project;
 use crate::util::create_runtime;
 
 const GET_MIGRATIONS_QUERY: &str = "SELECT
@@ -204,11 +204,12 @@ fn autogenerate_migration(
     runtime: &Runtime,
     conn: &mut PgConnection,
     opts: &Migrate,
+    c: &Config
 ) -> Result<Migration> {
     let mut current = runtime.block_on(Schema::try_from_postgres(conn, "public"))?;
     current.tables.retain(|t| t.name != "_sqlx_migrations");
 
-    let mut desired = Schema::try_from_ormlite_project(codebase_path)?;
+    let mut desired = schema_from_ormlite_project(codebase_path, &c)?;
     experimental_modifications_to_schema(&mut desired)?;
 
     let migration = current.migrate_to(
@@ -227,6 +228,7 @@ impl Migrate {
 
         let folder = config::get_var_migration_folder();
         let url = config::get_var_database_url();
+        let c = crate::config::load_config()?;
 
         let mut conn = runtime.block_on(PgConnection::connect(&url))?;
         let conn = runtime.block_on(conn.acquire())?;
@@ -240,7 +242,7 @@ impl Migrate {
         } else {
             let folder_paths = get_var_model_folders();
             let folder_paths = folder_paths.iter().map(|p| p.as_path()).collect::<Vec<_>>();
-            let migration = autogenerate_migration(&folder_paths, &runtime, conn, &self)?;
+            let migration = autogenerate_migration(&folder_paths, &runtime, conn, &self, &c)?;
 
             for d in &migration.debug_results {
                 tracing::debug!(table = d.table_name(), "Table is identical");

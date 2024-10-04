@@ -6,7 +6,7 @@ use ormlite::{Acquire, Connection};
 use ormlite_core::config::{get_var_database_url, get_var_model_folders};
 use sqlmo::Schema;
 use sqlmo_sqlx::FromPostgres;
-use ormlite_core::schema::TryFromOrmlite;
+use crate::schema::schema_from_ormlite_project;
 
 #[derive(Parser, Debug)]
 pub struct Info {
@@ -22,6 +22,7 @@ impl Info {
     pub fn run(self) -> Result<()> {
         // let folder = get_var_migration_folder();
         let runtime = create_runtime();
+        let c = crate::config::load_config()?;
         let mut current = if self.url {
             let url = get_var_database_url();
             let mut conn = runtime.block_on(PgConnection::connect(&url))?;
@@ -30,7 +31,7 @@ impl Info {
         } else {
             let folder_paths = get_var_model_folders();
             let folder_paths = folder_paths.iter().map(|p| p.as_path()).collect::<Vec<_>>();
-            Schema::try_from_ormlite_project(&folder_paths)?
+            schema_from_ormlite_project(&folder_paths, &c)?
         };
         if let Some(s) = self.table {
             current.tables.retain(|t| t.name == s);

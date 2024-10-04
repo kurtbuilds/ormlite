@@ -1,25 +1,14 @@
-use std::collections::{BTreeMap, HashSet};
-
-use anyhow::Result;
-use ormlite_attr::schema_from_filepaths;
 use ormlite_attr::ColumnMeta;
-use ormlite_attr::Ident;
 use ormlite_attr::ModelMeta;
-use ormlite_attr::{InnerType, Type};
-use sqlmo::{schema::Column, Schema, Table, Constraint};
-use std::path::Path;
-
+use ormlite_attr::Type;
+use sqlmo::{schema::Column, Table};
 
 #[derive(Debug)]
 pub struct Options {
     pub verbose: bool,
 }
 
-pub trait TryFromOrmlite: Sized {
-    fn try_from_ormlite_project(path: &[&Path]) -> Result<Self>;
-}
-
-trait FromMeta: Sized {
+pub trait FromMeta: Sized {
     type Input;
     fn from_meta(meta: &Self::Input) -> Self;
 }
@@ -149,60 +138,6 @@ impl Nullable {
             }
             Type::Join(_) => None,
         }
-    }
-}
-
-impl TryFromOrmlite for Schema {
-    fn try_from_ormlite_project(paths: &[&Path]) -> Result<Self> {
-        let mut schema = Self::default();
-        let mut fs_schema = schema_from_filepaths(paths)?;
-        let primary_key_type: BTreeMap<String, InnerType> = fs_schema
-            .tables
-            .iter()
-            .map(|t| {
-                let pkey_ty = t.pkey.ty.inner_type().clone();
-                (t.ident.to_string(), pkey_ty)
-            })
-            .collect();
-        for t in &mut fs_schema.tables {
-            for c in &mut t.table.columns {
-                // replace alias types with the real type.
-                let inner = c.ty.inner_type_mut();
-                if let Some(f) = fs_schema.type_reprs.get(&inner.ident.to_string()) {
-                    inner.ident = Ident::from(f);
-                }
-                // replace join types with the primary key type.
-                if c.ty.is_join() {
-                    let model_name = c.ty.inner_type_name();
-                    let pkey = primary_key_type
-                        .get(&model_name)
-                        .expect(&format!("Could not find model {} for join", model_name));
-                    c.ty = Type::Inner(pkey.clone());
-                }
-            }
-        }
-        for table in fs_schema.tables {
-            let table = Table::from_meta(&table);
-            schema.tables.push(table);
-        }
-        let table_names: HashSet<String> = schema.tables.iter().map(|t| t.name.clone()).collect();
-        for table in &mut schema.tables {
-            for column in &mut table.columns {
-                if column.primary_key {
-                    continue;
-                }
-                if column.name.ends_with("_id") || column.name.ends_with("_uuid") {
-                    let Some((model_name, _)) = column.name.rsplit_once('_') else {
-                        continue;
-                    };
-                    if table_names.contains(model_name) {
-                        let constraint = Constraint::foreign_key(model_name.to_string(), Vec::new());
-                        column.constraint = Some(constraint);
-                    }
-                }
-            }
-        }
-        Ok(schema)
     }
 }
 
