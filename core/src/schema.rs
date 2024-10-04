@@ -147,6 +147,7 @@ mod tests {
     use assert_matches::assert_matches;
     use ormlite_attr::Type;
     use syn::parse_str;
+    use anyhow::Result;
 
     #[test]
     fn test_convert_type() -> Result<()> {
