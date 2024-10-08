@@ -115,8 +115,14 @@ pub fn insertion_binding(c: &ColumnMeta) -> TokenStream {
             q = q.bind(#name._id());
         }
     } else if c.json {
-        quote! {
-            q = q.bind(::ormlite::types::Json(model.#name));
+        if c.is_option() {
+            quote! {
+                q = q.bind(model.#name.map(::ormlite::types::Json));
+            }
+        } else {
+            quote! {
+                q = q.bind(::ormlite::types::Json(model.#name));
+            }
         }
     } else {
         quote! {

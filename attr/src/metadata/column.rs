@@ -79,6 +79,10 @@ impl ColumnMeta {
         o.ident == "Vec"
     }
 
+    pub fn is_option(&self) -> bool {
+        matches!(self.ty, Type::Option(_))
+    }
+
     pub fn is_json(&self) -> bool {
         self.ty.is_json() || self.json
     }
