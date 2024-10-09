@@ -84,7 +84,7 @@ pub fn impl_ModelBuilder__update(db: &dyn OrmliteCodegen, attr: &ModelMeta) -> T
                     .clone();
                 let query = format!(
                     #query,
-                    set_fields.into_iter().map(|f| format!("{} = {}", f, placeholder.next().unwrap())).collect::<Vec<_>>().join(", "),
+                    set_fields.into_iter().map(|f| format!("\"{}\" = {}", f, placeholder.next().unwrap())).collect::<Vec<_>>().join(", "),
                     placeholder.next().unwrap()
                 );
                 let mut q =::ormlite::query_as::<#db, Self::Model>(&query);
