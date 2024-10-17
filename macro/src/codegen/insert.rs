@@ -13,9 +13,18 @@ pub fn impl_Model__insert(db: &dyn OrmliteCodegen, attr: &TableMeta, metadata_ca
     let mut placeholder = db.placeholder();
     let db = db.database_ts();
     let table = &attr.name;
-    let params = attr.database_columns().map(|_| placeholder.next().unwrap());
+    let params = attr.database_columns().map(|c| {
+        if c.has_database_default {
+            "DEFAULT".to_string()
+        } else {
+            placeholder.next().unwrap()
+        }
+    });
 
-    let query_bindings = attr.database_columns().map(|c| insertion_binding(c));
+    let query_bindings = attr
+        .database_columns()
+        .filter(|c| !c.has_database_default)
+        .map(|c| insertion_binding(c));
 
     let insert_join = attr.many_to_one_joins().map(|c| insert_join(c));
 
