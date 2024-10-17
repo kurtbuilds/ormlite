@@ -11,7 +11,7 @@ pub fn impl_Model(db: &dyn OrmliteCodegen, attr: &ModelMeta, metadata_cache: &Me
     let model = &attr.ident;
     let partial_model = attr.builder_struct();
 
-    let impl_Model__insert = impl_Model__insert(db, &attr.table, metadata_cache);
+    let impl_Model__insert = impl_Model__insert(db, &attr, metadata_cache);
     let impl_Model__update_all_fields = impl_Model__update_all_fields(db, attr);
     let impl_Model__delete = impl_Model__delete(db, attr);
     let impl_Model__fetch_one = impl_Model__fetch_one(db, attr);

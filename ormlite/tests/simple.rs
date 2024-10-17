@@ -30,7 +30,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{:?}", john);
 
     println!("select");
-    let people = Person::select().where_("age > ?").bind(50).fetch_all(&mut conn).await?;
+    let people = Person::select().where_bind("age > ?", 50).fetch_all(&mut conn).await?;
     println!("select query builder {:?}", people);
 
     let r = sqlx::query_as::<_, Person>("select * from person where age > ?")

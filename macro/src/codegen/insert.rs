@@ -8,13 +8,15 @@ use ormlite_attr::Type;
 use proc_macro2::TokenStream;
 use quote::quote;
 
-pub fn impl_Model__insert(db: &dyn OrmliteCodegen, attr: &TableMeta, metadata_cache: &MetadataCache) -> TokenStream {
+pub fn impl_Model__insert(db: &dyn OrmliteCodegen, attr: &ModelMeta, metadata_cache: &MetadataCache) -> TokenStream {
     let box_future = crate::util::box_fut_ts();
     let mut placeholder = db.placeholder();
     let db = db.database_ts();
     let table = &attr.name;
     let params = attr.database_columns().map(|c| {
-        if c.has_database_default {
+        if attr.pkey.name == c.name {
+            placeholder.next().unwrap()
+        } else if c.has_database_default {
             "DEFAULT".to_string()
         } else {
             placeholder.next().unwrap()
@@ -23,7 +25,7 @@ pub fn impl_Model__insert(db: &dyn OrmliteCodegen, attr: &TableMeta, metadata_ca
 
     let query_bindings = attr
         .database_columns()
-        .filter(|c| !c.has_database_default)
+        .filter(|c| attr.pkey.name == c.name || !c.has_database_default)
         .map(|c| insertion_binding(c));
 
     let insert_join = attr.many_to_one_joins().map(|c| insert_join(c));
