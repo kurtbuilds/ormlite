@@ -11,14 +11,14 @@ use time::macros::format_description;
 use time::OffsetDateTime as DateTime;
 use tokio::runtime::Runtime;
 
+use crate::config::Config;
+use crate::schema::schema_from_ormlite_project;
+use crate::util::create_runtime;
 use ormlite::postgres::PgConnection;
 use ormlite::Row;
 use ormlite::{Acquire, Connection};
 use ormlite_core::config;
 use ormlite_core::config::get_var_model_folders;
-use crate::config::Config;
-use crate::schema::schema_from_ormlite_project;
-use crate::util::create_runtime;
 
 const GET_MIGRATIONS_QUERY: &str = "SELECT
 version || '_' || description AS name
@@ -204,7 +204,7 @@ fn autogenerate_migration(
     runtime: &Runtime,
     conn: &mut PgConnection,
     opts: &Migrate,
-    c: &Config
+    c: &Config,
 ) -> Result<Migration> {
     let mut current = runtime.block_on(Schema::try_from_postgres(conn, "public"))?;
     current.tables.retain(|t| t.name != "_sqlx_migrations");
