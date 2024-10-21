@@ -15,7 +15,7 @@ pub fn struct_ModelBuilder(ast: &DeriveInput, attr: &ModelMeta) -> TokenStream {
     let settable = attr.database_columns().map(|c| {
         let name = &c.ident;
         let ty = &c.ty;
-        quote! { #name: std::option::Option<#ty> }
+        quote! { pub #name: std::option::Option<#ty> }
     });
 
     let methods = attr.database_columns().map(|c| {
