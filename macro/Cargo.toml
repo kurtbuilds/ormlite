@@ -1,6 +1,6 @@
 [package]
 name = "ormlite-macro"
-version = "0.22.5"
+version = "0.22.6"
 edition = "2021"
 description = "An ORM for people who love SQL. Use the `ormlite` crate, not this one."
 authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
