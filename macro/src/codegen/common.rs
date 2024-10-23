@@ -19,9 +19,17 @@ pub fn generate_conditional_bind(c: &ColumnMeta) -> TokenStream {
             }
         }
     } else if c.json {
-        quote! {
-            if let Some(value) = self.#name {
-                q = q.bind(::ormlite::types::Json(value));
+        if c.is_option() {
+            quote! {
+                if let Some(value) = self.#name {
+                    q = q.bind(value.map(::ormlite::types::Json));
+                }
+            }
+        } else {
+            quote! {
+                if let Some(value) = self.#name {
+                    q = q.bind(::ormlite::types::Json(value));
+                }
             }
         }
     } else {
