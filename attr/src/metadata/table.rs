@@ -103,6 +103,15 @@ pub struct TableAttr {
     ///
     pub insert: Option<LitStr>,
 
+    /// Add extra derives to the insertion structs.
+    /// Example:
+    /// #[ormlite(insert = "InsertUser", extra_derives(Serialize, Deserialize))]
+    /// pub struct User {
+    ///   pub id: i32,
+    /// }
+    ///
+    pub extra_derives: Option<Vec<syn::Ident>>,
+
     /// Only used for derive(Insert)
     /// Example:
     /// #[ormlite(returns = "User")]
