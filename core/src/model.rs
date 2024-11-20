@@ -109,4 +109,8 @@ pub trait TableMeta {
     fn table_name() -> &'static str;
     fn table_columns() -> &'static [&'static str];
     fn primary_key() -> Option<&'static str>;
+    fn primary_key_placeholder_idx() -> Option<usize> {
+        let col = Self::primary_key()?;
+        Self::table_columns().iter().position(|&c| c == col).map(|i| i + 1)
+    }
 }
