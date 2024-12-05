@@ -1,18 +1,20 @@
 use ormlite::model::{Insert, Join, JoinMeta, Model};
 use sqlmo::ToSql;
+use serde::{Serialize, Deserialize};
+use serde_json::json;
 
 use ormlite::Connection;
 #[path = "../setup.rs"]
 mod setup;
 
-#[derive(Debug, Model, Clone)]
+#[derive(Debug, Model, Clone, Serialize, Deserialize)]
 pub struct Organization {
     id: i32,
     name: String,
 }
 
 #[derive(Model)]
-#[ormlite(insert = "InsertUser")]
+#[ormlite(insert = "InsertUser", extra_derives(Serialize, Deserialize))]
 // Note the previous syntax, #[ormlite(insertable = InsertUser)] still works, but the new syntax is preferred.
 pub struct User {
     id: i32,
@@ -65,6 +67,24 @@ async fn main() {
     assert_eq!(champ.number, 5);
     assert_eq!(champ.organization.id, 12321);
     assert_eq!(champ.organization.name, "my org");
+
+    let champ_copy = InsertUser {
+        name: "Champ".to_string(),
+        organization: Join::new(org.clone()),
+        ty: 12,
+    };
+    let champ_json = json!(champ_copy).to_string();
+
+    assert_eq!(champ_json, r#"{"name":"Champ","organization":{"id":12321,"name":"my org"},"ty":12}"#);
+
+    let champ_deserializing = serde_json::from_str::<InsertUser>(r#"{"name":"Champ","organization":{"id":12321,"name":"my org"},"ty":12}"#);
+
+    let Ok(champ_deserialized) = champ_deserializing else {
+        panic!("Deserialize failing");
+    };
+
+    assert_eq!(champ_deserialized.name, champ_copy.name);
+    assert_eq!(champ_deserialized.organization.name, champ_copy.organization.name);
 
     let millie = InsertUser {
         name: "Millie".to_string(),

@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use ormlite_attr::Ident;
 use ormlite_attr::ModelMeta;
 use proc_macro2::TokenStream;
@@ -16,10 +17,19 @@ pub fn struct_InsertModel(ast: &DeriveInput, attr: &ModelMeta) -> TokenStream {
             pub #id: #ty
         }
     });
-    quote! {
-        #[derive(Debug)]
-        #vis struct #insert_model {
-            #(#struct_fields,)*
+    if let Some(extra_derives) = &attr.extra_derives {
+        quote! {
+            #[derive(Debug, #(#extra_derives,)*)]
+            #vis struct #insert_model {
+                #(#struct_fields,)*
+            }
+        }    
+    } else {
+        quote! {
+            #[derive(Debug)]
+            #vis struct #insert_model {
+                #(#struct_fields,)*
+            }
         }
     }
 }

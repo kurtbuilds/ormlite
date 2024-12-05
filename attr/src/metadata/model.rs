@@ -9,6 +9,7 @@ use syn::DeriveInput;
 pub struct ModelMeta {
     pub table: TableMeta,
     pub insert_struct: Option<Ident>,
+    pub extra_derives: Option<Vec<Ident>>,
     pub pkey: ColumnMeta,
 }
 
@@ -32,6 +33,7 @@ impl ModelMeta {
             table.name,
         ));
         let mut insert_struct = None;
+        let mut extra_derives: Option<Vec<syn::Ident>> = None;
         for attr in attrs {
             if let Some(v) = attr.insert {
                 insert_struct = Some(v.value());
@@ -39,12 +41,20 @@ impl ModelMeta {
             if let Some(v) = attr.insertable {
                 insert_struct = Some(v.to_string());
             }
+            if let Some(v) = attr.extra_derives {
+                if !v.is_empty() {
+                    extra_derives = Some(v);
+                }
+            }
         }
         let pkey = table.columns.iter().find(|&c| c.name == pkey).unwrap().clone();
         let insert_struct = insert_struct.map(|v| Ident::from(v));
+        let extra_derives = extra_derives.take().map(|vec| vec.into_iter().map(|v| v.to_string()).map(Ident::from).collect());
+        
         Self {
             table,
             insert_struct,
+            extra_derives, 
             pkey,
         }
     }
@@ -55,6 +65,7 @@ impl ModelMeta {
         Self {
             pkey: inner.columns.iter().find(|c| c.name == "id").unwrap().clone(),
             table: inner,
+            extra_derives: None,
             insert_struct: None,
         }
     }
