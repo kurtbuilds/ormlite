@@ -1,11 +1,12 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
-pub use ::sqlx::{Column, ColumnIndex, Database, Decode, Row};
 pub use model::{FromRow, Insert, IntoArguments, Model, TableMeta};
 pub use ormlite_core::BoxFuture;
 pub use ormlite_core::{Error, Result};
+pub use ormlite_derive_enum::Enum;
+pub use sqlx::{Column, ColumnIndex, Database, Decode, Row};
 
-pub use ::sqlx::pool::PoolOptions;
-pub use ::sqlx::{
+pub use sqlx::pool::PoolOptions;
+pub use sqlx::{
     query, query_as, query_as_with, query_with, Acquire, Arguments, ConnectOptions, Connection, Encode, Executor, Pool,
 };
 

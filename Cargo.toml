@@ -4,5 +4,6 @@ members = [
     "macro",
     "core",
     "ormlite",
-    "cli"
+    "cli",
+    "macro_derive_enum"
 ]
