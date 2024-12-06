@@ -7,12 +7,12 @@ use std::path::Path;
 
 use crate::command::{get_executed_migrations, get_pending_migrations, MigrationType};
 use crate::util::{create_runtime, CommandSuccess};
+use anyhow::anyhow;
 use ormlite::postgres::{PgArguments, PgConnection};
 use ormlite::Arguments;
 use ormlite::{Acquire, Connection, Executor};
 use ormlite_core::config::{get_var_database_url, get_var_migration_folder, get_var_snapshot_folder};
 use url::Url;
-use anyhow::anyhow;
 
 #[derive(Parser, Debug)]
 pub struct Down {
@@ -68,7 +68,7 @@ impl Down {
             let target = if let Some(target) = self.target {
                 target
             } else if executed.len() > 1 {
-                executed.iter().nth(1).unwrap().name.clone()
+                executed.get(1).unwrap().name.clone()
             } else if executed.len() == 1 {
                 "0_empty".to_string()
             } else {

@@ -28,10 +28,12 @@ impl ModelMeta {
     pub fn from_derive(ast: &DeriveInput) -> Self {
         let attrs = TableAttr::from_attrs(&ast.attrs);
         let table = TableMeta::new(ast, &attrs);
-        let pkey = table.pkey.as_deref().expect(&format!(
-            "No column marked with #[ormlite(primary_key)], and no column named id, uuid, {0}_id, or {0}_uuid",
-            table.name,
-        ));
+        let pkey = table.pkey.as_deref().unwrap_or_else(|| {
+            panic!(
+                "No column marked with #[ormlite(primary_key)], and no column named id, uuid, {0}_id, or {0}_uuid",
+                table.name
+            )
+        });
         let mut insert_struct = None;
         let mut extra_derives: Option<Vec<syn::Ident>> = None;
         for attr in attrs {
@@ -48,13 +50,18 @@ impl ModelMeta {
             }
         }
         let pkey = table.columns.iter().find(|&c| c.name == pkey).unwrap().clone();
-        let insert_struct = insert_struct.map(|v| Ident::from(v));
-        let extra_derives = extra_derives.take().map(|vec| vec.into_iter().map(|v| v.to_string()).map(Ident::from).collect());
-        
+        fn fun_name(v: String) -> Ident {
+            Ident::from(v)
+        }
+        let insert_struct = insert_struct.map(fun_name);
+        let extra_derives = extra_derives
+            .take()
+            .map(|vec| vec.into_iter().map(|v| v.to_string()).map(Ident::from).collect());
+
         Self {
             table,
             insert_struct,
-            extra_derives, 
+            extra_derives,
             pkey,
         }
     }

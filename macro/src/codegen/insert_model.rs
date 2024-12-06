@@ -23,7 +23,7 @@ pub fn struct_InsertModel(ast: &DeriveInput, attr: &ModelMeta) -> TokenStream {
             #vis struct #insert_model {
                 #(#struct_fields,)*
             }
-        }    
+        }
     } else {
         quote! {
             #[derive(Debug)]

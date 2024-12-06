@@ -42,7 +42,10 @@ impl ColumnMeta {
     }
 
     pub fn from_fields<'a>(fields: impl Iterator<Item = &'a Field>) -> Vec<Self> {
-        fields.map(|f| ColumnMeta::from_field(f)).collect()
+        fn fun_name(f: &Field) -> ColumnMeta {
+            ColumnMeta::from_field(f)
+        }
+        fields.map(fun_name).collect()
     }
 
     pub fn from_syn(ident: &syn::Ident, ty: &syn::Type) -> Self {
@@ -268,8 +271,8 @@ pub name: String
         let column = ColumnMeta::from_field(field);
         assert_eq!(column.name, "name");
         assert_eq!(column.ty, "String");
-        assert_eq!(column.marked_primary_key, false);
-        assert_eq!(column.has_database_default, false);
+        assert!(!column.marked_primary_key);
+        assert!(!column.has_database_default);
         assert_eq!(column.rust_default, Some("\"foo\".to_string()".to_string()));
         assert_eq!(column.ident, "name");
     }

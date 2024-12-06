@@ -5,8 +5,8 @@ use quote::TokenStreamExt;
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
 pub struct Ident(String);
 
-impl Ident {
-    pub fn as_ref(&self) -> &String {
+impl AsRef<String> for Ident {
+    fn as_ref(&self) -> &String {
         &self.0
     }
 }

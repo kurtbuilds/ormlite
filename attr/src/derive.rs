@@ -221,6 +221,6 @@ pub enum Privacy {
             panic!()
         };
         let attr = DeriveParser::from_attributes(&item.attrs);
-        assert_eq!(attr.has_derive("ormlite", "ManualType"), true);
+        assert!(attr.has_derive("ormlite", "ManualType"));
     }
 }

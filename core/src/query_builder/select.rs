@@ -212,7 +212,10 @@ where
         let q = self.query.to_sql(DB::dialect());
         let args = self.arguments;
         let (q, placeholder_count) = util::replace_placeholders(&q, &mut self.gen)?;
-        if placeholder_count != args.len() {
+        if placeholder_count != {
+            let this = &args;
+            this.1
+        } {
             return Err(Error::OrmliteError(format!(
                 "Failing to build query. {} placeholders were found in the query, but \
                 {} arguments were provided.",

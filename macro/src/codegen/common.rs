@@ -75,8 +75,7 @@ fn recursive_primitive_types<'a>(table: &'a ModelMeta, cache: &'a MetadataCache)
     table
         .columns
         .iter()
-        .map(|c| recursive_primitive_types_ty(&c.ty, cache))
-        .flatten()
+        .flat_map(|c| recursive_primitive_types_ty(&c.ty, cache))
         .collect()
 }
 
@@ -85,8 +84,7 @@ pub(crate) fn table_primitive_types<'a>(attr: &'a TableMeta, cache: &'a Metadata
         .iter()
         .filter(|c| !c.skip)
         .filter(|c| !c.json)
-        .map(|c| recursive_primitive_types_ty(&c.ty, cache))
-        .flatten()
+        .flat_map(|c| recursive_primitive_types_ty(&c.ty, cache))
         .unique()
         .collect()
 }

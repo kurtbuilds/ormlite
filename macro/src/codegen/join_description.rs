@@ -11,7 +11,7 @@ pub fn static_join_descriptions(attr: &TableMeta, metadata_cache: &MetadataCache
         let struct_name = c.joined_struct_name().unwrap();
         let joined_table = metadata_cache
             .get(&struct_name)
-            .expect(&format!("Did not find metadata for joined struct: {}", struct_name));
+            .unwrap_or_else(|| panic!("Did not find metadata for joined struct: {}", struct_name));
 
         let column_name = c.many_to_one_column_name.as_ref().unwrap();
         let foreign_key = &joined_table.pkey.name;

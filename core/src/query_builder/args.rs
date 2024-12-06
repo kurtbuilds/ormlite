@@ -1,7 +1,7 @@
 use core::default::Default;
 use sqlx::{Arguments, Database, IntoArguments};
 
-pub struct QueryBuilderArgs<'q, DB: Database>(pub Box<DB::Arguments<'q>>, usize);
+pub struct QueryBuilderArgs<'q, DB: Database>(pub Box<DB::Arguments<'q>>, pub usize);
 
 impl<'q, DB: Database> QueryBuilderArgs<'q, DB> {
     pub fn add<T: 'q + Send + sqlx::Encode<'q, DB> + sqlx::Type<DB>>(&mut self, arg: T) {
@@ -11,6 +11,10 @@ impl<'q, DB: Database> QueryBuilderArgs<'q, DB> {
 
     pub fn len(&self) -> usize {
         self.1
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.1 == 0
     }
 }
 
