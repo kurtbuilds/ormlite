@@ -1,8 +1,8 @@
 use crate::codegen::common::{from_row_bounds, OrmliteCodegen};
 use crate::MetadataCache;
-use ormlite_attr::{ColumnMeta, Type};
 use ormlite_attr::Ident;
 use ormlite_attr::TableMeta;
+use ormlite_attr::{ColumnMeta, Type};
 use proc_macro2::TokenStream;
 use quote::quote;
 
@@ -96,7 +96,7 @@ pub fn impl_from_row_using_aliases(
 ) -> TokenStream {
     let row = db.row();
     let fields = attr.all_fields();
-    let bounds = from_row_bounds(db, attr, &metadata_cache);
+    let bounds = from_row_bounds(db, attr, metadata_cache);
     let mut incrementer = 0usize..;
     let columns = attr
         .columns

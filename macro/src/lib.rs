@@ -39,7 +39,10 @@ pub(crate) type MetadataCache = HashMap<String, ModelMeta>;
 static TABLES: OnceCell<MetadataCache> = OnceCell::new();
 
 fn get_tables() -> &'static MetadataCache {
-    TABLES.get_or_init(|| load_metadata_cache())
+    fn fun_name() -> HashMap<String, ModelMeta> {
+        load_metadata_cache()
+    }
+    TABLES.get_or_init(fun_name)
 }
 
 fn load_metadata_cache() -> MetadataCache {
@@ -131,10 +134,10 @@ pub fn expand_ormlite_model(input: TokenStream) -> TokenStream {
         let db = first.as_ref();
         let impl_TableMeta = impl_TableMeta(&meta.table, Some(meta.pkey.name.as_str()));
         let impl_JoinMeta = impl_JoinMeta(&meta);
-        let static_join_descriptions = static_join_descriptions(&meta.table, &tables);
+        let static_join_descriptions = static_join_descriptions(&meta.table, tables);
         let impl_Model = impl_Model(db, &meta, tables);
-        let impl_FromRow = impl_FromRow(db, &meta.table, &tables);
-        let impl_from_row_using_aliases = impl_from_row_using_aliases(db, &meta.table, &tables);
+        let impl_FromRow = impl_FromRow(db, &meta.table, tables);
+        let impl_from_row_using_aliases = impl_from_row_using_aliases(db, &meta.table, tables);
 
         let struct_ModelBuilder = struct_ModelBuilder(&ast, &meta);
         let impl_ModelBuilder = impl_ModelBuilder(db, &meta);
@@ -197,8 +200,8 @@ pub fn expand_derive_fromrow(input: TokenStream) -> TokenStream {
 
     let expanded = databases.iter().map(|db| {
         let db = db.as_ref();
-        let impl_FromRow = impl_FromRow(db, &meta, &tables);
-        let impl_from_row_using_aliases = impl_from_row_using_aliases(db, &meta, &tables);
+        let impl_FromRow = impl_FromRow(db, &meta, tables);
+        let impl_from_row_using_aliases = impl_from_row_using_aliases(db, &meta, tables);
         quote! {
             #impl_FromRow
             #impl_from_row_using_aliases

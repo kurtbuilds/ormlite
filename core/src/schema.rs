@@ -1,11 +1,11 @@
-use std::collections::HashMap;
-use std::path::Path;
-use ormlite_attr::{schema_from_filepaths, ColumnMeta, Ident, InnerType};
+use crate::config::Config;
+use anyhow::Result as AnyResult;
 use ormlite_attr::ModelMeta;
 use ormlite_attr::Type;
+use ormlite_attr::{schema_from_filepaths, ColumnMeta, Ident, InnerType};
 use sqlmo::{schema::Column, Constraint, Schema, Table};
-use anyhow::Result as AnyResult;
-use crate::config::Config;
+use std::collections::HashMap;
+use std::path::Path;
 
 pub fn schema_from_ormlite_project(paths: &[&Path], c: &Config) -> AnyResult<Schema> {
     let mut schema = Schema::default();
@@ -30,7 +30,7 @@ pub fn schema_from_ormlite_project(paths: &[&Path], c: &Config) -> AnyResult<Sch
                 let model_name = c.ty.inner_type_name();
                 let pkey = primary_key_type
                     .get(&model_name)
-                    .expect(&format!("Could not find model {} for join", model_name));
+                    .unwrap_or_else(|| panic!("Could not find model {} for join", model_name));
                 c.ty = Type::Inner(pkey.clone());
             }
         }
@@ -39,8 +39,11 @@ pub fn schema_from_ormlite_project(paths: &[&Path], c: &Config) -> AnyResult<Sch
         let table = Table::from_meta(&table);
         schema.tables.push(table);
     }
-    let mut table_names: HashMap<String, (String, String)> =
-        schema.tables.iter().map(|t| (t.name.clone(), (t.name.clone(), t.primary_key().unwrap().name.clone()))).collect();
+    let mut table_names: HashMap<String, (String, String)> = schema
+        .tables
+        .iter()
+        .map(|t| (t.name.clone(), (t.name.clone(), t.primary_key().unwrap().name.clone())))
+        .collect();
     for (alias, real) in &c.table.aliases {
         let Some(real) = table_names.get(real) else {
             continue;
@@ -207,10 +210,10 @@ impl Nullable {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use anyhow::Result;
     use assert_matches::assert_matches;
     use ormlite_attr::Type;
     use syn::parse_str;
-    use anyhow::Result;
 
     #[test]
     fn test_convert_type() -> Result<()> {

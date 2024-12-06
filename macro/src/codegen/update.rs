@@ -25,7 +25,7 @@ pub fn impl_Model__update_all_fields(db: &dyn OrmliteCodegen, attr: &ModelMeta) 
     query.push_str(" RETURNING *");
 
     let id = &attr.pkey.ident;
-    let query_bindings = attr.database_columns_except_pkey().map(|c| insertion_binding(c));
+    let query_bindings = attr.database_columns_except_pkey().map(insertion_binding);
 
     let unwind_joins = attr.many_to_one_joins().map(|c| {
         let id = &c.ident;

@@ -172,9 +172,9 @@ fn check_for_pending_migrations(
 
 fn check_reversible_compatibility(reversible: bool, migration_environment: Option<MigrationType>) -> Result<()> {
     if let Some(migration_environment) = migration_environment {
-        if reversible && migration_environment == MigrationType::Simple {
-            return Err(anyhow!("You cannot mix reversible and non-reversible migrations"));
-        } else if !reversible && migration_environment != MigrationType::Simple {
+        if (reversible && migration_environment == MigrationType::Simple)
+            || (!reversible && migration_environment != MigrationType::Simple)
+        {
             return Err(anyhow!("You cannot mix reversible and non-reversible migrations"));
         }
     }
@@ -209,7 +209,7 @@ fn autogenerate_migration(
     let mut current = runtime.block_on(Schema::try_from_postgres(conn, "public"))?;
     current.tables.retain(|t| t.name != "_sqlx_migrations");
 
-    let mut desired = schema_from_ormlite_project(codebase_path, &c)?;
+    let mut desired = schema_from_ormlite_project(codebase_path, c)?;
     experimental_modifications_to_schema(&mut desired)?;
 
     let migration = current.migrate_to(
