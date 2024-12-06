@@ -5,5 +5,4 @@ members = [
     "core",
     "ormlite",
     "cli",
-    "macro_derive_enum"
 ]

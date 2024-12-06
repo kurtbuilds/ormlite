@@ -2,7 +2,7 @@
 pub use model::{FromRow, Insert, IntoArguments, Model, TableMeta};
 pub use ormlite_core::BoxFuture;
 pub use ormlite_core::{Error, Result};
-pub use ormlite_derive_enum::Enum;
+pub use ormlite_macro::Enum;
 pub use sqlx::{Column, ColumnIndex, Database, Decode, Row};
 
 pub use sqlx::pool::PoolOptions;
