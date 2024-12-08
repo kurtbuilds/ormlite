@@ -320,11 +320,11 @@ pub fn derive_ormlite_enum(input: TokenStream) -> TokenStream {
 
         impl sqlx::Type<sqlx::Postgres> for #enum_name {
             fn type_info() -> <sqlx::Postgres as sqlx::Database>::TypeInfo {
-                sqlx::postgres::PgTypeInfo::with_name("TEXT")
+                sqlx::postgres::PgTypeInfo::with_name("VARCHAR")
             }
 
             fn compatible(ty: &<sqlx::Postgres as sqlx::Database>::TypeInfo) -> bool {
-                ty.to_string() == "TEXT"
+                ty.to_string() == "VARCHAR"
             }
         }
     };
