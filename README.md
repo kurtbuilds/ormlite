@@ -369,6 +369,10 @@ pub struct Person {
 Join support is alpha stage. Right now, `ormlite` only support many-to-one relations (e.g. Person belongs to Organization). 
 Support for many-to-many and one-to-many is planned. If you use this functionality, please report any bugs you encounter.
 
+Note: At the moment using qualified paths in the join attribute is not supported. This is a known issue and will be fixed in the future.
+For example `#[ormlite(join_column = "organization_id")] pub organization: Join<model::Organization>` will not work.
+Instead, you should use `#[ormlite(join_column = "organization_id")] pub organization: Join<Organization>`, assuming Organization is in scope.
+
 ```rust
 #[derive(Model, Debug)]
 pub struct Person {
