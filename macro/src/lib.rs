@@ -269,7 +269,6 @@ pub fn derive_ormlite_enum(input: TokenStream) -> TokenStream {
     let variant_strings: Vec<_> = variant_names.iter().map(|v| v.to_string().to_snake_case()).collect();
 
     let gen = quote! {
-        use std::str::FromStr;
         impl std::fmt::Display for #enum_name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 match self {
