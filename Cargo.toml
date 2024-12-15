@@ -4,5 +4,5 @@ members = [
     "macro",
     "core",
     "ormlite",
-    "cli"
+    "cli",
 ]
