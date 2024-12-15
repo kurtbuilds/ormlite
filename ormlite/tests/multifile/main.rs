@@ -1,28 +1,24 @@
 #[path = "../setup.rs"]
 mod setup;
 
-mod user;
 mod organization;
+mod user;
 
-pub use user::User;
 pub use organization::Organization;
-use uuid::Uuid;
 use ormlite::model::*;
 use ormlite::sqlite::SqliteConnection;
 use ormlite::Connection;
 use sqlmo::ToSql;
+pub use user::User;
+use uuid::Uuid;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut conn = SqliteConnection::connect(":memory:").await?;
-    let migration = setup::migrate_self(&[
-        &std::path::Path::new(file!()).parent().unwrap().display().to_string(),
-    ]);
+    let migration = setup::migrate_self(&[&std::path::Path::new(file!()).parent().unwrap().display().to_string()]);
     for s in migration.statements {
         let sql = s.to_sql(sqlmo::Dialect::Sqlite);
-        ormlite::query(&sql)
-            .execute(&mut conn)
-            .await?;
+        ormlite::query(&sql).execute(&mut conn).await?;
     }
 
     let org_id = Uuid::new_v4();

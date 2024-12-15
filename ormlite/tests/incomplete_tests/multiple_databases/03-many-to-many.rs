@@ -9,9 +9,7 @@ pub struct Person {
     age: u8,
 }
 
-
-pub static CREATE_TABLE_SQL: &str =
-    "CREATE TABLE person (id text PRIMARY KEY, name TEXT, age INTEGER)";
+pub static CREATE_TABLE_SQL: &str = "CREATE TABLE person (id text PRIMARY KEY, name TEXT, age INTEGER)";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

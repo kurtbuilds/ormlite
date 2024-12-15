@@ -15,7 +15,6 @@ pub struct Person {
     age: u8,
 }
 
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
@@ -23,21 +22,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let migration = crate::setup::migrate_self(&[file!()]);
     for s in migration.statements {
         let sql = s.to_sql(sqlmo::Dialect::Sqlite);
-        ormlite::query(&sql)
-            .execute(&mut db)
-            .await?;
+        ormlite::query(&sql).execute(&mut db).await?;
     }
 
     let p = Person {
         id: Uuid::new_v4(),
         name: "John".to_string(),
         age: 99,
-    }.insert(&mut db).await?;
+    }
+    .insert(&mut db)
+    .await?;
 
-    let p = p.update_partial()
-        .age(100)
-        .update(&mut db)
-        .await?;
+    let p = p.update_partial().age(100).update(&mut db).await?;
 
     assert_eq!(p.age, 100);
     Ok(())
