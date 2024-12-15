@@ -1,12 +1,12 @@
 use crate::model::Model;
 use async_trait::async_trait;
+use serde::de::Error;
 use serde::Deserialize;
 use serde::{Serialize, Serializer};
 use sqlmo::query::Join as JoinQueryFragment;
 use sqlmo::query::SelectColumn;
 use sqlx::{Database, Decode, Encode, Type};
 use std::ops::{Deref, DerefMut};
-use serde::de::Error;
 
 pub trait JoinMeta {
     type IdType: Clone + Send + Eq + PartialEq + std::hash::Hash;
@@ -31,7 +31,7 @@ impl<T: JoinMeta> JoinMeta for Join<T> {
 
 #[async_trait]
 pub trait Loadable<DB, T: JoinMeta> {
-    async fn load<'s, 'e, E>(&'s mut self, db: E) -> crate::error::Result<&'s T>
+    async fn load<'s, 'e, E>(&'s mut self, db: E) -> crate::error::CoreResult<&'s T>
     where
         T::IdType: 'e + Send + Sync,
         E: 'e + sqlx::Executor<'e, Database = DB>;
@@ -131,7 +131,7 @@ where
     async fn load<'s, 'e, E: sqlx::Executor<'e, Database = DB> + 'e>(
         &'s mut self,
         conn: E,
-    ) -> crate::error::Result<&'s T>
+    ) -> crate::error::CoreResult<&'s T>
     where
         T::IdType: 'e + Send + Sync,
     {
@@ -228,20 +228,24 @@ impl<T: JoinMeta + Serialize> Serialize for Join<T> {
 }
 
 impl<'de, T> Deserialize<'de> for Join<T>
+where
+    T: JoinMeta + Deserialize<'de>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
-        T: JoinMeta + Deserialize<'de>,
+        D: serde::Deserializer<'de>,
     {
-        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: serde::Deserializer<'de>,
-        {
-            let data = Option::<T>::deserialize(deserializer)?;
-            
-            let (id_type, join_data) = match data {
-                Some(value) => (T::_id(&value), JoinData::QueryResult(value)),
-                None => return Err(D::Error::custom("Invalid value"))
-            };
-    
-            Ok(Join { id: id_type, data: join_data })
-        }
+        let data = Option::<T>::deserialize(deserializer)?;
+
+        let (id_type, join_data) = match data {
+            Some(value) => (T::_id(&value), JoinData::QueryResult(value)),
+            None => return Err(D::Error::custom("Invalid value")),
+        };
+
+        Ok(Join {
+            id: id_type,
+            data: join_data,
+        })
     }
+}
+

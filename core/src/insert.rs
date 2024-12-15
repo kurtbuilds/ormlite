@@ -1,14 +1,14 @@
-use crate::Result;
+use crate::CoreResult;
 use futures::future::BoxFuture;
 pub use sqlmo::query::OnConflict;
-use sqlmo::{Dialect, Insert, ToSql, Union, Select, Cte, SelectColumn};
+use sqlmo::{Cte, Dialect, Insert, Select, SelectColumn, ToSql, Union};
 
 /// Represents an insert query.
 /// We had to turn this into a model because we need to pass in the on_conflict configuration.
 pub struct Insertion<'a, Acquire, Model, DB: sqlx::Database> {
     pub acquire: Acquire,
     pub model: Model,
-    pub closure: Box<dyn 'static + Send + FnOnce(Acquire, Model, String) -> BoxFuture<'a, Result<Model>>>,
+    pub closure: Box<dyn 'static + Send + FnOnce(Acquire, Model, String) -> BoxFuture<'a, CoreResult<Model>>>,
     pub insert: Insert,
     pub _db: std::marker::PhantomData<DB>,
 }
@@ -23,7 +23,7 @@ impl<'a, Acquire, Model, DB: sqlx::Database> Insertion<'a, Acquire, Model, DB> {
 impl<'a, Acquire, Model: crate::model::Model<DB>, DB: sqlx::Database> std::future::IntoFuture
     for Insertion<'a, Acquire, Model, DB>
 {
-    type Output = Result<Model>;
+    type Output = CoreResult<Model>;
     type IntoFuture = BoxFuture<'a, Self::Output>;
 
     fn into_future(self) -> Self::IntoFuture {
@@ -31,9 +31,7 @@ impl<'a, Acquire, Model: crate::model::Model<DB>, DB: sqlx::Database> std::futur
         // value in ON CONFLICT DO NOTHING case
         let q = if matches!(self.insert.on_conflict, OnConflict::Ignore) {
             let insert_as_select = Select {
-                ctes: vec![
-                    Cte::new("inserted", self.insert)
-                ],
+                ctes: vec![Cte::new("inserted", self.insert)],
                 columns: vec![SelectColumn::raw("*")],
                 from: Some("inserted".into()),
                 ..Select::default()
@@ -48,10 +46,7 @@ impl<'a, Acquire, Model: crate::model::Model<DB>, DB: sqlx::Database> std::futur
             };
             let union = Union {
                 all: true,
-                queries: vec![
-                    insert_as_select,
-                    select_existing
-                ]
+                queries: vec![insert_as_select, select_existing],
             };
             union.to_sql(Dialect::Postgres)
         } else {

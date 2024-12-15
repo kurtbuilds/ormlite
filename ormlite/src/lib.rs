@@ -2,7 +2,7 @@
 pub use ::sqlx::{Column, ColumnIndex, Database, Decode, Row};
 pub use model::{FromRow, Insert, IntoArguments, Model, TableMeta};
 pub use ormlite_core::BoxFuture;
-pub use ormlite_core::{Error, Result};
+pub use ormlite_core::{CoreError, CoreResult};
 
 pub use ::sqlx::pool::PoolOptions;
 pub use ::sqlx::{

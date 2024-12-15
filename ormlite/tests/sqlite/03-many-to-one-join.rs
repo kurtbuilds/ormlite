@@ -18,22 +18,16 @@ pub struct Organization {
     name: String,
 }
 
-pub static CREATE_PERSON_SQL: &str =
-    "CREATE TABLE person (id text PRIMARY KEY, name TEXT, age INTEGER, org_id text)";
+pub static CREATE_PERSON_SQL: &str = "CREATE TABLE person (id text PRIMARY KEY, name TEXT, age INTEGER, org_id text)";
 
-pub static CREATE_ORG_SQL: &str =
-    "CREATE TABLE orgs (id text PRIMARY KEY, name TEXT)";
+pub static CREATE_ORG_SQL: &str = "CREATE TABLE orgs (id text PRIMARY KEY, name TEXT)";
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
     let mut db = ormlite::sqlite::SqliteConnection::connect(":memory:").await.unwrap();
-    ormlite::query(CREATE_PERSON_SQL)
-        .execute(&mut db)
-        .await?;
-    ormlite::query(CREATE_ORG_SQL)
-        .execute(&mut db)
-        .await?;
+    ormlite::query(CREATE_PERSON_SQL).execute(&mut db).await?;
+    ormlite::query(CREATE_ORG_SQL).execute(&mut db).await?;
 
     let org = Organization {
         id: Uuid::new_v4(),
@@ -44,38 +38,51 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         name: "John".to_string(),
         age: 102,
         organization: Join::new(org.clone()),
-    }.insert(&mut db).await.unwrap();
-    assert_eq!(p1.organization.id, org.id, "setting the org object should overwrite the org_id field on insert.");
+    }
+    .insert(&mut db)
+    .await
+    .unwrap();
+    assert_eq!(
+        p1.organization.id, org.id,
+        "setting the org object should overwrite the org_id field on insert."
+    );
     assert_eq!(p1.organization._id(), org.id);
 
     let org = Organization::select()
         .where_bind("id = ?", &org.id)
         .fetch_one(&mut db)
-        .await.unwrap();
-    assert_eq!(org.name, "my org", "org gets inserted even though we didn't manually insert it.");
+        .await
+        .unwrap();
+    assert_eq!(
+        org.name, "my org",
+        "org gets inserted even though we didn't manually insert it."
+    );
 
     let p2 = Person {
         id: Uuid::new_v4(),
         name: "p2".to_string(),
         age: 98,
         organization: Join::new(org.clone()),
-    }.insert(&mut db).await.unwrap();
-    assert_eq!(p2.organization.id, org.id, "we can do insertion with an existing join obj, and it will pass the error.");
+    }
+    .insert(&mut db)
+    .await
+    .unwrap();
+    assert_eq!(
+        p2.organization.id, org.id,
+        "we can do insertion with an existing join obj, and it will pass the error."
+    );
 
-    let orgs = Organization::select()
-        .fetch_all(&mut db)
-        .await.unwrap();
+    let orgs = Organization::select().fetch_all(&mut db).await.unwrap();
     assert_eq!(orgs.len(), 1, "exactly 1 orgs");
 
-    let people = Person::select()
-        .fetch_all(&mut db)
-        .await.unwrap();
+    let people = Person::select().fetch_all(&mut db).await.unwrap();
     assert_eq!(people.len(), 2, "exactly 2 people");
 
     let people = Person::select()
         .join(Person::organization())
         .fetch_all(&mut db)
-        .await.unwrap();
+        .await
+        .unwrap();
     assert_eq!(people.len(), 2, "exactly 2 people");
     for person in &people {
         assert_eq!(person.organization.name, "my org", "we can join on the org");

@@ -1,5 +1,5 @@
-pub use self::error::{Error, Result};
 pub use self::query_builder::SelectQueryBuilder;
+pub use crate::error::{CoreError, CoreResult};
 pub use futures::future::BoxFuture;
 pub use join::Join;
 

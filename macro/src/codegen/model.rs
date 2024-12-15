@@ -54,7 +54,7 @@ pub fn impl_Model__delete(db: &dyn OrmliteCodegen, attr: &ModelMeta) -> TokenStr
     let db = db.database_ts();
     let id = &attr.pkey.ident;
     quote! {
-        fn delete<'e, E>(self, db: E) -> #box_future<'e, ::ormlite::Result<()>>
+        fn delete<'e, E>(self, db: E) -> #box_future<'e, ::ormlite::CoreResult<()>>
         where
             E: 'e +::ormlite::Executor<'e, Database = #db>
         {
@@ -63,9 +63,9 @@ pub fn impl_Model__delete(db: &dyn OrmliteCodegen, attr: &ModelMeta) -> TokenStr
                     .bind(self.#id)
                     .execute(db)
                     .await
-                    .map_err(::ormlite::Error::from)?;
+                    .map_err(::ormlite::CoreError::from)?;
                 if row.rows_affected() == 0 {
-                    Err(::ormlite::Error::from(::ormlite::SqlxError::RowNotFound))
+                    Err(::ormlite::CoreError::from(::ormlite::SqlxError::RowNotFound))
                 } else {
                     Ok(())
                 }
@@ -87,7 +87,7 @@ pub fn impl_Model__fetch_one(db: &dyn OrmliteCodegen, attr: &ModelMeta) -> Token
     let db = db.database_ts();
     let box_future = crate::util::box_fut_ts();
     quote! {
-        fn fetch_one<'e, 'a, Arg, E>(id: Arg, db: E) -> #box_future<'e, ::ormlite::Result<Self>>
+        fn fetch_one<'e, 'a, Arg, E>(id: Arg, db: E) -> #box_future<'e, ::ormlite::CoreResult<Self>>
         where
             'a: 'e,
             Arg: 'a + Send + ::ormlite::Encode<'a, #db> + ::ormlite::types::Type<#db>,
@@ -98,7 +98,7 @@ pub fn impl_Model__fetch_one(db: &dyn OrmliteCodegen, attr: &ModelMeta) -> Token
                     .bind(id)
                     .fetch_one(db)
                     .await
-                    .map_err(::ormlite::Error::from)
+                    .map_err(::ormlite::CoreError::from)
             })
         }
     }

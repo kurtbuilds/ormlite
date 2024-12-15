@@ -1,5 +1,5 @@
 use crate::query_builder::args::QueryBuilderArgs;
-use crate::{Error, Result};
+use crate::{CoreError, CoreResult};
 use sqlparser::dialect::GenericDialect;
 use sqlparser::tokenizer::{Token, Tokenizer};
 use sqlx::query::QueryAs;
@@ -7,7 +7,7 @@ use sqlx::query::QueryAs;
 pub fn replace_placeholders<T: Iterator<Item = String>>(
     sql: &str,
     placeholder_generator: &mut T,
-) -> Result<(String, usize)> {
+) -> CoreResult<(String, usize)> {
     let mut placeholder_count = 0usize;
     let dialect = GenericDialect {};
     // note this lib is inefficient because it's copying strings everywhere, instead
@@ -33,7 +33,7 @@ pub fn replace_placeholders<T: Iterator<Item = String>>(
                         if let Some(next_tok) = next_tok {
                             match next_tok {
                                 Token::Number(text, _) => {
-                                    let n = text.parse::<usize>().map_err(|_| Error::OrmliteError(
+                                    let n = text.parse::<usize>().map_err(|_| CoreError::OrmliteError(
                                     format!("Failed to parse number after a $ during query tokenization. Value was: {text}"
                                     )))?;
                                     buf.push_str(&format!("${next_tok}"));
@@ -72,10 +72,10 @@ where
 mod tests {
     use super::*;
 
-    use crate::Result;
+    use crate::CoreResult;
 
     #[test]
-    fn test_replace_placeholders() -> Result<()> {
+    fn test_replace_placeholders() -> CoreResult<()> {
         let mut placeholder_generator = vec!["$1", "$2", "$3"].into_iter().map(|s| s.to_string());
         let (sql, placeholder_count) = replace_placeholders(
             "SELECT * FROM users WHERE id = ? OR id = ? OR id = ?",
@@ -87,7 +87,7 @@ mod tests {
     }
 
     #[test]
-    fn test_leave_placeholders_alone() -> Result<()> {
+    fn test_leave_placeholders_alone() -> CoreResult<()> {
         let mut placeholder_generator = vec!["$1", "$2", "$3"].into_iter().map(|s| s.to_string());
         let (sql, placeholder_count) =
             replace_placeholders("SELECT * FROM users WHERE email = $1", &mut placeholder_generator)?;
