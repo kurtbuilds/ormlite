@@ -1,4 +1,4 @@
-use crate::error::{Error, Result};
+use crate::error::{CoreError, CoreResult};
 use crate::model::Model;
 use crate::query_builder::args::QueryBuilderArgs;
 use crate::query_builder::{util, Placeholder};
@@ -55,7 +55,7 @@ where
     DB: sqlx::Database + DatabaseMetadata,
     DB::Arguments<'args>: IntoArguments<'args, DB>,
 {
-    pub async fn fetch_all<'executor, E>(self, db: E) -> Result<Vec<M>>
+    pub async fn fetch_all<'executor, E>(self, db: E) -> CoreResult<Vec<M>>
     where
         E: Executor<'executor, Database = DB>,
     {
@@ -64,10 +64,10 @@ where
         util::query_as_with_recast_lifetime::<DB, M>(z, args)
             .fetch_all(db)
             .await
-            .map_err(Error::from)
+            .map_err(CoreError::from)
     }
 
-    pub async fn fetch_one<'executor, E>(self, db: E) -> Result<M>
+    pub async fn fetch_one<'executor, E>(self, db: E) -> CoreResult<M>
     where
         E: Executor<'executor, Database = DB>,
     {
@@ -76,10 +76,10 @@ where
         util::query_as_with_recast_lifetime::<DB, M>(z, args)
             .fetch_one(db)
             .await
-            .map_err(Error::from)
+            .map_err(CoreError::from)
     }
 
-    pub async fn fetch_optional<'executor, E>(self, db: E) -> Result<Option<M>>
+    pub async fn fetch_optional<'executor, E>(self, db: E) -> CoreResult<Option<M>>
     where
         E: Executor<'executor, Database = DB>,
     {
@@ -88,7 +88,7 @@ where
         util::query_as_with_recast_lifetime::<DB, M>(z, args)
             .fetch_optional(db)
             .await
-            .map_err(Error::from)
+            .map_err(CoreError::from)
     }
 
     pub fn with(mut self, name: &str, query: &str) -> Self {
@@ -208,12 +208,12 @@ where
         self
     }
 
-    pub fn into_query_and_args(mut self) -> Result<(String, QueryBuilderArgs<'args, DB>)> {
+    pub fn into_query_and_args(mut self) -> CoreResult<(String, QueryBuilderArgs<'args, DB>)> {
         let q = self.query.to_sql(DB::dialect());
         let args = self.arguments;
         let (q, placeholder_count) = util::replace_placeholders(&q, &mut self.gen)?;
         if placeholder_count != args.len() {
-            return Err(Error::OrmliteError(format!(
+            return Err(CoreError::OrmliteError(format!(
                 "Failing to build query. {} placeholders were found in the query, but \
                 {} arguments were provided.",
                 placeholder_count,

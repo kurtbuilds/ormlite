@@ -1,8 +1,8 @@
 use crate::codegen::common::{from_row_bounds, OrmliteCodegen};
 use crate::MetadataCache;
-use ormlite_attr::{ColumnMeta, Type};
 use ormlite_attr::Ident;
 use ormlite_attr::TableMeta;
+use ormlite_attr::{ColumnMeta, Type};
 use proc_macro2::TokenStream;
 use quote::quote;
 
@@ -58,7 +58,7 @@ pub fn impl_FromRow(db: &dyn OrmliteCodegen, attr: &TableMeta, cache: &MetadataC
                     )*
                     _ => {
                         return Err(::ormlite::SqlxError::Decode(
-                            Box::new(::ormlite::Error::OrmliteError(format!("Unknown column prefix: {}", prefix))),
+                            Box::new(::ormlite::CoreError::OrmliteError(format!("Unknown column prefix: {}", prefix))),
                         ));
                     }
                 }

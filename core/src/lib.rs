@@ -1,4 +1,4 @@
-pub use self::error::{Error, Result};
+pub use self::error::{CoreError, CoreResult};
 pub use self::query_builder::SelectQueryBuilder;
 pub use futures::future::BoxFuture;
 pub use join::Join;
