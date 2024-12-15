@@ -279,8 +279,7 @@ pub fn derive_ormlite_enum(input: TokenStream) -> TokenStream {
 
         impl std::str::FromStr for #enum_name {
             type Err = String;
-
-            fn from_str(s: &str) -> Result<Self, Self::Err> {
+            fn from_str(s: &str) -> Result<Self, <Self as std::str::FromStr>::Err> {
                 match s {
                     #(#variant_strings => Ok(Self::#variant_names)),*,
                     _ => Err(format!("Invalid {} value: {}", stringify!(#enum_name), s))
@@ -290,9 +289,19 @@ pub fn derive_ormlite_enum(input: TokenStream) -> TokenStream {
 
         impl std::convert::TryFrom<&str> for #enum_name {
             type Error = String;
-
             fn try_from(value: &str) -> Result<Self, Self::Error> {
-                Self::from_str(value)
+                <Self as std::str::FromStr>::from_str(value)
+            }
+        }
+
+        impl sqlx::Decode<'_, sqlx::Postgres> for #enum_name {
+            fn decode(
+                value: sqlx::postgres::PgValueRef<'_>,
+            ) -> Result<Self, sqlx::error::BoxDynError> {
+                let s = value.as_str()?;
+                <Self as std::str::FromStr>::from_str(s).map_err(|e| sqlx::error::BoxDynError::from(
+                    std::io::Error::new(std::io::ErrorKind::InvalidData, e)
+                ))
             }
         }
 
@@ -303,17 +312,6 @@ pub fn derive_ormlite_enum(input: TokenStream) -> TokenStream {
             ) -> Result<sqlx::encode::IsNull, sqlx::error::BoxDynError> {
                 let s = self.to_string();
                 <String as sqlx::Encode<sqlx::Postgres>>::encode(s, buf)
-            }
-        }
-
-        impl sqlx::Decode<'_, sqlx::Postgres> for #enum_name {
-            fn decode(
-                value: sqlx::postgres::PgValueRef<'_>,
-            ) -> Result<Self, sqlx::error::BoxDynError> {
-                let s = value.as_str()?;
-                Self::from_str(s).map_err(|e| sqlx::error::BoxDynError::from(
-                    std::io::Error::new(std::io::ErrorKind::InvalidData, e)
-                ))
             }
         }
 
