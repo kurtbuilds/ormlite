@@ -12,7 +12,7 @@ sqlmo = "0.22.7"
 sqlx = "0.8.2"
 sqlx-core = "0.8.2"
 syn = "2.0.94"
-ormlite-core = { path = "core" }
-ormlite-attr = { path = "attr" }
-ormlite-macro = { path = "macro" }
-ormlite = { path = "ormlite" }
+ormlite-core = { path = "core", version="0.22" }
+ormlite-attr = { path = "attr", version="0.22" }
+ormlite-macro = { path = "macro", version="0.22" }
+ormlite = { path = "ormlite", version="0.22" }
