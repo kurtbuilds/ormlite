@@ -2,6 +2,7 @@
 #![allow(non_snake_case)]
 
 use codegen::insert::impl_Insert;
+use heck::ToSnakeCase;
 use ormlite_attr::InsertMeta;
 use proc_macro::TokenStream;
 use std::borrow::Borrow;
@@ -9,6 +10,7 @@ use std::collections::HashMap;
 use std::env;
 use std::env::var;
 use std::ops::Deref;
+use syn::DataEnum;
 
 use once_cell::sync::OnceCell;
 use quote::quote;
@@ -249,4 +251,80 @@ pub fn expand_derive_into_arguments(input: TokenStream) -> TokenStream {
 #[proc_macro_derive(ManualType)]
 pub fn expand_derive_manual_type(input: TokenStream) -> TokenStream {
     TokenStream::new()
+}
+
+#[proc_macro_derive(Enum)]
+pub fn derive_ormlite_enum(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+
+    let enum_name = input.ident;
+
+    let variants = match input.data {
+        Data::Enum(DataEnum { variants, .. }) => variants,
+        _ => panic!("#[derive(OrmliteEnum)] is only supported on enums"),
+    };
+
+    // Collect variant names and strings into vectors
+    let variant_names: Vec<_> = variants.iter().map(|v| &v.ident).collect();
+    let variant_strings: Vec<_> = variant_names.iter().map(|v| v.to_string().to_snake_case()).collect();
+
+    let gen = quote! {
+        impl std::fmt::Display for #enum_name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                match self {
+                    #(Self::#variant_names => write!(f, "{}", #variant_strings)),*
+                }
+            }
+        }
+
+        impl std::str::FromStr for #enum_name {
+            type Err = String;
+            fn from_str(s: &str) -> Result<Self, <Self as std::str::FromStr>::Err> {
+                match s {
+                    #(#variant_strings => Ok(Self::#variant_names)),*,
+                    _ => Err(format!("Invalid {} value: {}", stringify!(#enum_name), s))
+                }
+            }
+        }
+
+        impl std::convert::TryFrom<&str> for #enum_name {
+            type Error = String;
+            fn try_from(value: &str) -> Result<Self, Self::Error> {
+                <Self as std::str::FromStr>::from_str(value)
+            }
+        }
+
+        impl sqlx::Decode<'_, sqlx::Postgres> for #enum_name {
+            fn decode(
+                value: sqlx::postgres::PgValueRef<'_>,
+            ) -> Result<Self, sqlx::error::BoxDynError> {
+                let s = value.as_str()?;
+                <Self as std::str::FromStr>::from_str(s).map_err(|e| sqlx::error::BoxDynError::from(
+                    std::io::Error::new(std::io::ErrorKind::InvalidData, e)
+                ))
+            }
+        }
+
+        impl sqlx::Encode<'_, sqlx::Postgres> for #enum_name {
+            fn encode_by_ref(
+                &self,
+                buf: &mut sqlx::postgres::PgArgumentBuffer
+            ) -> Result<sqlx::encode::IsNull, sqlx::error::BoxDynError> {
+                let s = self.to_string();
+                <String as sqlx::Encode<sqlx::Postgres>>::encode(s, buf)
+            }
+        }
+
+        impl sqlx::Type<sqlx::Postgres> for #enum_name {
+            fn type_info() -> <sqlx::Postgres as sqlx::Database>::TypeInfo {
+                sqlx::postgres::PgTypeInfo::with_name("VARCHAR")
+            }
+
+            fn compatible(ty: &<sqlx::Postgres as sqlx::Database>::TypeInfo) -> bool {
+                ty.to_string() == "VARCHAR"
+            }
+        }
+    };
+
+    gen.into()
 }
