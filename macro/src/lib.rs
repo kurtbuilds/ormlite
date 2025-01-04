@@ -2,17 +2,18 @@
 #![allow(non_snake_case)]
 
 use codegen::insert::impl_Insert;
-use heck::ToSnakeCase;
+use convert_case::{Case, Casing};
 use ormlite_attr::InsertMeta;
 use proc_macro::TokenStream;
 use std::borrow::Borrow;
+use std::cell::OnceCell;
 use std::collections::HashMap;
 use std::env;
 use std::env::var;
 use std::ops::Deref;
+use std::sync::OnceLock;
 use syn::DataEnum;
 
-use once_cell::sync::OnceCell;
 use quote::quote;
 use syn::{parse_macro_input, Data, DeriveInput};
 
@@ -38,7 +39,7 @@ mod util;
 /// Mapping from StructName -> ModelMeta
 pub(crate) type MetadataCache = HashMap<String, ModelMeta>;
 
-static TABLES: OnceCell<MetadataCache> = OnceCell::new();
+static TABLES: OnceLock<MetadataCache> = OnceLock::new();
 
 fn get_tables() -> &'static MetadataCache {
     TABLES.get_or_init(|| load_metadata_cache())
@@ -266,7 +267,10 @@ pub fn derive_ormlite_enum(input: TokenStream) -> TokenStream {
 
     // Collect variant names and strings into vectors
     let variant_names: Vec<_> = variants.iter().map(|v| &v.ident).collect();
-    let variant_strings: Vec<_> = variant_names.iter().map(|v| v.to_string().to_snake_case()).collect();
+    let variant_strings: Vec<_> = variant_names
+        .iter()
+        .map(|v| v.to_string().to_case(Case::Snake))
+        .collect();
 
     let gen = quote! {
         impl std::fmt::Display for #enum_name {
