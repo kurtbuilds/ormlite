@@ -29,12 +29,13 @@ impl<T: JoinMeta> JoinMeta for Join<T> {
     }
 }
 
-#[async_trait]
 pub trait Loadable<DB, T: JoinMeta> {
+    #[allow(async_fn_in_trait)]
     async fn load<'s, 'e, E>(&'s mut self, db: E) -> crate::error::Result<&'s T>
     where
         T::IdType: 'e + Send + Sync,
-        E: 'e + sqlx::Executor<'e, Database = DB>;
+        E: 'e + sqlx::Executor<'e, Database = DB>,
+        T: 's;
 }
 
 #[derive(Debug)]
@@ -121,7 +122,6 @@ impl<T: JoinMeta> Join<T> {
     }
 }
 
-#[async_trait]
 impl<DB, T> Loadable<DB, T> for Join<T>
 where
     DB: Database,
@@ -134,6 +134,7 @@ where
     ) -> crate::error::Result<&'s T>
     where
         T::IdType: 'e + Send + Sync,
+        T: 's,
     {
         let model = T::fetch_one(self.id.clone(), conn).await?;
         self.data = JoinData::QueryResult(model);
@@ -248,4 +249,3 @@ where
         })
     }
 }
-

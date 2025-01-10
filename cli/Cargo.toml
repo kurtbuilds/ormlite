@@ -1,6 +1,6 @@
 [package]
 name = "ormlite-cli"
-version = "0.22.2"
+version = "0.22.8"
 edition = "2021"
 description = "An ORM for people who love SQL. Use the `ormlite` crate, not this one."
 authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
@@ -27,12 +27,12 @@ default = [
 experimental-sid = []
 
 [dependencies]
-anyhow = "1"
+anyhow.workspace = true
 time = { version = "0.3", features = ["formatting"] }
 clap = { version = "4", features = ["derive"] }
-ormlite = { version = "0.22", path = "../ormlite" }
-ormlite-core = { version = "0.22", path = "../core" }
-ormlite-attr = { version = "0.22", path = "../attr" }
+ormlite.workspace = true
+ormlite-core.workspace = true
+ormlite-attr.workspace = true
 tokio = { version = "1", features = ["full"] }
 sqlmo = { version = "0.22", features = ["tracing"] }
 sqlmo_sqlx = "0.22.0"

@@ -17,14 +17,7 @@ version level:
 
    cargo set-version --bump {{ level }} --workspace
    VERSION=$(toml get ormlite/Cargo.toml package.version)
-
-   toml set macro/Cargo.toml dependencies.ormlite-core.version $VERSION
-   (cd macro && cargo update)
-   toml set ormlite/Cargo.toml dependencies.ormlite-core.version $VERSION
-   toml set ormlite/Cargo.toml dependencies.ormlite-macro.version $VERSION
-   (cd ormlite && cargo update)
-
-   git commit -am "Bump version {{level}} to $VERSION"
+   git commit -am "Bump version {{level}}"
    git tag v$VERSION
    git push
    git push --tags
