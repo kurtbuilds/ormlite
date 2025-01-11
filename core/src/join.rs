@@ -1,5 +1,4 @@
 use crate::model::Model;
-use async_trait::async_trait;
 use serde::de::Error;
 use serde::Deserialize;
 use serde::{Serialize, Serializer};
