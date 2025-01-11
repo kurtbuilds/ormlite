@@ -61,7 +61,7 @@ impl<T: JoinMeta> Join<T> {
 
     pub fn new(obj: T) -> Self {
         Self {
-            id: obj._id(),
+            id: crate::join::JoinMeta::_id(&obj),
             data: JoinData::Modified(obj),
         }
     }
