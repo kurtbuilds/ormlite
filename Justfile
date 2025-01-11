@@ -16,7 +16,7 @@ version level:
    (cd ormlite && cargo build --features runtime-tokio-rustls,sqlite)
 
    cargo set-version --bump {{ level }} --workspace
-   VERSION=$(rg -om1 "version = \"(.*)\"" --replace '$1' oasgen/Cargo.toml)
+   VERSION=$(rg -om1 "version = \"(.*)\"" --replace '$1' ormlite/Cargo.toml)
    git commit -am "Bump version {{level}}"
    git tag v$VERSION
    git push
