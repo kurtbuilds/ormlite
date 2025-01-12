@@ -55,7 +55,7 @@ pub fn impl_Model__insert(db: &dyn OrmliteCodegen, attr: &ModelMeta, metadata_ca
                         #(
                             #query_bindings
                         )*
-                        let mut model = q.fetch_one(&mut *conn).await?;
+                        let mut model: Self = q.fetch_one(&mut *conn).await?;
                         #(
                             #late_bind
                         )*
@@ -95,7 +95,7 @@ pub fn impl_ModelBuilder__insert(db: &dyn OrmliteCodegen, attr: &TableMeta) -> T
                 );
                 let mut q = ::ormlite::query_as::<#db, Self::Model>(&query);
                 #(#bind_parameters)*
-                let mut model = q.fetch_one(db).await?;
+                let model = q.fetch_one(db).await?;
                 Ok(model)
             })
         }
@@ -162,9 +162,9 @@ pub fn impl_Insert(db: &dyn OrmliteCodegen, meta: &TableMeta, model: &Ident, ret
                     let mut model = self;
                     #(#insert_join)*
                     #(#query_bindings)*
-                    let mut model = q.fetch_one(&mut *conn).await?;
+                    let mut model: #returns = q.fetch_one(&mut *conn).await?;
                     #(#late_bind)*
-                    Ok(model)
+                    ::ormlite::Result::<Self::Model>::Ok(model)
                 })
             }
         }
