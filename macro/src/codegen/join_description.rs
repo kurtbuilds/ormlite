@@ -4,57 +4,51 @@ use proc_macro2::TokenStream;
 use quote::quote;
 
 pub fn static_join_descriptions(attr: &TableMeta, metadata_cache: &MetadataCache) -> TokenStream {
+    let joins = attr.columns.iter().filter(|c| c.is_join()).map(|c| {
+        let join = c.join.as_ref().expect("not a join");
+        let field = &c.ident.to_string();
+        let column = &c.name;
+        let struct_name = c.joined_struct_name().unwrap();
+        let joined_table = metadata_cache
+            .get(&struct_name)
+            .expect(&format!("Did not find metadata for joined struct: {}", struct_name));
+        let foreign_table = &joined_table.table.name;
+        let foreign_key = &joined_table.pkey.name;
+
+        let columns = joined_table.database_columns().map(|c| &c.name);
+        let body = match join {
+            ormlite_attr::Join::ManyToOne { column } => {
+                quote! {
+                    ::ormlite::__private::JoinDescription::ManyToOne {
+                        columns: &[
+                            #(
+                                #columns,
+                            )*
+                        ],
+                        foreign_table: #foreign_table,
+                        local_column: #column,
+                        field: #field,
+                        foreign_key: #foreign_key,
+                    }
+                }
+            }
+            ormlite_attr::Join::ManyToMany { table } => todo!(),
+            ormlite_attr::Join::OneToMany { model, field } => todo!(),
+        };
+        let ident = &c.ident;
+        quote! {
+            pub fn #ident() -> ::ormlite::__private::JoinDescription {
+                #body
+            }
+        }
+    });
+
     let model = &attr.ident;
-    return quote! {};
-    // let joins = attr.many_to_one_joins().map(|c| {
-    //     let id = &c.ident;
-    //     let id_s = &c.ident.to_string();
-    //     let struct_name = c.joined_struct_name().unwrap();
-    //     let joined_table = metadata_cache
-    //         .get(&struct_name)
-    //         .expect(&format!("Did not find metadata for joined struct: {}", struct_name));
-
-    //     match c.j
-    //     let column_name = c.many_to_one_column_name.as_ref().unwrap();
-    //     let foreign_key = &joined_table.pkey.name;
-    //     let join_type = if c.one_to_many_foreign_key.is_some() {
-    //         quote! { ::ormlite::__private::SemanticJoinType::OneToMany }
-    //     } else if c.many_to_one_column_name.is_some() {
-    //         quote! { ::ormlite::__private::SemanticJoinType::ManyToOne }
-    //     } else if c.many_to_many_table.is_some() {
-    //         quote! { ::ormlite::__private::SemanticJoinType::ManyToMany }
-    //     } else {
-    //         panic!("Unknown join type");
-    //     };
-    //     let table_name = &joined_table.name;
-    //     let columns = joined_table
-    //         .columns
-    //         .iter()
-    //         .filter(|c| !c.is_join())
-    //         .map(|c| c.ident.to_string());
-    //     quote! {
-    //         pub fn #id() -> ::ormlite::__private::JoinDescription {
-    //             ::ormlite::__private::JoinDescription {
-    //                 joined_columns: &[
-    //                     #(
-    //                         #columns,
-    //                     )*
-    //                 ],
-    //                 table_name: #table_name,
-    //                 relation: #id_s,
-    //                 key: #column_name,
-    //                 foreign_key: #foreign_key,
-    //                 semantic_join_type: #join_type,
-    //             }
-    //         }
-    //     }
-    // });
-
-    // quote! {
-    //     impl #model {
-    //         #(
-    //             #joins
-    //         )*
-    //     }
-    // }
+    quote! {
+        impl #model {
+            #(
+                #joins
+            )*
+        }
+    }
 }

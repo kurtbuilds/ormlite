@@ -71,7 +71,8 @@ alias r := run
 expand-run:
     mkdir -p examples
     touch examples/expand.rs
-    cp tests/postgres/join.rs examples/expandable.rs
+    cp tests/sqlite/03-many-to-one-join.rs examples/expandable.rs
+    # cp tests/sqlite/03-many-to-one-join.rs examples/expandable.rs
     sd -s '../setup.rs' '../tests/setup.rs' examples/expandable.rs -f
     printf '#![allow(unused)]\n' > examples/expand.rs
     printf '#![allow(internal_features)]\n' > examples/expand.rs
@@ -79,7 +80,8 @@ expand-run:
     printf '#![feature(fmt_helpers_for_derive)]\n' >> examples/expand.rs
     printf '#![feature(print_internals)]\n' >> examples/expand.rs
     printf '#![feature(hint_must_use)]\n' >> examples/expand.rs
-    cargo expand --example expandable --features postgres,uuid >> examples/expand.rs
+    printf '#![feature(panic_internals)]\n' >> examples/expand.rs
+    cargo expand --example expandable --features sqlite,uuid >> examples/expand.rs
     sd '::alloc::' '::std::' examples/expand.rs -f
     sd '::std::__export::must_use' '::std::hint::must_use' examples/expand.rs -f
     sd '# ?\[ormlite.*' '' examples/expand.rs -f
@@ -88,7 +90,7 @@ expand-run:
 alias er := expand-run
 
 rerun:
-    cargo +nightly run --example expand --features postgres,uuid
+    cargo +nightly run --example expand --features sqlite,uuid
 alias rr := expand-run
 
 backtrace:

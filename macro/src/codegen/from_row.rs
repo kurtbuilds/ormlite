@@ -10,7 +10,7 @@ pub fn impl_FromRow(db: &dyn OrmliteCodegen, attr: &TableMeta, cache: &MetadataC
     let bounds = from_row_bounds(db, attr, cache);
     let row = db.row();
 
-    let prefix_branches = attr.columns.iter().filter(|c| c.is_join()).map(|c| {
+    let prefix_branches = attr.columns.iter().filter(|&c| c.is_join_one()).map(|c| {
         let name = &c.ident.to_string();
         let iden = &c.ident;
         let meta = cache
@@ -67,7 +67,6 @@ pub fn impl_FromRow(db: &dyn OrmliteCodegen, attr: &TableMeta, cache: &MetadataC
     quote! {
         impl<'a> ::ormlite::model::FromRow<'a, #row> for #model
             where
-                // &'a str: ::ormlite::ColumnIndex<#row>,
                 #(
                     #bounds
                 )*

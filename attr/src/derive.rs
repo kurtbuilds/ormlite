@@ -130,7 +130,6 @@ mod tests {
         let item = syn::parse2::<syn::ItemEnum>(q).unwrap();
         let derive = DeriveParser::from_attributes(&item.attrs);
         let repr = Repr::from_attributes(&item.attrs).unwrap();
-        dbg!(&derive);
         assert!(derive.has_any_derive(&["ormlite", "sqlx"], "Type"));
         assert_eq!(repr, "u8");
     }

@@ -2,9 +2,9 @@ use crate::error::{Error, Result};
 use crate::model::Model;
 use crate::query_builder::args::QueryBuilderArgs;
 use crate::query_builder::{util, Placeholder};
-use sqlmo::ToSql;
+use sqlmo::{Expr, ToSql};
 
-use crate::join::JoinDescription;
+use crate::join::{criteria, select_columns, JoinDescription};
 use sqlmo::{query::Where, Select};
 use sqlx::{Executor, IntoArguments};
 use std::marker::PhantomData;
@@ -141,8 +141,27 @@ where
     }
 
     pub fn join(mut self, join_description: JoinDescription) -> Self {
-        self.query = self.query.join(join_description.to_join_clause(M::table_name()));
-        self.query.columns.extend(join_description.select_clause());
+        match &join_description {
+            JoinDescription::ManyToOne {
+                columns,
+                foreign_table,
+                field,
+                foreign_key,
+                local_column,
+            } => {
+                let join = sqlmo::query::Join {
+                    typ: sqlmo::query::JoinType::Left,
+                    table: sqlmo::query::JoinTable::Table {
+                        schema: None,
+                        table: foreign_table.to_string(),
+                    },
+                    alias: Some(field.to_string()),
+                    criteria: criteria(M::table_name(), local_column, field, foreign_key),
+                };
+                self.query.join.push(join);
+                self.query.columns.extend(select_columns(columns, field))
+            }
+        }
         self
     }
 
@@ -154,7 +173,7 @@ where
 
     /// Add a HAVING clause to the query.
     pub fn having(mut self, clause: &str) -> Self {
-        self.query = self.query.having(Where::Raw(clause.to_string()));
+        self.query = self.query.having(Where::Expr(Expr::Raw(clause.to_string())));
         self
     }
 

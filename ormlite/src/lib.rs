@@ -37,7 +37,7 @@ pub mod database {
 #[doc(hidden)]
 pub mod __private {
     pub use ormlite_core::insert::Insertion;
-    pub use ormlite_core::join::{JoinDescription, SemanticJoinType};
+    pub use ormlite_core::join::JoinDescription;
     pub use sqlmo::query::Values;
     pub use sqlmo::Insert;
 }

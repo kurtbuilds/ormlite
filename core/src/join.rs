@@ -2,8 +2,9 @@ use crate::model::Model;
 use serde::de::Error;
 use serde::Deserialize;
 use serde::{Serialize, Serializer};
-use sqlmo::query::Join as JoinQueryFragment;
+use sqlmo::query::Criteria;
 use sqlmo::query::SelectColumn;
+use sqlmo::{Expr, Operation, Where};
 use sqlx::{Database, Decode, Encode, Type};
 use std::ops::{Deref, DerefMut};
 
@@ -170,57 +171,97 @@ impl<T: JoinMeta> DerefMut for Join<T> {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
-pub enum SemanticJoinType {
-    OneToMany,
-    ManyToOne,
-    ManyToMany(&'static str),
-}
+// #[derive(Debug, Copy, Clone)]
+// pub enum SemanticJoinType {
+//     OneToMany,
+//     ManyToOne,
+//     ManyToMany(&'static str),
+// }
 
 /// Not meant for end users.
 #[doc(hidden)]
 #[derive(Debug, Clone, Copy)]
-pub struct JoinDescription {
-    pub joined_columns: &'static [&'static str],
-    pub table_name: &'static str,
-    pub relation: &'static str,
-    /// The column on the local table
-    pub key: &'static str,
-    pub foreign_key: &'static str,
-    pub semantic_join_type: SemanticJoinType,
+pub enum JoinDescription {
+    ManyToOne {
+        /// the columns of the joined table
+        columns: &'static [&'static str],
+        /// the name of the joined table
+        foreign_table: &'static str,
+
+        local_column: &'static str,
+        /// the field on the local object. joined table is aliased to this to prevent conflicts.
+        field: &'static str,
+        foreign_key: &'static str,
+    },
 }
 
-impl JoinDescription {
-    pub fn to_join_clause(&self, local_table: &str) -> JoinQueryFragment {
-        use SemanticJoinType::*;
-        let table = self.table_name;
-        let relation = self.relation;
-        let local_key = self.key;
-        let foreign_key = self.foreign_key;
-        let join = match &self.semantic_join_type {
-            ManyToOne => {
-                format!(r#""{relation}"."{foreign_key}" = "{local_table}"."{local_key}" "#)
-            }
-            OneToMany => {
-                format!(r#""{relation}"."{local_key}" = "{local_table}"."{foreign_key}" "#)
-            }
-            ManyToMany(_join_table) => {
-                unimplemented!()
-            }
-        };
-        JoinQueryFragment::new(table).alias(self.relation).on_raw(join)
-    }
-
-    pub fn select_clause(&self) -> impl Iterator<Item = SelectColumn> + '_ {
-        self.joined_columns
-            .iter()
-            .map(|c| SelectColumn::table_column(self.relation, c).alias(self.alias(c)))
-    }
-
-    pub fn alias(&self, column: &str) -> String {
-        format!("__{}__{}", self.relation, column)
-    }
+pub fn column_alias(field: &str, column: &str) -> String {
+    format!("__{}__{}", field, column)
 }
+
+pub fn select_columns(
+    columns: &'static [&'static str],
+    field: &'static str,
+) -> impl Iterator<Item = SelectColumn> + 'static {
+    columns
+        .iter()
+        .map(|&c| SelectColumn::table_column(field, c).alias(column_alias(field, c)))
+}
+
+pub fn criteria(local_table: &str, local_column: &str, remote_table: &str, remote_column: &str) -> Criteria {
+    Criteria::On(Where::Expr(Expr::BinOp(
+        Operation::Eq,
+        Expr::Column {
+            schema: None,
+            table: Some(local_table.to_string()),
+            column: local_column.to_string(),
+        }
+        .into(),
+        Expr::Column {
+            schema: None,
+            table: Some(remote_table.to_string()),
+            column: remote_column.to_string(),
+        }
+        .into(),
+    )))
+}
+
+// impl JoinDescription {
+// pub fn join_clause(&self, local_table: &str) -> JoinQueryFragment {
+//     use SemanticJoinType::*;
+//     let table = self.table_name;
+//     let relation = self.relation;
+//     let local_key = self.key;
+//     let foreign_key = self.foreign_key;
+//     let join = match &self.semantic_join_type {
+//         ManyToOne => {
+//             format!(r#""{relation}"."{foreign_key}" = "{local_table}"."{local_key}" "#)
+//         }
+//         OneToMany => {
+//             format!(r#""{relation}"."{local_key}" = "{local_table}"."{foreign_key}" "#)
+//         }
+//         ManyToMany(_join_table) => {
+//             unimplemented!()
+//         }
+//     };
+//     JoinQueryFragment::new(table).alias(self.relation).on_raw(join)
+// }
+
+// pub fn select_columns(&self) -> impl Iterator<Item = SelectColumn> + '_ {
+//     let JoinDescription::ManyToOne {
+//         columns,
+//         table,
+//         field,
+//         foreign_key,
+//     } = self
+//     else {
+//         panic!("ManyToMany not supported yet")
+//     };
+//     columns
+//         .iter()
+//         .map(|c| SelectColumn::table_column(field, c).alias(column_alias(field, column)))
+// }
+// }
 
 impl<T: JoinMeta + Serialize> Serialize for Join<T> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

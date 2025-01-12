@@ -1,57 +1,91 @@
 use ormlite::model::*;
-use ormlite::{query, Connection};
-use sqlmo::{Dialect, ToSql};
+use ormlite::Connection;
 use uuid::Uuid;
 
-#[path = "../tests/setup.rs"]
-mod setup;
-
-#[derive(Model)]
-#[ormlite(table = "users")]
-struct User {
+#[derive(Model, Debug)]
+pub struct Person {
     id: Uuid,
     name: String,
+    age: u8,
     #[ormlite(column = "org_id")]
-    org: Join<Organization>,
-
-    #[ormlite(column = "subscription_id")]
-    subscription: Join<Option<Subscription>>,
-
-    #[ormlite(foreign_field = Photo::user_id)]
-    photos: Join<Vec<Photo>>,
+    organization: Join<Organization>,
 }
 
-#[derive(Model)]
-struct Organization {
+#[derive(Model, Clone, Debug)]
+#[ormlite(table = "orgs")]
+pub struct Organization {
     id: Uuid,
     name: String,
 }
 
-#[derive(Model)]
-struct Subscription {
-    id: Uuid,
-    name: String,
-}
+pub static CREATE_PERSON_SQL: &str = "CREATE TABLE person (id text PRIMARY KEY, name TEXT, age INTEGER, org_id text)";
 
-#[derive(Model)]
-struct Photo {
-    id: Uuid,
-    user_id: Uuid,
-    name: String,
-}
+pub static CREATE_ORG_SQL: &str = "CREATE TABLE orgs (id text PRIMARY KEY, name TEXT)";
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
-    let url = std::env::var("DATABASE_URL").unwrap();
-    let mut conn = ormlite::postgres::PgConnection::connect(&url).await.unwrap();
-    query("drop table if exists users, organization, photo")
-        .execute(&mut conn)
+    let mut db = ormlite::sqlite::SqliteConnection::connect(":memory:").await.unwrap();
+    ormlite::query(CREATE_PERSON_SQL).execute(&mut db).await?;
+    ormlite::query(CREATE_ORG_SQL).execute(&mut db).await?;
+
+    let org = Organization {
+        id: Uuid::new_v4(),
+        name: "my org".to_string(),
+    };
+    let p1 = Person {
+        id: Uuid::new_v4(),
+        name: "John".to_string(),
+        age: 102,
+        organization: Join::new(org.clone()),
+    }
+    .insert(&mut db)
+    .await
+    .unwrap();
+    assert_eq!(
+        p1.organization.id, org.id,
+        "setting the org object should overwrite the org_id field on insert."
+    );
+    assert_eq!(p1.organization._id(), org.id);
+
+    let org = Organization::select()
+        .where_bind("id = ?", &org.id)
+        .fetch_one(&mut db)
         .await
         .unwrap();
-    let migration = setup::migrate_self(&[file!()]);
-    for s in migration.statements {
-        let sql = s.to_sql(Dialect::Postgres);
-        query(&sql).execute(&mut conn).await.unwrap();
+    assert_eq!(
+        org.name, "my org",
+        "org gets inserted even though we didn't manually insert it."
+    );
+
+    let p2 = Person {
+        id: Uuid::new_v4(),
+        name: "p2".to_string(),
+        age: 98,
+        organization: Join::new(org.clone()),
     }
+    .insert(&mut db)
+    .await
+    .unwrap();
+    assert_eq!(
+        p2.organization.id, org.id,
+        "we can do insertion with an existing join obj, and it will pass the error."
+    );
+
+    let orgs = Organization::select().fetch_all(&mut db).await.unwrap();
+    assert_eq!(orgs.len(), 1, "exactly 1 orgs");
+
+    let people = Person::select().fetch_all(&mut db).await.unwrap();
+    assert_eq!(people.len(), 2, "exactly 2 people");
+
+    let people = Person::select()
+        .join(Person::organization())
+        .fetch_all(&mut db)
+        .await
+        .unwrap();
+    assert_eq!(people.len(), 2, "exactly 2 people");
+    for person in &people {
+        assert_eq!(person.organization.name, "my org", "we can join on the org");
+    }
+    Ok(())
 }

@@ -15,14 +15,14 @@ doctest = false
 [features]
 
 [dependencies]
-proc-macro2 = "1.0"
-quote = "1.0"
-syn = { version = "2", features = ["full"] }
+proc-macro2.workspace = true
+quote.workspace = true
+syn.workspace = true
 structmeta = "0.3.0"
 convert_case.workspace = true
-anyhow = "1.0"
+anyhow.workspace = true
 ignore = "0.4"
-sqlmo = "0.22"
+sqlmo.workspace = true
 tracing = "0.1"
 sqlformat = "=0.2.6"
 
