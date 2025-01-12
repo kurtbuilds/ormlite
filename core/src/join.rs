@@ -28,6 +28,14 @@ impl<T: JoinMeta> JoinMeta for Join<T> {
     }
 }
 
+impl<T: JoinMeta> JoinMeta for Vec<T> {
+    type IdType = T::IdType;
+
+    fn _id(&self) -> Self::IdType {
+        unimplemented!()
+    }
+}
+
 pub trait Loadable<DB, T: JoinMeta> {
     #[allow(async_fn_in_trait)]
     async fn load<'s, 'e, E>(&'s mut self, db: E) -> crate::error::Result<&'s T>

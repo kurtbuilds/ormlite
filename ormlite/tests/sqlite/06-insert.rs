@@ -1,7 +1,7 @@
 use ormlite::model::{Insert, Join, JoinMeta, Model};
-use sqlmo::ToSql;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use serde_json::json;
+use sqlmo::ToSql;
 
 use ormlite::Connection;
 #[path = "../setup.rs"]
@@ -25,7 +25,7 @@ pub struct User {
     number: i32,
     #[ormlite(column = "type")]
     ty: i32,
-    #[ormlite(join_column = "org_id")]
+    #[ormlite(column = "org_id")]
     organization: Join<Organization>,
 }
 
@@ -75,9 +75,13 @@ async fn main() {
     };
     let champ_json = json!(champ_copy).to_string();
 
-    assert_eq!(champ_json, r#"{"name":"Champ","organization":{"id":12321,"name":"my org"},"ty":12}"#);
+    assert_eq!(
+        champ_json,
+        r#"{"name":"Champ","organization":{"id":12321,"name":"my org"},"ty":12}"#
+    );
 
-    let champ_deserializing = serde_json::from_str::<InsertUser>(r#"{"name":"Champ","organization":{"id":12321,"name":"my org"},"ty":12}"#);
+    let champ_deserializing =
+        serde_json::from_str::<InsertUser>(r#"{"name":"Champ","organization":{"id":12321,"name":"my org"},"ty":12}"#);
 
     let Ok(champ_deserialized) = champ_deserializing else {
         panic!("Deserialize failing");

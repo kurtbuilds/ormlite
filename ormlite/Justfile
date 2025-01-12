@@ -1,5 +1,6 @@
 set positional-arguments
-set dotenv-load := false
+set dotenv-load
+set export
 
 help:
     @just --list --unsorted
@@ -70,22 +71,28 @@ alias r := run
 expand-run:
     mkdir -p examples
     touch examples/expand.rs
-    cp tests/postgres/complex.rs examples/expandable.rs
+    cp tests/postgres/join.rs examples/expandable.rs
+    sd -s '../setup.rs' '../tests/setup.rs' examples/expandable.rs -f
     printf '#![allow(unused)]\n' > examples/expand.rs
+    printf '#![allow(internal_features)]\n' > examples/expand.rs
     printf '#![feature(fmt_internals)]\n' >> examples/expand.rs
     printf '#![feature(fmt_helpers_for_derive)]\n' >> examples/expand.rs
     printf '#![feature(print_internals)]\n' >> examples/expand.rs
-    printf '#![feature(core_panic)]\n' >> examples/expand.rs
-    cargo expand --example expandable --features sqlite,uuid >> examples/expand.rs
+    printf '#![feature(hint_must_use)]\n' >> examples/expand.rs
+    cargo expand --example expandable --features postgres,uuid >> examples/expand.rs
     sd '::alloc::' '::std::' examples/expand.rs -f
+    sd '::std::__export::must_use' '::std::hint::must_use' examples/expand.rs -f
     sd '# ?\[ormlite.*' '' examples/expand.rs -f
     sd -s '#[rustc_box]' '' examples/expand.rs -f
     @just rerun
 alias er := expand-run
 
 rerun:
-    cargo +nightly run --example expand --features sqlite,uuid
+    cargo +nightly run --example expand --features postgres,uuid
 alias rr := expand-run
 
 backtrace:
     RUSTFLAGS="-Z macro-backtrace" cargo run --example many-to-one --features sqlite,runtime-tokio-rustls,uuid
+
+postgres *ARGS:
+    cargo test -F postgres,uuid,chrono --tests $ARGS -- --test-threads=1

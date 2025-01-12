@@ -1,4 +1,6 @@
-set dotenv-load := true
+set dotenv-load
+set positional-arguments
+set export
 
 test:
     just attr/test
@@ -38,3 +40,6 @@ doc:
 
 install:
     @just cli/install
+
+postgres *ARGS:
+    @just ormlite/postgres $ARGS

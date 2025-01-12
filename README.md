@@ -92,7 +92,6 @@ ormlite = { version = "..", features = ["sqlite"] }
 
 Other databases and runtimes are supported, but are less tested. Please submit an issue if you encounter any.
 
-
 ### Environment Setup
 
 You need `DATABASE_URL` in your environment. We recommend a tool like [`just`](https://github.com/casey/just), which
@@ -208,13 +207,13 @@ pub struct Person {
     // and rows will take the database-level default upon insertion.
     #[ormlite(default)]
     pub archived_at: Option<DateTime<Utc>>,
-    // This field will not be part of the InsertPerson struct, 
+    // This field will not be part of the InsertPerson struct,
     // which will always pass the provided value when inserting.
     #[ormlite(default_value = "serde_json::json!({})")]
     pub metadata: Json<Value>,
 }
 
-async fn insertion_struct_example(conn: &mut SqliteConnection) {  
+async fn insertion_struct_example(conn: &mut SqliteConnection) {
     let john: Person = InsertPerson {
         name: "John".to_string(),
     }.insert(&mut conn).await?;
@@ -247,7 +246,7 @@ pub struct Person {
     pub age: i32,
 }
 
-async fn builder_syntax_example() {    
+async fn builder_syntax_example() {
     // builder syntax for insert
     let john = Person::builder()
         .name("John".to_string())
@@ -264,8 +263,11 @@ async fn builder_syntax_example() {
     println!("{:?}", john);
 }
 ```
+
 ### Upsert
+
 You can handle insertion on conflict using `OnConflict` ([docs](https://docs.rs/ormlite/latest/ormlite/query_builder/enum.OnConflict.html)).
+
 ```rust
 use ormlite::{
     model::*,
@@ -315,7 +317,7 @@ async fn query_builder_example() {
         .bind(50i32)
         .fetch_all(&mut conn)
         .await?;
-    println!("All people over 50: {:?}", people); 
+    println!("All people over 50: {:?}", people);
 }
 ```
 
@@ -366,7 +368,7 @@ pub struct Person {
 
 ## Joins
 
-Join support is alpha stage. Right now, `ormlite` only support many-to-one relations (e.g. Person belongs to Organization). 
+Join support is alpha stage. Right now, `ormlite` only support many-to-one relations (e.g. Person belongs to Organization).
 Support for many-to-many and one-to-many is planned. If you use this functionality, please report any bugs you encounter.
 
 ```rust
@@ -375,10 +377,10 @@ pub struct Person {
     pub id: Uuid,
     pub name: String,
     pub age: i32,
-    
+
     // Note that we don't declare a separate field `pub organization_id: Uuid`.
     // It is implicitly defined by the Join and the join_column attribute.
-    #[ormlite(join_column = "organization_id")]
+    #[ormlite(column = "organization_id")]
     pub organization: Join<Organization>,
 }
 
@@ -395,21 +397,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         id: Uuid::new_v4(),
         name: "Acme".to_string(),
     };
-    
+
     let user = Person {
         id: Uuid::new_v4(),
         name: "John".to_string(),
         age: 99,
         organization: Join::new(org),
     };
-    
+
     let mut conn = ormlite::sqlite::SqliteConnection::connect(":memory:").await.unwrap();
 
     let user = user.insert(&mut conn).await?;
     assert_eq!(user.organization.loaded(), true);
     println!("{:?}", user);
-    
-    // You can choose whether you want to load the relation or not. The value will be Join::NotQueried if you don't 
+
+    // You can choose whether you want to load the relation or not. The value will be Join::NotQueried if you don't
     // opt-in to loading it.
     let users = Person::select()
         .join(Person::organization())
@@ -427,13 +429,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Uuid, Chrono, & Time
 
-If you want Uuid or DateTime, combined with serde, you need to depend directly on `uuid`, `time` or `chrono`, 
+If you want Uuid or DateTime, combined with serde, you need to depend directly on `uuid`, `time` or `chrono`,
 and add the `serde` feature to each of them.
 
 ```
 # Cargo.toml
 [dependencies]
-uuid = { version = "...", features = ["serde"] } 
+uuid = { version = "...", features = ["serde"] }
 chrono = { version = "...", features = ["serde"] }
 time = { version = "...", features = ["serde"] }
 ```
@@ -454,8 +456,8 @@ pub struct Person {
 
 ## Json/Jsonb Columns
 
-You can either use `ormlite::types::Json` for JSON or JSONB fields, or you can use the `json` attribute. 
-For unstructured data, use `serde_json::Value` as the inner type. Use a struct with `Deserialize + Serialize` as the 
+You can either use `ormlite::types::Json` for JSON or JSONB fields, or you can use the `json` attribute.
+For unstructured data, use `serde_json::Value` as the inner type. Use a struct with `Deserialize + Serialize` as the
 generic for structured data.
 
 ```rust
@@ -485,6 +487,7 @@ pub struct Job {
 You can log queries using sqlx's logger: `RUST_LOG=sqlx=info`
 
 # Roadmap
+
 - [x] Insert, update, delete directly on model instances
 - [x] Builder for partial update and insertions
 - [x] User can create insert models that ignore default values

@@ -9,8 +9,13 @@ pub enum Join {
         /// Name of local column on the table that maps to the fk on the other table
         column: String,
     },
-    ManyToMany {},
-    OneToMany {},
+    ManyToMany {
+        table: String,
+    },
+    OneToMany {
+        model: String,
+        field: String,
+    },
 }
 
 /// All the metadata we can capture about a column
@@ -24,11 +29,6 @@ pub struct ColumnMeta {
     pub has_database_default: bool,
     /// Identifier used in Rust to refer to the column
     pub ident: Ident,
-
-    // only for joins. Database key
-    pub many_to_one_column_name: Option<String>,
-    pub many_to_many_table: Option<String>,
-    pub one_to_many_foreign_key: Option<ForeignKey>,
 
     pub skip: bool,
     pub rust_default: Option<String>,
@@ -55,9 +55,6 @@ impl ColumnMeta {
             marked_primary_key: false,
             has_database_default: false,
             ident: Ident::from(ident),
-            many_to_one_column_name: None,
-            many_to_many_table: None,
-            one_to_many_foreign_key: None,
             skip: false,
             rust_default: None,
             join: None,
@@ -69,14 +66,18 @@ impl ColumnMeta {
         matches!(self.ty, Type::Join(_))
     }
 
+    pub fn is_join_one(&self) -> bool {
+        let Some(join) = &self.join else {
+            return false;
+        };
+        matches!(join, Join::ManyToOne { .. })
+    }
+
     pub fn is_join_many(&self) -> bool {
-        let Type::Join(join) = &self.ty else {
+        let Some(join) = &self.join else {
             return false;
         };
-        let Type::Inner(o) = join.as_ref() else {
-            return false;
-        };
-        o.ident == "Vec"
+        matches!(join, Join::ManyToOne { .. } | Join::ManyToMany { .. })
     }
 
     pub fn is_option(&self) -> bool {
@@ -110,25 +111,28 @@ impl ColumnMeta {
             }
             if let Some(c) = attr.column {
                 column.name = c.value();
+                if column.ty.is_join() {
+                    column.join = Some(Join::ManyToOne { column: c.value() });
+                }
             }
-            if let Some(value) = attr.join_column {
-                let value = value.value();
-                column.many_to_one_column_name = Some(value.clone());
-                column.name = value.clone();
-                column.join = Some(Join::ManyToOne { column: value });
-            }
-            if let Some(path) = attr.many_to_many_table {
-                let value = path.to_string();
-                column.many_to_many_table = Some(value);
-                column.join = Some(Join::ManyToMany {});
-            }
-            if let Some(_path) = attr.one_to_many_foreign_key {
-                column.one_to_many_foreign_key = Some(ForeignKey {
-                    model: "".to_string(),
-                    column: "".to_string(),
+            if let Some(table_name) = attr.join_table {
+                column.join = Some(Join::ManyToMany {
+                    table: table_name.value(),
                 });
-                column.join = Some(Join::OneToMany {});
-                panic!("Join support in ormlite is in alpha state, and one_to_many_foreign_key is unfortunately not implemented yet.");
+            }
+            if let Some(path) = attr.foreign_field {
+                let mut segments = path.segments.iter();
+                let model = segments
+                    .next()
+                    .expect("no model on foreign field attribute")
+                    .ident
+                    .to_string();
+                let field = segments
+                    .next()
+                    .expect("no field on foreign field attribute")
+                    .ident
+                    .to_string();
+                column.join = Some(Join::OneToMany { model, field });
             }
             if let Some(default_value) = attr.default_value {
                 column.rust_default = Some(default_value.value());
@@ -139,7 +143,7 @@ impl ColumnMeta {
             column.json |= attr.json.value();
         }
         if column.ty.is_join() ^ column.join.is_some() {
-            panic!("Column {ident} is a Join. You must specify one of these attributes: join_column (for many to one), many_to_many_table_name, or one_to_many_foreign_key");
+            panic!("Column {ident} is a Join. You must specify one of these attributes: column (many to one), join_table (many to many), or foreign_field (one to many)");
         }
         column
     }
@@ -152,9 +156,6 @@ impl ColumnMeta {
             marked_primary_key: false,
             has_database_default: false,
             ident: Ident::from(name),
-            many_to_one_column_name: None,
-            many_to_many_table: None,
-            one_to_many_foreign_key: None,
             skip: false,
             rust_default: None,
             join: None,
@@ -170,9 +171,6 @@ impl ColumnMeta {
             marked_primary_key: false,
             has_database_default: false,
             ident: Ident::from(name),
-            many_to_one_column_name: None,
-            many_to_many_table: None,
-            one_to_many_foreign_key: None,
             skip: false,
             rust_default: None,
             join: None,
@@ -198,26 +196,18 @@ pub struct ColumnAttr {
     /// Specify a default value on the Rust side.
     pub default_value: Option<LitStr>,
 
-    /// Note this column is not expected to exist on the model, but needs to exist in the database.
-    /// Example:
-    /// pub struct User {
-    ///     #[ormlite(join_column = "organization_id")]
-    ///     pub organization: Join<Organization>,
-    /// }
-    pub join_column: Option<LitStr>,
-
     /// Example:
     /// pub struct User {
     ///     pub org_id: i32,
-    ///     #[ormlite(many_to_many_table_name = join_user_role)]
+    ///     #[ormlite(join_table = "user_role")]
     ///     pub roles: Join<Vec<Role>>,
     /// }
-    pub many_to_many_table: Option<syn::Ident>,
+    pub join_table: Option<LitStr>,
 
     /// Example:
     /// pub struct User {
     ///     pub id: i32,
-    ///     #[ormlite(one_to_many_foreign_key = Post::author_id)]
+    ///     #[ormlite(foreign_field = Post::author_id)]
     ///     pub posts: Join<Vec<Post>>,
     /// }
     ///
@@ -225,9 +215,16 @@ pub struct ColumnAttr {
     ///     pub id: i32,
     ///     pub author_id: i32,
     /// }
-    pub one_to_many_foreign_key: Option<Path>,
+    pub foreign_field: Option<Path>,
 
     /// The name of the column in the database. Defaults to the field name.
+    ///
+    /// Required for many to one joins.
+    /// Example:
+    /// pub struct User {
+    ///     #[ormlite(column = "organization_id")]
+    ///     pub organization: Join<Organization>,
+    /// }
     pub column: Option<LitStr>,
 
     /// Skip serializing this field to/from the database. Note the field must implement `Default`.
@@ -286,9 +283,9 @@ pub name: String
     }
 
     #[test]
-    fn test_join_column() {
-        let attr: Attribute = parse_quote!(#[ormlite(join_column = "org_id")]);
+    fn test_column() {
+        let attr: Attribute = parse_quote!(#[ormlite(column = "org_id")]);
         let args: ColumnAttr = attr.parse_args().unwrap();
-        assert!(args.join_column.is_some());
+        assert!(args.column.is_some());
     }
 }

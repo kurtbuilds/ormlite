@@ -60,11 +60,14 @@ impl TableMeta {
     }
 
     pub fn database_columns(&self) -> impl Iterator<Item = &ColumnMeta> + '_ {
-        self.columns.iter().filter(|&c| !c.skip)
+        self.columns
+            .iter()
+            .filter(|&c| !c.skip)
+            .filter(|&c| !c.is_join() || c.is_join_one())
     }
 
     pub fn many_to_one_joins(&self) -> impl Iterator<Item = &ColumnMeta> + '_ {
-        self.columns.iter().filter(|&c| c.many_to_one_column_name.is_some())
+        self.columns.iter().filter(|&c| c.is_join_one())
     }
 
     #[allow(dead_code)]

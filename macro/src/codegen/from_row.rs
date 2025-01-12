@@ -1,8 +1,8 @@
 use crate::codegen::common::{from_row_bounds, OrmliteCodegen};
 use crate::MetadataCache;
-use ormlite_attr::{ColumnMeta, Type};
 use ormlite_attr::Ident;
 use ormlite_attr::TableMeta;
+use ormlite_attr::{ColumnMeta, Type};
 use proc_macro2::TokenStream;
 use quote::quote;
 
@@ -16,18 +16,14 @@ pub fn impl_FromRow(db: &dyn OrmliteCodegen, attr: &TableMeta, cache: &MetadataC
         let meta = cache
             .get(c.joined_struct_name().unwrap().as_str())
             .expect("Joined struct not found");
-        let result = if c.is_join_many() {
-            unimplemented!("Join<Vec<...>> isn't supported quite yet...");
-        } else {
-            let prefixed_columns = meta.database_columns().map(|c| format!("__{}__{}", iden, c.ident));
-            let path = c.joined_model();
-            quote! {
-                #path::from_row_using_aliases(row, &[
-                    #(
-                        #prefixed_columns,
-                    )*
-                ])?
-            }
+        let prefixed_columns = meta.database_columns().map(|c| format!("__{}__{}", iden, c.ident));
+        let path = c.joined_model();
+        let result = quote! {
+            #path::from_row_using_aliases(row, &[
+                #(
+                    #prefixed_columns,
+                )*
+            ])?
         };
         quote! {
             #name => {
