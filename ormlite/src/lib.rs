@@ -4,6 +4,7 @@ pub use ormlite_core::BoxFuture;
 pub use ormlite_core::{Error, Result};
 pub use ormlite_macro::Enum;
 pub use sqlx::{Column, ColumnIndex, Database, Decode, Row};
+pub use tokio_stream::StreamExt;
 
 pub use sqlx::pool::PoolOptions;
 pub use sqlx::{
@@ -39,7 +40,6 @@ pub mod __private {
     pub use ormlite_core::join::{JoinDescription, SemanticJoinType};
     pub use sqlmo::query::Values;
     pub use sqlmo::Insert;
-    pub use tokio_stream::StreamExt;
 }
 
 #[cfg(feature = "postgres")]

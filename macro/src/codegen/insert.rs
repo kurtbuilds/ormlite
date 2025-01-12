@@ -57,10 +57,10 @@ pub fn impl_Model__insert(db: &dyn OrmliteCodegen, attr: &ModelMeta, metadata_ca
                         )*
                         // using fetch instead of fetch_one because of https://github.com/launchbadge/sqlx/issues/1370
                         let mut stream = q.fetch(&mut *conn);
-                        let mut model: Self = ::ormlite::__private::StreamExt::try_next(&mut stream)
+                        let mut model: Self = ::ormlite::StreamExt::try_next(&mut stream)
                             .await?
                             .ok_or_else(|| ::ormlite::Error::from(::ormlite::SqlxError::RowNotFound))?;
-                        ::ormlite::__private::StreamExt::try_next(&mut stream).await?;
+                        ::ormlite::StreamExt::try_next(&mut stream).await?;
                         #(
                             #late_bind
                         )*
@@ -102,10 +102,10 @@ pub fn impl_ModelBuilder__insert(db: &dyn OrmliteCodegen, attr: &TableMeta) -> T
                 #(#bind_parameters)*
                 // using fetch instead of fetch_one because of https://github.com/launchbadge/sqlx/issues/1370
                 let mut stream = q.fetch(db);
-                let model = ::ormlite::__private::StreamExt::try_next(&mut stream)
+                let model = ::ormlite::StreamExt::try_next(&mut stream)
                     .await?
                     .ok_or_else(|| ::ormlite::Error::from(::ormlite::SqlxError::RowNotFound))?;
-                ::ormlite::__private::StreamExt::try_next(&mut stream).await?;
+                ::ormlite::StreamExt::try_next(&mut stream).await?;
                 Ok(model)
             })
         }
@@ -173,10 +173,10 @@ pub fn impl_Insert(db: &dyn OrmliteCodegen, meta: &TableMeta, model: &Ident, ret
                     #(#insert_join)*
                     #(#query_bindings)*
                     let mut stream = q.fetch(&mut *conn);
-                    let mut model = ::ormlite::__private::StreamExt::try_next(&mut stream)
+                    let mut model = ::ormlite::StreamExt::try_next(&mut stream)
                         .await?
                         .ok_or_else(|| ::ormlite::Error::from(::ormlite::SqlxError::RowNotFound))?;
-                    ::ormlite::__private::StreamExt::try_next(&mut stream).await?;
+                    ::ormlite::StreamExt::try_next(&mut stream).await?;
                     #(#late_bind)*
                     Ok(model)
                 })
