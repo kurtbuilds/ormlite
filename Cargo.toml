@@ -19,3 +19,4 @@ ormlite-macro = { path = "macro", version = "0.22" }
 ormlite = { path = "ormlite", version = "0.22" }
 convert_case = "0.7.1"
 quote = "1.0"
+itertools = "0.14.0"

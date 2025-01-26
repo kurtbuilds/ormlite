@@ -41,6 +41,7 @@ pub struct InsertUser2 {
 
 #[tokio::main]
 async fn main() {
+    env_logger::init();
     let mut db = ormlite::sqlite::SqliteConnection::connect(":memory:").await.unwrap();
     let migration = setup::migrate_self(&[file!()]);
     for s in migration.statements {
@@ -134,4 +135,21 @@ async fn main() {
     assert_eq!(user.name, "Kloud");
     assert_eq!(user.ty, 8);
     assert_eq!(user.organization.id, 12321);
+
+    let orgs = vec![
+        Organization {
+            id: 1,
+            name: "bulk-org1".to_string(),
+        },
+        Organization {
+            id: 2,
+            name: "bulk-org2".to_string(),
+        },
+        Organization {
+            id: 3,
+            name: "bulk-org3".to_string(),
+        },
+    ];
+    let orgs = Organization::insert_many(orgs, &mut db).await.unwrap();
+    assert_eq!(orgs.len(), 3);
 }

@@ -1,91 +1,155 @@
-use ormlite::model::*;
-use ormlite::Connection;
-use uuid::Uuid;
+use ormlite::model::{Insert, Join, JoinMeta, Model};
+use serde::{Deserialize, Serialize};
+use serde_json::json;
+use sqlmo::ToSql;
 
-#[derive(Model, Debug)]
-pub struct Person {
-    id: Uuid,
+use ormlite::Connection;
+#[path = "../tests/setup.rs"]
+mod setup;
+
+#[derive(Debug, Model, Clone, Serialize, Deserialize)]
+pub struct Organization {
+    id: i32,
     name: String,
-    age: u8,
+}
+
+#[derive(Model)]
+#[ormlite(insert = "InsertUser", extra_derives(Serialize, Deserialize))]
+// Note the previous syntax, #[ormlite(insertable = InsertUser)] still works, but the new syntax is preferred.
+pub struct User {
+    id: i32,
+    name: String,
+    #[ormlite(default)]
+    secret: Option<String>,
+    #[ormlite(default_value = "5")]
+    number: i32,
+    #[ormlite(column = "type")]
+    ty: i32,
     #[ormlite(column = "org_id")]
     organization: Join<Organization>,
 }
 
-#[derive(Model, Clone, Debug)]
-#[ormlite(table = "orgs")]
-pub struct Organization {
-    id: Uuid,
+#[derive(Insert)]
+#[ormlite(returns = "User")]
+pub struct InsertUser2 {
     name: String,
+    number: i32,
+    #[ormlite(column = "type")]
+    ty: i32,
+    org_id: i32,
 }
 
-pub static CREATE_PERSON_SQL: &str = "CREATE TABLE person (id text PRIMARY KEY, name TEXT, age INTEGER, org_id text)";
-
-pub static CREATE_ORG_SQL: &str = "CREATE TABLE orgs (id text PRIMARY KEY, name TEXT)";
-
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() {
     env_logger::init();
     let mut db = ormlite::sqlite::SqliteConnection::connect(":memory:").await.unwrap();
-    ormlite::query(CREATE_PERSON_SQL).execute(&mut db).await?;
-    ormlite::query(CREATE_ORG_SQL).execute(&mut db).await?;
+    let migration = setup::migrate_self(&[file!()]);
+    for s in migration.statements {
+        let sql = s.to_sql(sqlmo::Dialect::Sqlite);
+        ormlite::query(&sql).execute(&mut db).await.unwrap();
+    }
 
     let org = Organization {
-        id: Uuid::new_v4(),
+        id: 12321,
         name: "my org".to_string(),
     };
-    let p1 = Person {
-        id: Uuid::new_v4(),
-        name: "John".to_string(),
-        age: 102,
+
+    let champ = InsertUser {
+        name: "Champ".to_string(),
         organization: Join::new(org.clone()),
+        ty: 12,
     }
     .insert(&mut db)
     .await
     .unwrap();
-    assert_eq!(
-        p1.organization.id, org.id,
-        "setting the org object should overwrite the org_id field on insert."
-    );
-    assert_eq!(p1.organization._id(), org.id);
 
-    let org = Organization::select()
-        .where_bind("id = ?", &org.id)
-        .fetch_one(&mut db)
-        .await
-        .unwrap();
-    assert_eq!(
-        org.name, "my org",
-        "org gets inserted even though we didn't manually insert it."
-    );
+    assert_eq!(champ.id, 1);
+    assert_eq!(champ.secret, None);
+    assert_eq!(champ.number, 5);
+    assert_eq!(champ.organization.id, 12321);
+    assert_eq!(champ.organization.name, "my org");
 
-    let p2 = Person {
-        id: Uuid::new_v4(),
-        name: "p2".to_string(),
-        age: 98,
+    let champ_copy = InsertUser {
+        name: "Champ".to_string(),
         organization: Join::new(org.clone()),
+        ty: 12,
+    };
+    let champ_json = json!(champ_copy).to_string();
+
+    assert_eq!(
+        champ_json,
+        r#"{"name":"Champ","organization":{"id":12321,"name":"my org"},"ty":12}"#
+    );
+
+    let champ_deserializing =
+        serde_json::from_str::<InsertUser>(r#"{"name":"Champ","organization":{"id":12321,"name":"my org"},"ty":12}"#);
+
+    let Ok(champ_deserialized) = champ_deserializing else {
+        panic!("Deserialize failing");
+    };
+
+    assert_eq!(champ_deserialized.name, champ_copy.name);
+    assert_eq!(champ_deserialized.organization.name, champ_copy.organization.name);
+
+    let millie = InsertUser {
+        name: "Millie".to_string(),
+        organization: Join::new(org),
+        ty: 3,
     }
     .insert(&mut db)
     .await
     .unwrap();
-    assert_eq!(
-        p2.organization.id, org.id,
-        "we can do insertion with an existing join obj, and it will pass the error."
-    );
+    assert_eq!(millie.id, 2);
+    assert_eq!(millie.secret, None);
+    assert_eq!(millie.number, 5);
+    assert_eq!(millie.organization.id, 12321);
+    assert_eq!(millie.organization.name, "my org");
 
-    let orgs = Organization::select().fetch_all(&mut db).await.unwrap();
-    assert_eq!(orgs.len(), 1, "exactly 1 orgs");
-
-    let people = Person::select().fetch_all(&mut db).await.unwrap();
-    assert_eq!(people.len(), 2, "exactly 2 people");
-
-    let people = Person::select()
-        .join(Person::organization())
-        .fetch_all(&mut db)
-        .await
-        .unwrap();
-    assert_eq!(people.len(), 2, "exactly 2 people");
-    for person in &people {
-        assert_eq!(person.organization.name, "my org", "we can join on the org");
+    let enoki = InsertUser {
+        name: "Enoki".to_string(),
+        organization: Join::new_with_id(12321),
+        ty: 6,
     }
-    Ok(())
+    .insert(&mut db)
+    .await
+    .unwrap();
+    assert_eq!(enoki.id, 3);
+    assert_eq!(enoki.secret, None);
+    assert_eq!(enoki.number, 5);
+    assert_eq!(enoki.organization.id, 12321);
+    assert_eq!(enoki.organization.loaded(), false);
+
+    let user = InsertUser2 {
+        name: "Kloud".to_string(),
+        number: 12,
+        ty: 8,
+        org_id: 12321,
+    }
+    .insert(&mut db)
+    .await
+    .unwrap();
+    assert_eq!(user.id, 4);
+    assert_eq!(user.name, "Kloud");
+    let user = User::fetch_one(4, &mut db).await.unwrap();
+    assert_eq!(user.id, 4);
+    assert_eq!(user.name, "Kloud");
+    assert_eq!(user.ty, 8);
+    assert_eq!(user.organization.id, 12321);
+
+    let orgs = vec![
+        Organization {
+            id: 1,
+            name: "bulk-org1".to_string(),
+        },
+        Organization {
+            id: 2,
+            name: "bulk-org2".to_string(),
+        },
+        Organization {
+            id: 3,
+            name: "bulk-org3".to_string(),
+        },
+    ];
+    let orgs = Organization::insert_many(orgs, &mut db).await.unwrap();
+    assert_eq!(orgs.len(), 3);
 }

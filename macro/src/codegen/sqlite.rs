@@ -7,6 +7,9 @@ use quote::quote;
 pub struct SqliteBackend {}
 
 impl OrmliteCodegen for SqliteBackend {
+    fn dialect_ts(&self) -> TokenStream {
+        quote! { ::ormlite::__private::Dialect::Sqlite }
+    }
     fn database_ts(&self) -> TokenStream {
         quote! { ::ormlite::sqlite::Sqlite }
     }

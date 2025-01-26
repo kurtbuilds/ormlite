@@ -1,5 +1,5 @@
 use crate::codegen::common::OrmliteCodegen;
-use crate::codegen::insert::impl_Model__insert;
+use crate::codegen::insert::{impl_Model__insert, impl_Model__insert_many};
 use crate::codegen::select::impl_Model__select;
 use crate::codegen::update::impl_Model__update_all_fields;
 use crate::MetadataCache;
@@ -12,6 +12,7 @@ pub fn impl_Model(db: &dyn OrmliteCodegen, attr: &ModelMeta, metadata_cache: &Me
     let partial_model = attr.builder_struct();
 
     let impl_Model__insert = impl_Model__insert(db, &attr, metadata_cache);
+    let impl_Model__insert_many = impl_Model__insert_many(db, &attr, metadata_cache);
     let impl_Model__update_all_fields = impl_Model__update_all_fields(db, attr);
     let impl_Model__delete = impl_Model__delete(db, attr);
     let impl_Model__fetch_one = impl_Model__fetch_one(db, attr);
@@ -24,6 +25,7 @@ pub fn impl_Model(db: &dyn OrmliteCodegen, attr: &ModelMeta, metadata_cache: &Me
             type ModelBuilder<'a> = #partial_model<'a> where Self: 'a;
 
             #impl_Model__insert
+            #impl_Model__insert_many
             #impl_Model__update_all_fields
             #impl_Model__delete
             #impl_Model__fetch_one

@@ -72,6 +72,7 @@ pub fn impl_FromRow(db: &dyn OrmliteCodegen, attr: &TableMeta, cache: &MetadataC
                 )*
         {
             fn from_row(row: &'a #row) -> ::std::result::Result<Self, ::ormlite::SqlxError> {
+                #[allow(unused_mut)]
                 let mut model = Self::from_row_using_aliases(row, &[
                     #(
                         #field_names,

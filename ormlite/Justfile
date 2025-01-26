@@ -71,8 +71,7 @@ alias r := run
 expand-run:
     mkdir -p examples
     touch examples/expand.rs
-    cp tests/sqlite/03-many-to-one-join.rs examples/expandable.rs
-    # cp tests/sqlite/03-many-to-one-join.rs examples/expandable.rs
+    cp tests/sqlite/06-insert.rs examples/expandable.rs
     sd -s '../setup.rs' '../tests/setup.rs' examples/expandable.rs -f
     printf '#![allow(unused)]\n' > examples/expand.rs
     printf '#![allow(internal_features)]\n' > examples/expand.rs
@@ -91,7 +90,7 @@ alias er := expand-run
 
 rerun:
     cargo +nightly run --example expand --features sqlite,uuid
-alias rr := expand-run
+alias rr := rerun
 
 backtrace:
     RUSTFLAGS="-Z macro-backtrace" cargo run --example many-to-one --features sqlite,runtime-tokio-rustls,uuid

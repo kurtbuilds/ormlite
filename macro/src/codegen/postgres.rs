@@ -7,6 +7,9 @@ use quote::quote;
 pub struct PostgresBackend;
 
 impl OrmliteCodegen for PostgresBackend {
+    fn dialect_ts(&self) -> TokenStream {
+        quote! { ::ormlite::__private::Dialect::Postgres }
+    }
     fn database_ts(&self) -> TokenStream {
         quote! { ::ormlite::postgres::Postgres }
     }

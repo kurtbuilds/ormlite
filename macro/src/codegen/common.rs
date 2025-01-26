@@ -140,6 +140,7 @@ pub fn insertion_binding(c: &ColumnMeta) -> TokenStream {
 }
 
 pub trait OrmliteCodegen {
+    fn dialect_ts(&self) -> TokenStream;
     fn database_ts(&self) -> TokenStream;
     fn placeholder_ts(&self) -> TokenStream;
     // A placeholder that works at the phase when its invoked (e.g. during comp time, it can be used.

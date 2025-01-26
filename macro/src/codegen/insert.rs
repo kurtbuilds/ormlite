@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use crate::codegen::common::{generate_conditional_bind, insertion_binding, OrmliteCodegen};
 use crate::MetadataCache;
 use ormlite_attr::ColumnMeta;
@@ -38,6 +39,7 @@ pub fn impl_Model__insert(db: &dyn OrmliteCodegen, attr: &ModelMeta, metadata_ca
     });
 
     quote! {
+        #[allow(unused_mut)]
         fn insert<'a, A>(mut self, conn: A) -> ::ormlite::__private::Insertion<'a, A, Self, #db>
             where
                 A: 'a + Send + ::ormlite::Acquire<'a, Database=#db>
@@ -132,11 +134,12 @@ pub fn impl_Insert(db: &dyn OrmliteCodegen, meta: &TableMeta, model: &Ident, ret
     let query_bindings = meta.database_columns().filter(|&c| !c.has_database_default).map(|c| {
         if let Some(rust_default) = &c.rust_default {
             let default: syn::Expr = syn::parse_str(&rust_default).expect("Failed to parse default_value");
-            return quote! {
+            quote! {
                 q = q.bind(#default);
-            };
+            }
+        } else {
+            insertion_binding(c)
         }
-        insertion_binding(c)
     });
 
     let insert_join = meta.many_to_one_joins().map(|c| insert_join(c));
@@ -152,6 +155,7 @@ pub fn impl_Insert(db: &dyn OrmliteCodegen, meta: &TableMeta, model: &Ident, ret
         impl ::ormlite::model::Insert<#db> for #model {
             type Model = #returns;
 
+            #[allow(unused_mut)]
             fn insert<'a, A>(self, db: A) -> #box_future<'a, ::ormlite::Result<Self::Model>>
             where
                 A: 'a + Send + ::ormlite::Acquire<'a, Database = #db>,
@@ -212,5 +216,56 @@ pub fn insert_join(c: &ColumnMeta) -> TokenStream {
         } else {
             model.#id
         };
+    }
+}
+
+pub fn impl_Model__insert_many(db: &dyn OrmliteCodegen, meta: &ModelMeta, _mc: &MetadataCache) -> TokenStream {
+    let box_future = crate::util::box_fut_ts();
+    let placeholder = db.placeholder_ts();
+    let dialect = db.dialect_ts();
+    let db = db.database_ts();
+
+    let query_bindings = meta.database_columns().map(|c| {
+        if let Some(rust_default) = &c.rust_default {
+            let default: syn::Expr = syn::parse_str(&rust_default).expect("Failed to parse default_value");
+            quote! {
+                q = q.bind(#default);
+            }
+        } else if c.is_join() {
+            let name = &c.ident;
+            quote! {
+                q = q.bind(model.#name._id());
+            }
+        } else {
+            insertion_binding(c)
+        }
+    }).collect_vec();
+
+    quote! {
+        fn insert_many<'e, E>(values: Vec<Self>, db: E) -> #box_future<'e, ::ormlite::Result<Vec<Self>>>
+        where
+            E: 'e + ::ormlite::Executor<'e, Database = #db>,
+        {
+            Box::pin(async move {
+                let table = <Self as ::ormlite::TableMeta>::table_name();
+                let columns = <Self as ::ormlite::TableMeta>::table_columns();
+                let mut sql_values = ::ormlite::__private::Values::Values(Vec::new());
+                for _ in 0..values.len() {
+                    let mut value = ::ormlite::__private::Value::new();
+                    value = value.placeholders(columns.len(), #dialect);
+                    sql_values = sql_values.value(value);
+                }
+                let sql = ::ormlite::__private::Insert::new(table)
+                    .columns(columns)
+                    .values(sql_values)
+                    .returning(columns);
+                let sql = ::ormlite::__private::ToSql::to_sql(&sql, #dialect);
+                let mut q = ::ormlite::query_as::<#db, Self>(&sql);
+                for model in values {
+                    #(#query_bindings)*
+                }
+                q.fetch_all(db).await.map_err(Into::into)
+            })
+        }
     }
 }

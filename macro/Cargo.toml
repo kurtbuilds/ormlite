@@ -21,11 +21,11 @@ default-postgres = ["postgres"]
 default-mysql = ["mysql"]
 
 [dependencies]
-syn = { version = "2", features = ["derive", "parsing"] }
-quote = "1"
-proc-macro2 = "1"
+syn.workspace = true
+quote.workspace = true
+proc-macro2.workspace = true
 ormlite-core.workspace = true
 ormlite-attr.workspace = true
 sqlx.workspace = true
-itertools = "0.13.0"
+itertools.workspace = true
 convert_case.workspace = true

@@ -7,6 +7,9 @@ use quote::quote;
 pub struct MysqlBackend {}
 
 impl OrmliteCodegen for MysqlBackend {
+    fn dialect_ts(&self) -> TokenStream {
+        quote! { ::ormlite::__private::Dialect::Mysql }
+    }
     fn database_ts(&self) -> TokenStream {
         quote! { ::ormlite::mysql::Mysql }
     }
