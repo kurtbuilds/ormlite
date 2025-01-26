@@ -1,3 +1,4 @@
+use crate::schema::schema_from_ormlite_project;
 use crate::util::create_runtime;
 use anyhow::Result;
 use clap::Parser;
@@ -6,7 +7,6 @@ use ormlite::{Acquire, Connection};
 use ormlite_core::config::{get_var_database_url, get_var_model_folders};
 use sqlmo::Schema;
 use sqlmo_sqlx::FromPostgres;
-use crate::schema::schema_from_ormlite_project;
 
 #[derive(Parser, Debug)]
 pub struct Info {

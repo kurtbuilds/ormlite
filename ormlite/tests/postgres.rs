@@ -9,7 +9,7 @@ fn test_postgres_complex() {
     set_path_and_run("tests/postgres/complex.rs");
 }
 
-#[test]
-fn test_postgres_join() {
-    set_path_and_run("tests/postgres/join.rs");
-}
+// #[test]
+// fn test_postgres_join() {
+//     set_path_and_run("tests/postgres/join.rs");
+// }

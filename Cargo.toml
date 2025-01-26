@@ -8,9 +8,8 @@ futures = "0.3.31"
 indexmap = { version = "2.7.0", features = ["serde"] }
 proc-macro2 = "1.0.92"
 serde = { version = "1.0.217", features = ["derive"] }
-# sqlmo = "0.22.7"
-sqlmo = { path = "../sqlmo", version = "0.22.7" }
-sqlmo_sqlx = "0.22"
+sqlmo = "0.23"
+sqlmo_sqlx = "0.23"
 sqlx = "0.8.2"
 sqlx-core = "0.8.2"
 syn = { version = "2.0.94", features = ["full"] }
@@ -18,5 +17,5 @@ ormlite-core = { path = "core", version = "0.22" }
 ormlite-attr = { path = "attr", version = "0.22" }
 ormlite-macro = { path = "macro", version = "0.22" }
 ormlite = { path = "ormlite", version = "0.22" }
-convert_case = "0.6"
+convert_case = "0.7.1"
 quote = "1.0"

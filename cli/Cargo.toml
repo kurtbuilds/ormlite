@@ -1,6 +1,6 @@
 [package]
 name = "ormlite-cli"
-version = "0.22.9"
+version = "0.22.0"
 edition = "2021"
 description = "An ORM for people who love SQL. Use the `ormlite` crate, not this one."
 authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
@@ -12,10 +12,6 @@ name = "ormlite"
 path = "src/main.rs"
 
 [features]
-#mysql = ["sqlx/mysql"]
-#sqlite = ["sqlx/sqlite"]
-#postgres = ["sqlx/postgres"]
-#runtime-tokio-rustls = ["sqlx/runtime-tokio-rustls"]
 default = [
     "ormlite/postgres",
     "ormlite/uuid",
@@ -47,7 +43,7 @@ tracing = "0.1"
 toml = { version = "0.8.19", features = ["preserve_order"] }
 serde = { version = "1.0.210", features = ["derive"] }
 indexmap = { version = "2.5.0", features = ["serde"] }
-dirs = "5.0.1"
+dirs = "6.0.0"
 
 [dev-dependencies]
 assert_matches = "1"

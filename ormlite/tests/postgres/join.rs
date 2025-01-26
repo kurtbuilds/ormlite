@@ -17,6 +17,7 @@ struct User {
     #[ormlite(column = "subscription_id")]
     subscription: Join<Option<Subscription>>,
 
+    // #[ormlite(foreign_field = Photo::user_id, sort = "id")]
     #[ormlite(foreign_field = Photo::user_id)]
     photos: Join<Vec<Photo>>,
 }
@@ -45,7 +46,7 @@ async fn main() {
     env_logger::init();
     let url = std::env::var("DATABASE_URL").unwrap();
     let mut conn = ormlite::postgres::PgConnection::connect(&url).await.unwrap();
-    query("drop table if exists users, organization, photo")
+    query("drop table if exists users, organization, photo, subscription")
         .execute(&mut conn)
         .await
         .unwrap();
