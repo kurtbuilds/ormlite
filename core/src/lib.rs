@@ -1,4 +1,5 @@
 pub use self::query_builder::SelectQueryBuilder;
+pub use error::{Error, Result};
 pub use futures::future::BoxFuture;
 pub use join::Join;
 
