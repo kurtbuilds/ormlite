@@ -1,3 +1,4 @@
+use crate::error;
 use crate::model::Model;
 use crate::query_builder::args::QueryBuilderArgs;
 use crate::query_builder::{util, Placeholder};

@@ -7,7 +7,7 @@
 ///  - `ormlite::TableMeta`, which you typically don't use directly, but provides table metadata
 ///    (e.g. table name)
 ///
-use crate::error::Result;
+use crate::error;
 use crate::SelectQueryBuilder;
 use futures::future::BoxFuture;
 
