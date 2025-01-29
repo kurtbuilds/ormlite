@@ -35,7 +35,7 @@ pub fn impl_Model__update_all_fields(db: &dyn OrmliteCodegen, attr: &ModelMeta) 
     });
 
     quote! {
-        fn update_all_fields<'e, E>(self, db: E) -> #box_future<'e, ::ormlite::CoreResult<Self>>
+        fn update_all_fields<'e, E>(self, db: E) -> #box_future<'e, ::ormlite::error::Result<Self>>
         where
             E: 'e +::ormlite::Executor<'e, Database = #db>,
         {
@@ -47,7 +47,7 @@ pub fn impl_Model__update_all_fields(db: &dyn OrmliteCodegen, attr: &ModelMeta) 
                 q.bind(model.#id)
                     .fetch_one(db)
                     .await
-                    .map_err(::ormlite::CoreError::from)
+                    .map_err(::ormlite::error::Error::from)
             })
         }
     }
@@ -66,7 +66,7 @@ pub fn impl_ModelBuilder__update(db: &dyn OrmliteCodegen, attr: &ModelMeta) -> T
     let bind_update = attr.database_columns().map(generate_conditional_bind);
     let id = &attr.pkey.ident;
     quote! {
-        fn update<'e: 'a, E>(self, db: E) -> #box_future<'a, ::ormlite::CoreResult<Self::Model>>
+        fn update<'e: 'a, E>(self, db: E) -> #box_future<'a, ::ormlite::error::Result<Self::Model>>
         where
             E: 'e +::ormlite::Executor<'e, Database = #db>,
         {
@@ -92,7 +92,7 @@ pub fn impl_ModelBuilder__update(db: &dyn OrmliteCodegen, attr: &ModelMeta) -> T
                 q = q.bind(update_id);
                 q.fetch_one(db)
                     .await
-                    .map_err(::ormlite::CoreError::from)
+                    .map_err(::ormlite::error::Error::from)
             })
         }
     }

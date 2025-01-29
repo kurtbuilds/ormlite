@@ -7,7 +7,7 @@
 ///  - `ormlite::TableMeta`, which you typically don't use directly, but provides table metadata
 ///    (e.g. table name)
 ///
-use crate::CoreResult;
+use crate::error::Result;
 use crate::SelectQueryBuilder;
 use futures::future::BoxFuture;
 
@@ -31,7 +31,7 @@ where
     DB: sqlx::Database,
 {
     type Model;
-    fn insert<'e, A>(self, conn: A) -> BoxFuture<'e, CoreResult<Self::Model>>
+    fn insert<'e, A>(self, conn: A) -> BoxFuture<'e, error::Result<Self::Model>>
     where
         A: 'e + Send + sqlx::Acquire<'e, Database = DB>;
 }
@@ -44,11 +44,11 @@ where
 {
     type Model;
 
-    fn insert<'e: 'a, E>(self, db: E) -> BoxFuture<'a, CoreResult<Self::Model>>
+    fn insert<'e: 'a, E>(self, db: E) -> BoxFuture<'a, error::Result<Self::Model>>
     where
         E: 'e + sqlx::Executor<'e, Database = DB>;
 
-    fn update<'e: 'a, E>(self, db: E) -> BoxFuture<'a, CoreResult<Self::Model>>
+    fn update<'e: 'a, E>(self, db: E) -> BoxFuture<'a, error::Result<Self::Model>>
     where
         E: 'e + sqlx::Executor<'e, Database = DB>;
 
@@ -77,16 +77,16 @@ where
 
     /// `Model` objects can't track what fields are updated, so this method will update all fields.
     /// If you want to update only some fields, use `update_partial` instead.
-    fn update_all_fields<'e, E>(self, db: E) -> BoxFuture<'e, CoreResult<Self>>
+    fn update_all_fields<'e, E>(self, db: E) -> BoxFuture<'e, error::Result<Self>>
     where
         E: 'e + Send + sqlx::Executor<'e, Database = DB>;
 
-    fn delete<'e, E>(self, db: E) -> BoxFuture<'e, CoreResult<()>>
+    fn delete<'e, E>(self, db: E) -> BoxFuture<'e, error::Result<()>>
     where
         E: 'e + sqlx::Executor<'e, Database = DB>;
 
     /// Get by primary key.
-    fn fetch_one<'e, 'a, Arg, E>(id: Arg, db: E) -> BoxFuture<'e, CoreResult<Self>>
+    fn fetch_one<'e, 'a, Arg, E>(id: Arg, db: E) -> BoxFuture<'e, error::Result<Self>>
     where
         'a: 'e,
         E: 'e + sqlx::Executor<'e, Database = DB>,

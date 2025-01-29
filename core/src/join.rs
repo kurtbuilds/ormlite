@@ -31,7 +31,7 @@ impl<T: JoinMeta> JoinMeta for Join<T> {
 
 #[async_trait]
 pub trait Loadable<DB, T: JoinMeta> {
-    async fn load<'s, 'e, E>(&'s mut self, db: E) -> crate::error::CoreResult<&'s T>
+    async fn load<'s, 'e, E>(&'s mut self, db: E) -> crate::error::error::Result<&'s T>
     where
         T::IdType: 'e + Send + Sync,
         E: 'e + sqlx::Executor<'e, Database = DB>;
@@ -131,7 +131,7 @@ where
     async fn load<'s, 'e, E: sqlx::Executor<'e, Database = DB> + 'e>(
         &'s mut self,
         conn: E,
-    ) -> crate::error::CoreResult<&'s T>
+    ) -> crate::error::error::Result<&'s T>
     where
         T::IdType: 'e + Send + Sync,
     {
@@ -248,4 +248,3 @@ where
         })
     }
 }
-

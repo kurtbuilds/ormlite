@@ -1,7 +1,7 @@
-pub type CoreResult<T, E = CoreError> = std::result::Result<T, E>;
+pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(Debug, thiserror::Error)]
-pub enum CoreError {
+pub enum Error {
     #[error(transparent)]
     SqlxError(#[from] sqlx::Error),
 

@@ -1,4 +1,4 @@
-use crate::CoreResult;
+use crate::error;
 use futures::future::BoxFuture;
 pub use sqlmo::query::OnConflict;
 use sqlmo::{Cte, Dialect, Insert, Select, SelectColumn, ToSql, Union};
@@ -8,7 +8,7 @@ use sqlmo::{Cte, Dialect, Insert, Select, SelectColumn, ToSql, Union};
 pub struct Insertion<'a, Acquire, Model, DB: sqlx::Database> {
     pub acquire: Acquire,
     pub model: Model,
-    pub closure: Box<dyn 'static + Send + FnOnce(Acquire, Model, String) -> BoxFuture<'a, CoreResult<Model>>>,
+    pub closure: Box<dyn 'static + Send + FnOnce(Acquire, Model, String) -> BoxFuture<'a, error::Result<Model>>>,
     pub insert: Insert,
     pub _db: std::marker::PhantomData<DB>,
 }
@@ -23,7 +23,7 @@ impl<'a, Acquire, Model, DB: sqlx::Database> Insertion<'a, Acquire, Model, DB> {
 impl<'a, Acquire, Model: crate::model::Model<DB>, DB: sqlx::Database> std::future::IntoFuture
     for Insertion<'a, Acquire, Model, DB>
 {
-    type Output = CoreResult<Model>;
+    type Output = error::Result<Model>;
     type IntoFuture = BoxFuture<'a, Self::Output>;
 
     fn into_future(self) -> Self::IntoFuture {

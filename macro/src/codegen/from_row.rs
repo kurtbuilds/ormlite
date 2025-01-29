@@ -58,7 +58,7 @@ pub fn impl_FromRow(db: &dyn OrmliteCodegen, attr: &TableMeta, cache: &MetadataC
                     )*
                     _ => {
                         return Err(::ormlite::SqlxError::Decode(
-                            Box::new(::ormlite::CoreError::OrmliteError(format!("Unknown column prefix: {}", prefix))),
+                            Box::new(::ormlite::error::Error::OrmliteError(format!("Unknown column prefix: {}", prefix))),
                         ));
                     }
                 }
