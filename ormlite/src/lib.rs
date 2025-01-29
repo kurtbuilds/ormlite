@@ -1,7 +1,10 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 pub use ::sqlx::{Column, ColumnIndex, Database, Decode, Row};
 pub use model::{FromRow, Insert, IntoArguments, Model, TableMeta};
-pub use ormlite_core::{error, BoxFuture};
+pub use ormlite_core::{
+    error::{Error, Result},
+    BoxFuture,
+};
 
 pub use ::sqlx::pool::PoolOptions;
 pub use ::sqlx::{
