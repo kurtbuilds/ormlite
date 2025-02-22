@@ -102,10 +102,12 @@ impl Intermediate {
 }
 
 pub fn schema_from_filepaths(paths: &[&Path]) -> anyhow::Result<OrmliteSchema> {
-    let cwd = env::var("CARGO_MANIFEST_DIR")
+    let cwd = env::var("CARGO_RUSTC_CURRENT_DIR")
+        .or_else(|_| env::var("CARGO_MANIFEST_DIR"))
         .map(PathBuf::from)
         .or_else(|_| env::current_dir())
         .expect("Failed to get current directory for schema");
+
     let paths = paths.iter().map(|p| cwd.join(p)).collect::<Vec<_>>();
     let invalid_paths = paths.iter().filter(|p| fs::metadata(p).is_err()).collect::<Vec<_>>();
     if !invalid_paths.is_empty() {
