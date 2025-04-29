@@ -98,6 +98,12 @@ pub fn impl_from_row_using_aliases(
         .columns
         .iter()
         .map(|c| {
+            if c.skip {
+                let id = &c.ident;
+                return quote! {
+                    let #id = Default::default();
+                };
+            }
             let index = incrementer.next().unwrap();
             let get = quote! { aliases[#index] };
             from_row_for_column(get, c)
@@ -126,11 +132,7 @@ pub fn impl_from_row_using_aliases(
 pub fn from_row_for_column(get_value: TokenStream, col: &ColumnMeta) -> TokenStream {
     let id = &col.ident;
     let ty = &col.ty;
-    if col.skip {
-        quote! {
-            let #id = Default::default();
-        }
-    } else if col.is_join() {
+    if col.is_join() {
         let id_id = Ident::from(format!("{}_id", id));
         quote! {
             let #id_id: <#ty as ::ormlite::model::JoinMeta>::IdType = ::ormlite::Row::try_get(row, #get_value)?;
