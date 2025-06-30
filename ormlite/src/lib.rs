@@ -4,7 +4,6 @@ pub use ormlite_core::BoxFuture;
 pub use ormlite_core::{Error, Result};
 pub use ormlite_macro::Enum;
 pub use sqlx::{Column, ColumnIndex, Database, Decode, Row};
-pub use tokio_stream::StreamExt;
 
 pub use sqlx::pool::PoolOptions;
 pub use sqlx::{

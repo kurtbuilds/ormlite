@@ -55,12 +55,10 @@ default-mysql = ["mysql", "ormlite-macro/default-mysql"]
 
 [dependencies]
 sqlx = { version = "0.8.2" }
-tokio = { version = "1.40.0", features = ["full"] }
 ormlite-macro.workspace = true
 ormlite-core.workspace = true
 sqlx-core.workspace = true
 sqlmo.workspace = true
-tokio-stream = "0.1.16"
 
 [dev-dependencies]
 trybuild = { version = "1.0.99", features = ["diff"] }
@@ -69,3 +67,4 @@ uuid = { version = "1.10.0", features = ["serde", "v4"] }
 serde = { version = "1.0.210", features = ["derive"] }
 serde_json = { version = "1.0.128" }
 chrono = { version = "0.4.38", features = ["serde"] }
+tokio = { version = "1.45.1", features = ["full"] }
