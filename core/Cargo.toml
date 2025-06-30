@@ -14,7 +14,6 @@ postgres = ["sqlx/postgres"]
 runtime-tokio-rustls = ["sqlx/runtime-tokio-rustls"]
 
 [dependencies]
-tokio = { version = "1", features = ["full"] }
 futures.workspace = true
 sqlx.workspace = true
 sqlparser = "0.51.0"
@@ -28,6 +27,7 @@ syn.workspace = true
 serde.workspace = true
 
 [dev-dependencies]
-syn = "2"
 assert_matches = "1"
+syn = "2"
+tokio = { version = "1", features = ["full"] }
 uuid = { version = "1", features = ["serde", "v4"] }
