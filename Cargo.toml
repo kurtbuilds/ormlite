@@ -8,8 +8,8 @@ futures = "0.3.31"
 indexmap = { version = "2.7.0", features = ["serde"] }
 proc-macro2 = "1.0.92"
 serde = { version = "1.0.217", features = ["derive"] }
-sqlmo = "0.23"
-sqlmo_sqlx = "0.23"
+sqlmo = "0.24"
+sqlmo_sqlx = "0.24"
 sqlx = "0.8.2"
 sqlx-core = "0.8.2"
 syn = { version = "2.0.94", features = ["full"] }

@@ -2,6 +2,8 @@ set dotenv-load
 set positional-arguments
 set export
 
+check:
+    cargo check
 test:
     just attr/test
     just core/test
