@@ -2,7 +2,7 @@ use crate::error::{Error, Result};
 use crate::model::Model;
 use crate::query_builder::args::QueryBuilderArgs;
 use crate::query_builder::{util, Placeholder};
-use sqlmo::{Expr, ToSql};
+use sqlmo::{Expr, OrderBy, ToSql};
 
 use crate::join::{criteria, select_columns, JoinDescription};
 use sqlmo::{query::Where, Select};
@@ -191,8 +191,8 @@ where
     /// # Arguments:
     /// * `clause`: The ORDER BY clause to add. "created_at DESC", "id ASC NULLS FIRST"
     /// * `direction`: Direction::Asc or Direction::Desc
-    pub fn order_by(mut self, clause: &str, direction: Direction) -> Self {
-        self.query = self.query.order_by(clause, direction);
+    pub fn order_by(mut self, order: OrderBy) -> Self {
+        self.query = self.query.order_by(order);
         self
     }
 
