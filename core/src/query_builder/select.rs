@@ -67,10 +67,13 @@ where
             .map_err(Error::from)
     }
 
-    pub async fn fetch_one<'executor, E>(self, db: E) -> Result<M>
+    pub async fn fetch_one<'executor, E>(mut self, db: E) -> Result<M>
     where
         E: Executor<'executor, Database = DB>,
     {
+        if self.query.limit.is_none() {
+            self.query.limit = Some(1);
+        }
         let (text, args) = self.into_query_and_args()?;
         let z: &str = &text;
         util::query_as_with_recast_lifetime::<DB, M>(z, args)
@@ -79,10 +82,13 @@ where
             .map_err(Error::from)
     }
 
-    pub async fn fetch_optional<'executor, E>(self, db: E) -> Result<Option<M>>
+    pub async fn fetch_optional<'executor, E>(mut self, db: E) -> Result<Option<M>>
     where
         E: Executor<'executor, Database = DB>,
     {
+        if self.query.limit.is_none() {
+            self.query.limit = Some(1);
+        }
         let (text, args) = self.into_query_and_args()?;
         let z: &str = &text;
         util::query_as_with_recast_lifetime::<DB, M>(z, args)
