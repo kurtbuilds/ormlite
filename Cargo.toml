@@ -2,6 +2,10 @@
 resolver = "2"
 members = ["macro", "core", "ormlite", "cli"]
 
+[workspace.package]
+version = "0.24.2"
+edition = "2024"
+
 [workspace.dependencies]
 anyhow = "1"
 futures = "0.3.31"

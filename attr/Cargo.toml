@@ -1,7 +1,7 @@
 [package]
 name = "ormlite-attr"
-version = "0.24.1"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 description = "See `ormlite`."
 authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
 license = "MIT"

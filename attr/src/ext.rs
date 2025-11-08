@@ -7,7 +7,7 @@ pub trait DeriveInputExt {
 impl DeriveInputExt for DeriveInput {
     fn fields(&self) -> syn::punctuated::Iter<'_, Field> {
         let fields = match &self.data {
-            Data::Struct(DataStruct { ref fields, .. }) => fields,
+            Data::Struct(DataStruct { fields, .. }) => fields,
             _ => panic!("#[ormlite] can only be used on structs"),
         };
         let fields = match fields {

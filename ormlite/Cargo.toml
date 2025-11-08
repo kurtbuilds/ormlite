@@ -1,7 +1,7 @@
 [package]
 name = "ormlite"
-version = "0.24.1"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 authors = ["Kurt Wolf <kurtwolfbuilds@gmail.com>"]
 description = "An ORM for people who love SQL"
 license = "MIT"

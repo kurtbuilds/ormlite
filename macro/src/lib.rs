@@ -15,13 +15,13 @@ use std::sync::OnceLock;
 use syn::DataEnum;
 
 use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput};
+use syn::{Data, DeriveInput, parse_macro_input};
 
 use codegen::into_arguments::impl_IntoArguments;
-use ormlite_attr::schema_from_filepaths;
 use ormlite_attr::DeriveInputExt;
 use ormlite_attr::ModelMeta;
 use ormlite_attr::TableMeta;
+use ormlite_attr::schema_from_filepaths;
 use ormlite_core::config::get_var_model_folders;
 
 use crate::codegen::common::OrmliteCodegen;
@@ -99,9 +99,11 @@ fn get_databases(table_meta: &TableMeta) -> Vec<Box<dyn OrmliteCodegen>> {
             count += 1;
         }
         if count > 1 {
-            panic!("You have more than one database configured using features, but no database is specified for this model. \
+            panic!(
+                "You have more than one database configured using features, but no database is specified for this model. \
             Specify a database for the model like this:\n\n#[ormlite(database = \"<db>\")]\n\nOr you can enable \
-            a default database feature:\n\n # Cargo.toml\normlite = {{ features = [\"default-<db>\"] }}");
+            a default database feature:\n\n # Cargo.toml\normlite = {{ features = [\"default-<db>\"] }}"
+            );
         }
     }
     if databases.is_empty() {
@@ -272,7 +274,7 @@ pub fn derive_ormlite_enum(input: TokenStream) -> TokenStream {
         .map(|v| v.to_string().to_case(Case::Snake))
         .collect();
 
-    let gen = quote! {
+    let placeholder = quote! {
         impl std::fmt::Display for #enum_name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 match self {
@@ -330,5 +332,5 @@ pub fn derive_ormlite_enum(input: TokenStream) -> TokenStream {
         }
     };
 
-    gen.into()
+    placeholder.into()
 }

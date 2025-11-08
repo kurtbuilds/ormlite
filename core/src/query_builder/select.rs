@@ -1,11 +1,11 @@
 use crate::error::{Error, Result};
 use crate::model::Model;
 use crate::query_builder::args::QueryBuilderArgs;
-use crate::query_builder::{util, Placeholder};
+use crate::query_builder::{Placeholder, util};
 use sql::{Expr, OrderBy, ToSql};
 
-use crate::join::{criteria, select_columns, JoinDescription};
-use sql::{query::Where, Select};
+use crate::join::{JoinDescription, criteria, select_columns};
+use sql::{Select, query::Where};
 use sqlx::{Executor, IntoArguments};
 use std::marker::PhantomData;
 
@@ -44,7 +44,7 @@ where
     pub query: Select,
     arguments: QueryBuilderArgs<'args, DB>,
     model: PhantomData<Model>,
-    gen: Placeholder,
+    placeholder: Placeholder,
 }
 
 impl<'args, DB, M> SelectQueryBuilder<'args, DB, M>
@@ -234,7 +234,7 @@ where
     pub fn into_query_and_args(mut self) -> Result<(String, QueryBuilderArgs<'args, DB>)> {
         let q = self.query.to_sql(DB::dialect());
         let args = self.arguments;
-        let (q, placeholder_count) = util::replace_placeholders(&q, &mut self.gen)?;
+        let (q, placeholder_count) = util::replace_placeholders(&q, &mut self.placeholder)?;
         if placeholder_count != args.len() {
             return Err(Error::OrmliteError(format!(
                 "Failing to build query. {} placeholders were found in the query, but \
@@ -253,7 +253,7 @@ impl<'args, DB: sqlx::Database + DatabaseMetadata, M: Model<DB>> Default for Sel
             query: Select::default().from(M::table_name()),
             arguments: QueryBuilderArgs::default(),
             model: PhantomData,
-            gen: DB::placeholder(),
+            placeholder: DB::placeholder(),
         }
     }
 }
