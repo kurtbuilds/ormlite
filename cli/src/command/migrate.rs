@@ -196,7 +196,7 @@ fn experimental_modifications_to_schema(schema: &mut Schema) -> Result<()> {
                     column.typ = Type::Uuid;
                 }
                 Type::Other(z) if z == "Timestamp" => {
-                    column.typ = Type::Timestamp;
+                    column.typ = Type::DateTime;
                 }
                 _ => {}
             }
