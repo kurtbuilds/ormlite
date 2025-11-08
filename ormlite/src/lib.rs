@@ -37,8 +37,8 @@ pub mod database {
 pub mod __private {
     pub use ormlite_core::insert::Insertion;
     pub use ormlite_core::join::JoinDescription;
-    pub use sqlmo::query::{Values, Value};
-    pub use sqlmo::{Insert, Dialect, ToSql};
+    pub use sql::query::{Values, Value};
+    pub use sql::{Insert, Dialect, ToSql};
 }
 
 #[cfg(feature = "postgres")]

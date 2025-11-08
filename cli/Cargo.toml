@@ -30,8 +30,8 @@ ormlite.workspace = true
 ormlite-core.workspace = true
 ormlite-attr.workspace = true
 tokio = { version = "1", features = ["full"] }
-sqlmo.workspace = true
-sqlmo_sqlx.workspace = true
+kurtbuilds_sql.workspace = true
+kurtbuilds_sql_sqlx.workspace = true
 syn = "2"
 proc-macro2 = "1"
 url = "2"

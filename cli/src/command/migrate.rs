@@ -5,8 +5,8 @@ use std::path::Path;
 
 use anyhow::{anyhow, Context, Error, Result};
 use clap::Parser;
-use sqlmo::{migrate::Statement, Dialect, Migration, Schema, ToSql};
-use sqlmo_sqlx::FromPostgres;
+use sql::{migrate::Statement, Dialect, Migration, Schema, ToSql};
+use sql_sqlx::FromPostgres;
 use time::macros::format_description;
 use time::OffsetDateTime as DateTime;
 use tokio::runtime::Runtime;
@@ -184,13 +184,19 @@ fn check_reversible_compatibility(reversible: bool, migration_environment: Optio
 #[allow(unused_variables)]
 fn experimental_modifications_to_schema(schema: &mut Schema) -> Result<()> {
     #[allow(unused_imports)]
-    use sqlmo::Type;
+    use sql::Type;
     for table in &mut schema.tables {
         for column in &mut table.columns {
             #[cfg(feature = "experimental-sid")]
             match &column.typ {
                 Type::Other(z) if z == "Sid" => {
                     column.typ = Type::Uuid;
+                }
+                Type::Other(z) if z == "Id" => {
+                    column.typ = Type::Uuid;
+                }
+                Type::Other(z) if z == "Timestamp" => {
+                    column.typ = Type::Timestamp;
                 }
                 _ => {}
             }
@@ -214,7 +220,7 @@ fn autogenerate_migration(
 
     let migration = current.migrate_to(
         desired,
-        &sqlmo::MigrationOptions {
+        &sql::MigrationOptions {
             debug: opts.verbose,
             allow_destructive: false,
         },

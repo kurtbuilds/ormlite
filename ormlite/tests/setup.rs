@@ -7,12 +7,12 @@
 ///
 
 #[allow(dead_code)]
-pub fn migrate_self(files: &[&str]) -> sqlmo::Migration {
+pub fn migrate_self(files: &[&str]) -> sql::Migration {
     use ormlite_core::schema::schema_from_ormlite_project;
     let paths = files.iter().map(std::path::Path::new).collect::<Vec<_>>();
     let cfg = ormlite_core::config::Config::default();
-    let schema: sqlmo::Schema = schema_from_ormlite_project(&paths, &cfg).unwrap();
-    let opt = sqlmo::MigrationOptions::default();
-    let migration = sqlmo::Schema::default().migrate_to(schema, &opt).unwrap();
+    let schema: sql::Schema = schema_from_ormlite_project(&paths, &cfg).unwrap();
+    let opt = sql::MigrationOptions::default();
+    let migration = sql::Schema::default().migrate_to(schema, &opt).unwrap();
     migration
 }

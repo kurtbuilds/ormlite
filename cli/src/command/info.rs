@@ -5,8 +5,8 @@ use clap::Parser;
 use ormlite::postgres::PgConnection;
 use ormlite::{Acquire, Connection};
 use ormlite_core::config::{get_var_database_url, get_var_model_folders};
-use sqlmo::Schema;
-use sqlmo_sqlx::FromPostgres;
+use sql::Schema;
+use sql_sqlx::FromPostgres;
 
 #[derive(Parser, Debug)]
 pub struct Info {

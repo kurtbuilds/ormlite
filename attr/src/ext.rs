@@ -1,11 +1,11 @@
 use syn::{Data, DataStruct, DeriveInput, Field, Fields, FieldsNamed};
 
 pub trait DeriveInputExt {
-    fn fields(&self) -> syn::punctuated::Iter<Field>;
+    fn fields(&self) -> syn::punctuated::Iter<'_, Field>;
 }
 
 impl DeriveInputExt for DeriveInput {
-    fn fields(&self) -> syn::punctuated::Iter<Field> {
+    fn fields(&self) -> syn::punctuated::Iter<'_, Field> {
         let fields = match &self.data {
             Data::Struct(DataStruct { ref fields, .. }) => fields,
             _ => panic!("#[ormlite] can only be used on structs"),

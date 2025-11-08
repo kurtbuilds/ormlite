@@ -58,7 +58,7 @@ sqlx = { version = "0.8.2" }
 ormlite-macro.workspace = true
 ormlite-core.workspace = true
 sqlx-core.workspace = true
-sqlmo.workspace = true
+kurtbuilds_sql.workspace = true
 
 [dev-dependencies]
 trybuild = { version = "1.0.99", features = ["diff"] }

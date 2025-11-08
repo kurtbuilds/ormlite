@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::path::Path;
-use sqlmo::{Constraint, Schema, Table};
+use sql::{Constraint, Schema, Table};
 use ormlite_attr::{schema_from_filepaths, Ident, InnerType, Type};
 use ormlite_core::schema::FromMeta;
 use anyhow::Result as AnyResult;

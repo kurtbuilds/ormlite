@@ -2,25 +2,23 @@ use crate::error::{Error, Result};
 use crate::model::Model;
 use crate::query_builder::args::QueryBuilderArgs;
 use crate::query_builder::{util, Placeholder};
-use sqlmo::{Expr, OrderBy, ToSql};
+use sql::{Expr, OrderBy, ToSql};
 
 use crate::join::{criteria, select_columns, JoinDescription};
-use sqlmo::{query::Where, Select};
+use sql::{query::Where, Select};
 use sqlx::{Executor, IntoArguments};
 use std::marker::PhantomData;
 
-pub use sqlmo::query::Direction;
-
 // Add additional information to the sqlx::Database
 pub trait DatabaseMetadata {
-    fn dialect() -> sqlmo::Dialect;
+    fn dialect() -> sql::Dialect;
     fn placeholder() -> Placeholder;
 }
 
 #[cfg(feature = "postgres")]
 impl DatabaseMetadata for sqlx::postgres::Postgres {
-    fn dialect() -> sqlmo::Dialect {
-        sqlmo::Dialect::Postgres
+    fn dialect() -> sql::Dialect {
+        sql::Dialect::Postgres
     }
 
     fn placeholder() -> Placeholder {
@@ -30,8 +28,8 @@ impl DatabaseMetadata for sqlx::postgres::Postgres {
 
 #[cfg(feature = "sqlite")]
 impl DatabaseMetadata for sqlx::sqlite::Sqlite {
-    fn dialect() -> sqlmo::Dialect {
-        sqlmo::Dialect::Sqlite
+    fn dialect() -> sql::Dialect {
+        sql::Dialect::Sqlite
     }
 
     fn placeholder() -> Placeholder {
@@ -155,9 +153,9 @@ where
                 foreign_key,
                 local_column,
             } => {
-                let join = sqlmo::query::Join {
-                    typ: sqlmo::query::JoinType::Left,
-                    table: sqlmo::query::JoinTable::Table {
+                let join = sql::query::Join {
+                    typ: sql::query::JoinType::Left,
+                    table: sql::query::JoinTable::Table {
                         schema: None,
                         table: foreign_table.to_string(),
                     },

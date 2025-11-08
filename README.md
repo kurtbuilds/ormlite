@@ -324,7 +324,7 @@ async fn query_builder_example() {
 ### Raw Query
 
 You can fall back to raw queries if the ORM methods don't work for you. You can include handwritten strings, or if
-you want a lower-level query builder, you can use [`sqlmo`](https://github.com/kurtbuilds/sqlmo),
+you want a lower-level query builder, you can use [`sql`](https://github.com/kurtbuilds/sql),
 the underlying engine that powers `ormlite`'s query builder & migration auto-generation.
 
 ```rust

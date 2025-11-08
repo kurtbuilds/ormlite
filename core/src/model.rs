@@ -97,7 +97,7 @@ where
         Arg: 'a + Send + sqlx::Encode<'a, DB> + sqlx::Type<DB>;
 
     /// If query building isn't meeting your needs, use this method to query the table using raw SQL.
-    fn query(query: &str) -> sqlx::query::QueryAs<DB, Self, DB::Arguments<'_>>;
+    fn query(query: &str) -> sqlx::query::QueryAs<'_, DB, Self, DB::Arguments<'_>>;
 
     /// Create a `SelectQueryBuilder` to build a query.
     fn select<'args>() -> SelectQueryBuilder<'args, DB, Self>;

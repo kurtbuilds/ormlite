@@ -1,11 +1,11 @@
-use std::collections::HashMap;
-use std::path::Path;
-use ormlite_attr::{schema_from_filepaths, ColumnMeta, Ident, InnerType};
+use crate::config::Config;
+use anyhow::Result as AnyResult;
 use ormlite_attr::ModelMeta;
 use ormlite_attr::Type;
-use sqlmo::{schema::Column, Constraint, Schema, Table};
-use anyhow::Result as AnyResult;
-use crate::config::Config;
+use ormlite_attr::{schema_from_filepaths, ColumnMeta, Ident, InnerType};
+use sql::{schema::Column, Constraint, Schema, Table};
+use std::collections::HashMap;
+use std::path::Path;
 
 pub fn schema_from_ormlite_project(paths: &[&Path], c: &Config) -> AnyResult<Schema> {
     let mut schema = Schema::default();
@@ -39,8 +39,11 @@ pub fn schema_from_ormlite_project(paths: &[&Path], c: &Config) -> AnyResult<Sch
         let table = Table::from_meta(&table);
         schema.tables.push(table);
     }
-    let mut table_names: HashMap<String, (String, String)> =
-        schema.tables.iter().map(|t| (t.name.clone(), (t.name.clone(), t.primary_key().unwrap().name.clone()))).collect();
+    let mut table_names: HashMap<String, (String, String)> = schema
+        .tables
+        .iter()
+        .map(|t| (t.name.clone(), (t.name.clone(), t.primary_key().unwrap().name.clone())))
+        .collect();
     for (alias, real) in &c.table.aliases {
         let Some(real) = table_names.get(real) else {
             continue;
@@ -95,7 +98,6 @@ impl FromMeta for Table {
             schema: None,
             name: model.name.clone(),
             columns,
-            indexes: vec![],
         }
     }
 }
@@ -105,7 +107,7 @@ impl FromMeta for Option<Column> {
     fn from_meta(meta: &Self::Input) -> Self {
         let mut ty = Nullable::from_type(&meta.ty)?;
         if meta.json {
-            ty.ty = sqlmo::Type::Jsonb;
+            ty.ty = sql::Type::Jsonb;
         }
         Some(Column {
             name: meta.name.clone(),
@@ -114,17 +116,18 @@ impl FromMeta for Option<Column> {
             nullable: ty.nullable,
             primary_key: meta.marked_primary_key,
             constraint: None,
+            generated: None,
         })
     }
 }
 
 struct Nullable {
-    pub ty: sqlmo::Type,
+    pub ty: sql::Type,
     pub nullable: bool,
 }
 
-impl From<sqlmo::Type> for Nullable {
-    fn from(value: sqlmo::Type) -> Self {
+impl From<sql::Type> for Nullable {
+    fn from(value: sql::Type) -> Self {
         Self {
             ty: value,
             nullable: false,
@@ -134,7 +137,7 @@ impl From<sqlmo::Type> for Nullable {
 
 impl Nullable {
     fn from_type(ty: &Type) -> Option<Self> {
-        use sqlmo::Type::*;
+        use sql::Type::*;
         match ty {
             Type::Vec(v) => {
                 if let Type::Inner(p) = v.as_ref() {
@@ -207,14 +210,14 @@ impl Nullable {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use anyhow::Result;
     use assert_matches::assert_matches;
     use ormlite_attr::Type;
     use syn::parse_str;
-    use anyhow::Result;
 
     #[test]
     fn test_convert_type() -> Result<()> {
-        use sqlmo::Type as SqlType;
+        use sql::Type as SqlType;
         let s = Type::from(&parse_str::<syn::Path>("String").unwrap());
         assert_matches!(Nullable::from_type(&s).unwrap().ty, SqlType::Text);
         let s = Type::from(&parse_str::<syn::Path>("u32").unwrap());
@@ -228,7 +231,7 @@ mod tests {
 
     #[test]
     fn test_support_vec() {
-        use sqlmo::Type as SqlType;
+        use sql::Type as SqlType;
         let s = Type::from(&parse_str::<syn::Path>("Vec<Uuid>").unwrap());
         let SqlType::Array(inner) = Nullable::from_type(&s).unwrap().ty else {
             panic!("Expected array");

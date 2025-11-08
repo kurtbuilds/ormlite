@@ -1,7 +1,7 @@
 use crate::Result;
 use futures::future::BoxFuture;
-pub use sqlmo::query::OnConflict;
-use sqlmo::{Dialect, Insert, ToSql};
+pub use sql::query::OnConflict;
+use sql::{Dialect, Insert, ToSql};
 
 /// Represents an insert query.
 /// We had to turn this into a model because we need to pass in the on_conflict configuration.

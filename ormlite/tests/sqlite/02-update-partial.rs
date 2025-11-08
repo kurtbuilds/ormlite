@@ -3,7 +3,7 @@ mod setup;
 
 use ormlite::model::*;
 use ormlite::Connection;
-use sqlmo::ToSql;
+use sql::ToSql;
 use uuid::Uuid;
 
 #[derive(Model)]
@@ -21,7 +21,7 @@ async fn main() {
         .unwrap();
     let migration = setup::migrate_self(&[file!()]);
     for s in migration.statements {
-        let sql = s.to_sql(sqlmo::Dialect::Sqlite);
+        let sql = s.to_sql(sql::Dialect::Sqlite);
         ormlite::query(&sql)
             .execute(&mut db)
             .await

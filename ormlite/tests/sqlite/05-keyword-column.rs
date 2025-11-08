@@ -1,6 +1,6 @@
 use ormlite::Model;
 use ormlite::TableMeta;
-use sqlmo::ToSql;
+use sql::ToSql;
 
 use ormlite::Connection;
 #[path = "../setup.rs"]
@@ -20,7 +20,7 @@ async fn main() {
         .unwrap();
     let migration = setup::migrate_self(&[file!()]);
     for s in migration.statements {
-        let sql = s.to_sql(sqlmo::Dialect::Sqlite);
+        let sql = s.to_sql(sql::Dialect::Sqlite);
         ormlite::query(&sql)
             .execute(&mut db)
             .await

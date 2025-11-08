@@ -2,9 +2,9 @@ use crate::model::Model;
 use serde::de::Error;
 use serde::Deserialize;
 use serde::{Serialize, Serializer};
-use sqlmo::query::Criteria;
-use sqlmo::query::SelectColumn;
-use sqlmo::{Expr, Operation, Where};
+use sql::query::Criteria;
+use sql::query::SelectColumn;
+use sql::{Expr, Operation, Where};
 use sqlx::{Database, Decode, Encode, Type};
 use std::ops::{Deref, DerefMut};
 

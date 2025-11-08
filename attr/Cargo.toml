@@ -22,7 +22,7 @@ structmeta = "0.3.0"
 convert_case.workspace = true
 anyhow.workspace = true
 ignore = "0.4"
-sqlmo.workspace = true
+kurtbuilds_sql.workspace = true
 tracing = "0.1"
 sqlformat = "=0.2.6"
 

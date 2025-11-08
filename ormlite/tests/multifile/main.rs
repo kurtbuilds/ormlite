@@ -10,7 +10,7 @@ use uuid::Uuid;
 use ormlite::model::*;
 use ormlite::sqlite::SqliteConnection;
 use ormlite::Connection;
-use sqlmo::ToSql;
+use sql::ToSql;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -19,7 +19,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         &std::path::Path::new(file!()).parent().unwrap().display().to_string(),
     ]);
     for s in migration.statements {
-        let sql = s.to_sql(sqlmo::Dialect::Sqlite);
+        let sql = s.to_sql(sql::Dialect::Sqlite);
         ormlite::query(&sql)
             .execute(&mut conn)
             .await?;

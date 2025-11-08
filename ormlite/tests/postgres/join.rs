@@ -1,6 +1,6 @@
 use ormlite::model::*;
 use ormlite::{query, Connection};
-use sqlmo::{Dialect, ToSql};
+use sql::{Dialect, ToSql};
 use uuid::Uuid;
 
 #[path = "../setup.rs"]

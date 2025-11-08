@@ -34,7 +34,7 @@ impl TableMeta {
             .map(|c| c.clone())
             .map(|c| c.name.clone());
         if pkey.is_none() {
-            let candidates = sqlmo::util::pkey_column_names(&name);
+            let candidates = sql::util::pkey_column_names(&name);
             if let Some(c) = columns.iter_mut().find(|c| candidates.iter().any(|n| c.ident == n)) {
                 c.has_database_default = true;
                 pkey = Some(c.name.clone());

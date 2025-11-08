@@ -3,7 +3,7 @@ mod setup;
 
 use ormlite::model::*;
 use ormlite::Connection;
-use sqlmo::ToSql;
+use sql::ToSql;
 use uuid::Uuid;
 
 #[derive(Model)]
@@ -22,7 +22,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut db = ormlite::sqlite::SqliteConnection::connect(":memory:").await.unwrap();
     let migration = crate::setup::migrate_self(&[file!()]);
     for s in migration.statements {
-        let sql = s.to_sql(sqlmo::Dialect::Sqlite);
+        let sql = s.to_sql(sql::Dialect::Sqlite);
         ormlite::query(&sql)
             .execute(&mut db)
             .await?;

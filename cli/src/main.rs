@@ -44,7 +44,7 @@ fn main() -> Result<()> {
             tracing_subscriber::filter::Targets::new()
                 .with_target(env!("CARGO_BIN_NAME"), level)
                 .with_target("ormlite_attr", level)
-                .with_target("sqlmo", level),
+                .with_target("sql", level),
         )
         .init();
     use Command::*;

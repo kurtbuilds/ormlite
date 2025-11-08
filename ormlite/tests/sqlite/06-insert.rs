@@ -1,7 +1,7 @@
 use ormlite::model::{Insert, Join, JoinMeta, Model};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sqlmo::ToSql;
+use sql::ToSql;
 
 use ormlite::Connection;
 #[path = "../setup.rs"]
@@ -45,7 +45,7 @@ async fn main() {
     let mut db = ormlite::sqlite::SqliteConnection::connect(":memory:").await.unwrap();
     let migration = setup::migrate_self(&[file!()]);
     for s in migration.statements {
-        let sql = s.to_sql(sqlmo::Dialect::Sqlite);
+        let sql = s.to_sql(sql::Dialect::Sqlite);
         ormlite::query(&sql).execute(&mut db).await.unwrap();
     }
 
