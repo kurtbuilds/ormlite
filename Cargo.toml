@@ -3,7 +3,7 @@ resolver = "2"
 members = ["macro", "core", "ormlite", "cli"]
 
 [workspace.package]
-version = "0.24.2"
+version = "0.24.3"
 edition = "2024"
 
 [workspace.dependencies]
