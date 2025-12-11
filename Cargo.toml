@@ -9,18 +9,18 @@ edition = "2024"
 [workspace.dependencies]
 anyhow = "1"
 futures = "0.3.31"
-indexmap = { version = "2.7.0", features = ["serde"] }
-proc-macro2 = "1.0.92"
-serde = { version = "1.0.217", features = ["derive"] }
+indexmap = { version = "2.12.0", features = ["serde"] }
+proc-macro2 = "1.0.103"
+serde = { version = "1.0.228", features = ["derive"] }
 kurtbuilds_sql = "0.26"
 kurtbuilds_sql_sqlx = "0.26"
-sqlx = "0.8.2"
-sqlx-core = "0.8.2"
-syn = { version = "2.0.94", features = ["full"] }
+sqlx = "0.8.6"
+sqlx-core = "0.8.6"
+syn = { version = "2.0.110", features = ["full"] }
 ormlite-core = { path = "core", version = "0.24" }
 ormlite-attr = { path = "attr", version = "0.24" }
 ormlite-macro = { path = "macro", version = "0.24" }
 ormlite = { path = "ormlite", version = "0.24" }
-convert_case = "0.7.1"
+convert_case = "0.9"
 quote = "1.0"
 itertools = "0.14.0"

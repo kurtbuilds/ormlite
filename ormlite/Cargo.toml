@@ -54,17 +54,17 @@ default-sqlite = ["sqlite", "ormlite-macro/default-sqlite"]
 default-mysql = ["mysql", "ormlite-macro/default-mysql"]
 
 [dependencies]
-sqlx = { version = "0.8.2" }
+sqlx = { version = "0.8.6" }
 ormlite-macro.workspace = true
 ormlite-core.workspace = true
 sqlx-core.workspace = true
 kurtbuilds_sql.workspace = true
 
 [dev-dependencies]
-trybuild = { version = "1.0.99", features = ["diff"] }
-env_logger = "0.11.5"
-uuid = { version = "1.10.0", features = ["serde", "v4"] }
-serde = { version = "1.0.210", features = ["derive"] }
-serde_json = { version = "1.0.128" }
-chrono = { version = "0.4.38", features = ["serde"] }
-tokio = { version = "1.45.1", features = ["full"] }
+trybuild = { version = "1.0.114", features = ["diff"] }
+env_logger = "0.11.8"
+uuid = { version = "1.18.1", features = ["serde", "v4"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = { version = "1.0.145" }
+chrono = { version = "0.4.42", features = ["serde"] }
+tokio = { version = "1.48.0", features = ["full"] }

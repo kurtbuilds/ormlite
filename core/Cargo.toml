@@ -16,8 +16,8 @@ runtime-tokio-rustls = ["sqlx/runtime-tokio-rustls"]
 [dependencies]
 futures.workspace = true
 sqlx.workspace = true
-sqlparser = "0.51.0"
-thiserror = "1"
+sqlparser = "0.59.0"
+thiserror = "2"
 kurtbuilds_sql.workspace = true
 ormlite-attr.workspace = true
 indexmap.workspace = true
