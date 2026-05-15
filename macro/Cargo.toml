@@ -14,7 +14,7 @@ proc-macro = true
 postgres = []
 sqlite = []
 mysql = []
-runtime-tokio-rustls = ["sqlx/runtime-tokio-rustls"]
+runtime-tokio-rustls = []
 
 default-sqlite = ["sqlite"]
 default-postgres = ["postgres"]
@@ -24,8 +24,6 @@ default-mysql = ["mysql"]
 syn.workspace = true
 quote.workspace = true
 proc-macro2.workspace = true
-ormlite-core.workspace = true
 ormlite-attr.workspace = true
-sqlx.workspace = true
 itertools.workspace = true
 convert_case.workspace = true

@@ -11,6 +11,8 @@ use std::collections::HashMap;
 use std::env;
 use std::env::var;
 use std::ops::Deref;
+use std::path::PathBuf;
+use std::str::FromStr;
 use std::sync::OnceLock;
 use syn::DataEnum;
 
@@ -22,7 +24,6 @@ use ormlite_attr::DeriveInputExt;
 use ormlite_attr::ModelMeta;
 use ormlite_attr::TableMeta;
 use ormlite_attr::schema_from_filepaths;
-use ormlite_core::config::get_var_model_folders;
 
 use crate::codegen::common::OrmliteCodegen;
 use crate::codegen::from_row::{impl_FromRow, impl_from_row_using_aliases};
@@ -34,12 +35,20 @@ use crate::codegen::model::impl_Model;
 use crate::codegen::model_builder::{impl_ModelBuilder, struct_ModelBuilder};
 
 mod codegen;
+mod placeholder;
 mod util;
 
 /// Mapping from StructName -> ModelMeta
 pub(crate) type MetadataCache = HashMap<String, ModelMeta>;
 
 static TABLES: OnceLock<MetadataCache> = OnceLock::new();
+
+const MODEL_FOLDERS: &str = ".";
+
+fn get_var_model_folders() -> Vec<PathBuf> {
+    let folders = var("MODEL_FOLDERS").unwrap_or_else(|_| MODEL_FOLDERS.to_string());
+    folders.split(',').map(|s| PathBuf::from_str(s).unwrap()).collect()
+}
 
 fn get_tables() -> &'static MetadataCache {
     TABLES.get_or_init(|| load_metadata_cache())

@@ -1,11 +1,11 @@
 use crate::MetadataCache;
+use crate::placeholder::Placeholder;
 use itertools::Itertools;
 use ormlite_attr::ColumnMeta;
 use ormlite_attr::Ident;
 use ormlite_attr::ModelMeta;
 use ormlite_attr::TableMeta;
 use ormlite_attr::{InnerType, Type};
-use ormlite_core::query_builder::Placeholder;
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use std::borrow::Cow;

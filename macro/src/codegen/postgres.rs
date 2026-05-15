@@ -1,6 +1,6 @@
 use crate::codegen::common::{from_row_bounds, OrmliteCodegen};
+use crate::placeholder::Placeholder;
 use crate::MetadataCache;
-use ormlite_core::query_builder::Placeholder;
 use proc_macro2::TokenStream;
 use quote::quote;
 
@@ -78,12 +78,12 @@ mod test {
         };
         assert_eq!(
             bounds.to_string(),
-            "u32 : :: ormlite :: decode :: Decode < 'a , R :: Database > , ".to_owned()
-                + "u32 : :: ormlite :: types :: Type < R :: Database > , "
-                + "String : :: ormlite :: decode :: Decode < 'a , R :: Database > , "
-                + "String : :: ormlite :: types :: Type < R :: Database > , "
-                + "bool : :: ormlite :: decode :: Decode < 'a , R :: Database > , "
-                + "bool : :: ormlite :: types :: Type < R :: Database > ,"
+            "u32 : :: ormlite :: decode :: Decode < 'a , :: ormlite :: postgres :: Postgres > , ".to_owned()
+                + "u32 : :: ormlite :: types :: Type < :: ormlite :: postgres :: Postgres > , "
+                + "String : :: ormlite :: decode :: Decode < 'a , :: ormlite :: postgres :: Postgres > , "
+                + "String : :: ormlite :: types :: Type < :: ormlite :: postgres :: Postgres > , "
+                + "bool : :: ormlite :: decode :: Decode < 'a , :: ormlite :: postgres :: Postgres > , "
+                + "bool : :: ormlite :: types :: Type < :: ormlite :: postgres :: Postgres > ,"
         );
     }
 }

@@ -1,0 +1,31 @@
+// Private copy of core's placeholder iterator, so the proc macro does not pull
+// runtime query-builder dependencies into host builds.
+pub enum Placeholder {
+    DollarSign(usize),
+    QuestionMark,
+}
+
+impl Placeholder {
+    pub fn dollar_sign() -> Self {
+        Placeholder::DollarSign(1)
+    }
+
+    pub fn question_mark() -> Self {
+        Placeholder::QuestionMark
+    }
+}
+
+impl Iterator for Placeholder {
+    type Item = String;
+
+    fn next(&mut self) -> Option<String> {
+        match *self {
+            Placeholder::DollarSign(ref mut i) => {
+                let r = Some(format!("${i}"));
+                *i += 1;
+                r
+            }
+            Placeholder::QuestionMark => Some("?".to_string()),
+        }
+    }
+}
