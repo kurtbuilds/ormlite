@@ -5,8 +5,8 @@ pub enum Error {
     #[error(transparent)]
     SqlxError(#[from] sqlx::Error),
 
-    #[error(transparent)]
-    TokenizationError(#[from] sqlparser::tokenizer::TokenizerError),
+    #[error("SQL tokenization error: {0}")]
+    TokenizationError(String),
 
     #[error("{0}")]
     OrmliteError(String),
