@@ -36,8 +36,7 @@ impl Up {
         let conn = runtime.block_on(conn.acquire()).unwrap();
 
         let executed = runtime.block_on(get_executed_migrations(conn))?;
-        let pending = get_pending_migrations(&folder)
-            .unwrap()
+        let pending = get_pending_migrations(&folder)?
             .into_iter()
             .filter(|m| m.migration_type() != MigrationType::Down)
             .collect::<Vec<_>>();
@@ -56,10 +55,6 @@ impl Up {
                 return Err(anyhow!("Migration {} was executed on the database, but was not found in your migrations folder. Your migrations are out of sync.", e.full_name()));
             }
         }
-        if executed.len() == pending.len() {
-            eprintln!("No migrations to run.");
-            return Ok(());
-        }
         let last_executed = executed.last().map(|m| m.name.clone()).unwrap_or("0_empty".to_string());
         let executed = executed.into_iter().map(|m| m.version).collect::<HashSet<_>>();
 
@@ -68,7 +63,11 @@ impl Up {
             .filter(|m| !executed.contains(&m.version))
             .collect::<Vec<_>>();
 
-        let is_simple = pending.last().as_ref().unwrap().migration_type() == MigrationType::Simple;
+        let Some(last_pending) = pending.last() else {
+            eprintln!("No migrations to run.");
+            return Ok(());
+        };
+        let is_simple = last_pending.migration_type() == MigrationType::Simple;
         if (is_simple && !self.no_snapshot) || (!is_simple && self.snapshot) {
             eprintln!("Creating snapshot...");
             let snapshot_folder = get_var_snapshot_folder();

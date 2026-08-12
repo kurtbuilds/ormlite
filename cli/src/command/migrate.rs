@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
@@ -59,7 +60,7 @@ impl MigrationMetadata {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Hash)]
 pub enum MigrationType {
     Simple,
     Up,
@@ -144,6 +145,19 @@ pub fn get_pending_migrations(folder: &Path) -> Result<Vec<MigrationMetadata>> {
         })
         .collect::<Result<Vec<_>, _>>()?;
     migrations.sort();
+
+    // `version` is the primary key of the migration table, so two files sharing a version means one
+    // of them can never be recorded, and would be silently skipped forever.
+    let mut seen = HashSet::new();
+    for m in &migrations {
+        if !seen.insert((m.version, m.migration_type())) {
+            return Err(anyhow!(
+                "Multiple migrations in {} share the version {}. Versions must be unique. Rename one of them.",
+                folder.display(),
+                m.version
+            ));
+        }
+    }
     Ok(migrations)
 }
 
