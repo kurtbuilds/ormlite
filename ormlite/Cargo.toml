@@ -36,8 +36,8 @@ required-features = ["postgres"]
 [features]
 mysql = ["sqlx/mysql", "ormlite-macro/mysql"]
 sqlite = ["sqlx/sqlite", "ormlite-macro/sqlite", "ormlite-core/sqlite"]
-postgres = ["sqlx/postgres", "ormlite-macro/postgres", "ormlite-core/postgres"]
-runtime-tokio-rustls = ["ormlite-macro/runtime-tokio-rustls", "sqlx/runtime-tokio-rustls", "ormlite-core/runtime-tokio-rustls"]
+postgres = ["sqlx/postgres", "ormlite-macro/postgres", "ormlite-core/postgres", "dep:whoami"]
+runtime-tokio-rustls = ["ormlite-macro/runtime-tokio-rustls", "sqlx/runtime-tokio", "sqlx/tls-rustls", "ormlite-core/runtime-tokio-rustls"]
 uuid = ["sqlx/uuid"]
 decimal = ["sqlx/rust_decimal"]
 chrono = ["sqlx/chrono"]
@@ -54,11 +54,14 @@ default-sqlite = ["sqlite", "ormlite-macro/default-sqlite"]
 default-mysql = ["mysql", "ormlite-macro/default-mysql"]
 
 [dependencies]
-sqlx = { version = "0.8.6" }
+sqlx.workspace = true
 ormlite-macro.workspace = true
 ormlite-core.workspace = true
 sqlx-core.workspace = true
 kurtbuilds_sql.workspace = true
+# sqlx-postgres 0.9 depends on whoami without its `std` feature, so the default username
+# resolves to "anonymous". Enabling `std` here restores the OS username lookup.
+whoami = { version = "2", default-features = false, features = ["std"], optional = true }
 
 [dev-dependencies]
 trybuild = { version = "1.0.114", features = ["diff"] }

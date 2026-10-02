@@ -53,6 +53,6 @@ async fn main() {
     let migration = setup::migrate_self(&[file!()]);
     for s in migration.statements {
         let sql = s.to_sql(Dialect::Postgres);
-        query(&sql).execute(&mut conn).await.unwrap();
+        query(ormlite::AssertSqlSafe(sql.as_str())).execute(&mut conn).await.unwrap();
     }
 }

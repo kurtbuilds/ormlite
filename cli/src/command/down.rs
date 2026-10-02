@@ -109,7 +109,7 @@ impl Down {
                 user = var("USER")?
             }
 
-            runtime.block_on(conn.execute(&*CLEAR_DATABASE_QUERY.replace("$USER", &user)))?;
+            runtime.block_on(conn.execute(ormlite::AssertSqlSafe(CLEAR_DATABASE_QUERY.replace("$USER", &user))))?;
             let restore_file = fs::File::open(snapshot_folder.join(backup))?;
             std::process::Command::new("psql")
                 .arg(url)
@@ -146,7 +146,7 @@ impl Down {
                 } else {
                     let body = fs::read_to_string(&file_path)?;
                     let conn = &mut *conn;
-                    runtime.block_on(conn.execute(&*body))?;
+                    runtime.block_on(conn.execute(ormlite::AssertSqlSafe(body.as_str())))?;
                     let mut args = PgArguments::default();
                     args.add(migration.version).map_err(|e| anyhow!(e))?;
                     let q = ormlite::query_with("DELETE FROM _sqlx_migrations WHERE version = $1", args);

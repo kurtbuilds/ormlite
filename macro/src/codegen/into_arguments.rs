@@ -25,9 +25,9 @@ pub fn impl_IntoArguments(db: &dyn OrmliteCodegen, attr: &TableMeta) -> TokenStr
     });
 
     quote! {
-        impl<'a> ::ormlite::IntoArguments<'a, #db> for #model {
-            fn into_arguments(self) -> <#db as ::ormlite::Database>::Arguments<'a> {
-                let mut args = <#db as ::ormlite::Database>::Arguments::<'a>::default();
+        impl ::ormlite::IntoArguments<#db> for #model {
+            fn into_arguments(self) -> <#db as ::ormlite::Database>::Arguments {
+                let mut args = <#db as ::ormlite::Database>::Arguments::default();
                 #(
                     #params
                 )*

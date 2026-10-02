@@ -11,7 +11,7 @@ repository = "https://github.com/kurtbuilds/ormlite"
 mysql = ["sqlx/mysql"]
 sqlite = ["sqlx/sqlite"]
 postgres = ["sqlx/postgres"]
-runtime-tokio-rustls = ["sqlx/runtime-tokio-rustls"]
+runtime-tokio-rustls = ["sqlx/runtime-tokio", "sqlx/tls-rustls"]
 
 [dependencies]
 futures.workspace = true

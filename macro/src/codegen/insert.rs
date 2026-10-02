@@ -53,7 +53,7 @@ pub fn impl_Model__insert(db: &dyn OrmliteCodegen, attr: &ModelMeta, metadata_ca
                         #(
                             #insert_join
                         )*
-                        let mut q = ::ormlite::query_as(&query);
+                        let mut q = ::ormlite::query_as(::ormlite::AssertSqlSafe(query));
                         #(
                             #query_bindings
                         )*
@@ -95,7 +95,7 @@ pub fn impl_ModelBuilder__insert(db: &dyn OrmliteCodegen, attr: &TableMeta) -> T
                     set_fields.join(", "),
                     set_fields.iter().map(|_| placeholder.next().unwrap()).collect::<Vec<_>>().join(", "),
                 );
-                let mut q = ::ormlite::query_as::<#db, Self::Model>(&query);
+                let mut q = ::ormlite::query_as::<#db, Self::Model>(::ormlite::AssertSqlSafe(query));
                 #(#bind_parameters)*
                 let model = q.fetch_one(db).await?;
                 Ok(model)
@@ -260,7 +260,7 @@ pub fn impl_Model__insert_many(db: &dyn OrmliteCodegen, meta: &ModelMeta, _mc: &
                     .values(sql_values)
                     .returning(columns);
                 let sql = ::ormlite::__private::ToSql::to_sql(&sql, #dialect);
-                let mut q = ::ormlite::query_as::<#db, Self>(&sql);
+                let mut q = ::ormlite::query_as::<#db, Self>(::ormlite::AssertSqlSafe(sql));
                 for model in values {
                     #(#query_bindings)*
                 }

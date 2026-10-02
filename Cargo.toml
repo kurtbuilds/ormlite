@@ -3,7 +3,7 @@ resolver = "2"
 members = ["macro", "core", "ormlite", "cli"]
 
 [workspace.package]
-version = "0.24.5"
+version = "0.25.0"
 edition = "2024"
 
 [workspace.dependencies]
@@ -12,15 +12,15 @@ futures = "0.3.31"
 indexmap = { version = "2.12.0", features = ["serde"] }
 proc-macro2 = "1.0.103"
 serde = { version = "1.0.228", features = ["derive"] }
-kurtbuilds_sql = "0.26"
-kurtbuilds_sql_sqlx = "0.26"
-sqlx = "0.8.6"
-sqlx-core = "0.8.6"
+kurtbuilds_sql = "0.27"
+kurtbuilds_sql_sqlx = "0.27"
+sqlx = "0.9.0"
+sqlx-core = "0.9.0"
 syn = { version = "2.0.110", features = ["full"] }
-ormlite-core = { path = "core", version = "0.24" }
-ormlite-attr = { path = "attr", version = "0.24" }
-ormlite-macro = { path = "macro", version = "0.24" }
-ormlite = { path = "ormlite", version = "0.24" }
+ormlite-core = { path = "core", version = "0.25" }
+ormlite-attr = { path = "attr", version = "0.25" }
+ormlite-macro = { path = "macro", version = "0.25" }
+ormlite = { path = "ormlite", version = "0.25" }
 convert_case = "0.9"
 quote = "1.0"
 itertools = "0.14.0"

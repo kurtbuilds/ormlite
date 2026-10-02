@@ -21,7 +21,7 @@ async fn main() {
     let migration = setup::migrate_self(&[file!()]);
     for s in migration.statements {
         let sql = s.to_sql(sql::Dialect::Sqlite);
-        ormlite::query(&sql)
+        ormlite::query(ormlite::AssertSqlSafe(sql.as_str()))
             .execute(&mut db)
             .await
             .unwrap();

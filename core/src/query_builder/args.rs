@@ -1,10 +1,10 @@
 use core::default::Default;
 use sqlx::{Arguments, Database, IntoArguments};
 
-pub struct QueryBuilderArgs<'q, DB: Database>(pub Box<DB::Arguments<'q>>, usize);
+pub struct QueryBuilderArgs<DB: Database>(pub Box<DB::Arguments>, usize);
 
-impl<'q, DB: Database> QueryBuilderArgs<'q, DB> {
-    pub fn add<T: 'q + Send + sqlx::Encode<'q, DB> + sqlx::Type<DB>>(&mut self, arg: T) {
+impl<DB: Database> QueryBuilderArgs<DB> {
+    pub fn add<'t, T: Send + sqlx::Encode<'t, DB> + sqlx::Type<DB>>(&mut self, arg: T) {
         self.0.add(arg).unwrap();
         self.1 += 1;
     }
@@ -14,13 +14,13 @@ impl<'q, DB: Database> QueryBuilderArgs<'q, DB> {
     }
 }
 
-impl<'q, DB: Database> IntoArguments<'q, DB> for QueryBuilderArgs<'q, DB> {
-    fn into_arguments(self) -> DB::Arguments<'q> {
+impl<DB: Database> IntoArguments<DB> for QueryBuilderArgs<DB> {
+    fn into_arguments(self) -> DB::Arguments {
         *self.0
     }
 }
 
-impl<'q, DB: Database> Default for QueryBuilderArgs<'q, DB> {
+impl<DB: Database> Default for QueryBuilderArgs<DB> {
     fn default() -> Self {
         Self(Box::default(), 0)
     }

@@ -94,7 +94,7 @@ impl Up {
 
             let start = Instant::now();
             runtime
-                .block_on(conn.execute(&*body))
+                .block_on(conn.execute(ormlite::AssertSqlSafe(body.as_str())))
                 .map_err(|e| anyhow!("Error while running migration {}: {}", &migration.name, e))?;
             let elapsed = start.elapsed();
 

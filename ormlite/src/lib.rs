@@ -7,7 +7,8 @@ pub use sqlx::{Column, ColumnIndex, Database, Decode, Row};
 
 pub use sqlx::pool::PoolOptions;
 pub use sqlx::{
-    query, query_as, query_as_with, query_with, Acquire, Arguments, ConnectOptions, Connection, Encode, Executor, Pool,
+    query, query_as, query_as_with, query_with, Acquire, Arguments, AssertSqlSafe, ConnectOptions, Connection, Encode,
+    Executor, Pool, SqlSafeStr, SqlStr,
 };
 
 pub mod model;

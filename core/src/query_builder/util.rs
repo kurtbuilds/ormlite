@@ -1,6 +1,4 @@
-use crate::query_builder::args::QueryBuilderArgs;
 use crate::Result;
-use sqlx::query::QueryAs;
 
 pub fn replace_placeholders<T: Iterator<Item = String>>(
     sql: &str,
@@ -157,22 +155,6 @@ fn dollar_quote_delimiter(sql: &str, cursor: usize) -> Option<(&str, usize)> {
         }
         _ => None,
     }
-}
-
-pub(super) fn query_as_with_recast_lifetime<'q, 'r, DB, Model>(
-    s: &'q str,
-    args: QueryBuilderArgs<'r, DB>,
-) -> QueryAs<'q, DB, Model, QueryBuilderArgs<'q, DB>>
-where
-    'r: 'q,
-    DB: sqlx::Database,
-    Model: for<'s> sqlx::FromRow<'s, DB::Row>,
-{
-    // unsafe is safe b/c 'r: 'q. Rust isn't smart enough to know that downcasting of traits is safe, because when traits get lifetimes, it doesn't
-    // know if the lifetime is covariant or contravariant, so it enforces equivalence. See: https://www.reddit.com/r/rust/comments/rox4j9/lifetime_inference_fails_when_lifetime_is_part_of/
-    // But we know the trait is implemented by a struct, not a function, so we can do the downcast safely. Yay!
-    let recast_args = unsafe { std::mem::transmute::<_, QueryBuilderArgs<'q, DB>>(args) };
-    sqlx::query_as_with(s, recast_args)
 }
 
 #[cfg(test)]

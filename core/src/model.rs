@@ -97,10 +97,10 @@ where
         Arg: 'a + Send + sqlx::Encode<'a, DB> + sqlx::Type<DB>;
 
     /// If query building isn't meeting your needs, use this method to query the table using raw SQL.
-    fn query(query: &str) -> sqlx::query::QueryAs<'_, DB, Self, DB::Arguments<'_>>;
+    fn query(query: impl sqlx::SqlSafeStr) -> sqlx::query::QueryAs<'static, DB, Self, DB::Arguments>;
 
     /// Create a `SelectQueryBuilder` to build a query.
-    fn select<'args>() -> SelectQueryBuilder<'args, DB, Self>;
+    fn select() -> SelectQueryBuilder<DB, Self>;
 
     /// Create a builder-pattern object to update one or more columns.
     /// You can also use `update_all_fields` to update all columns.

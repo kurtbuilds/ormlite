@@ -20,7 +20,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ]);
     for s in migration.statements {
         let sql = s.to_sql(sql::Dialect::Sqlite);
-        ormlite::query(&sql)
+        ormlite::query(ormlite::AssertSqlSafe(sql.as_str()))
             .execute(&mut conn)
             .await?;
     }

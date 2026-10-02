@@ -6,7 +6,7 @@ use sql::{Expr, OrderBy, ToSql};
 
 use crate::join::{JoinDescription, criteria, select_columns};
 use sql::{Select, query::Where};
-use sqlx::{Executor, IntoArguments};
+use sqlx::{AssertSqlSafe, Executor};
 use std::marker::PhantomData;
 
 // Add additional information to the sqlx::Database
@@ -37,29 +37,27 @@ impl DatabaseMetadata for sqlx::sqlite::Sqlite {
     }
 }
 
-pub struct SelectQueryBuilder<'args, DB, Model>
+pub struct SelectQueryBuilder<DB, Model>
 where
     DB: sqlx::Database,
 {
     pub query: Select,
-    arguments: QueryBuilderArgs<'args, DB>,
+    arguments: QueryBuilderArgs<DB>,
     model: PhantomData<Model>,
     placeholder: Placeholder,
 }
 
-impl<'args, DB, M> SelectQueryBuilder<'args, DB, M>
+impl<DB, M> SelectQueryBuilder<DB, M>
 where
     M: Sized + Send + Sync + Unpin + for<'r> sqlx::FromRow<'r, DB::Row> + 'static + Model<DB>,
     DB: sqlx::Database + DatabaseMetadata,
-    DB::Arguments<'args>: IntoArguments<'args, DB>,
 {
     pub async fn fetch_all<'executor, E>(self, db: E) -> Result<Vec<M>>
     where
         E: Executor<'executor, Database = DB>,
     {
         let (text, args) = self.into_query_and_args()?;
-        let z: &str = &text;
-        util::query_as_with_recast_lifetime::<DB, M>(z, args)
+        sqlx::query_as_with::<DB, M, _>(AssertSqlSafe(text), args)
             .fetch_all(db)
             .await
             .map_err(Error::from)
@@ -73,8 +71,7 @@ where
             self.query.limit = Some(1);
         }
         let (text, args) = self.into_query_and_args()?;
-        let z: &str = &text;
-        util::query_as_with_recast_lifetime::<DB, M>(z, args)
+        sqlx::query_as_with::<DB, M, _>(AssertSqlSafe(text), args)
             .fetch_one(db)
             .await
             .map_err(Error::from)
@@ -88,8 +85,7 @@ where
             self.query.limit = Some(1);
         }
         let (text, args) = self.into_query_and_args()?;
-        let z: &str = &text;
-        util::query_as_with_recast_lifetime::<DB, M>(z, args)
+        sqlx::query_as_with::<DB, M, _>(AssertSqlSafe(text), args)
             .fetch_optional(db)
             .await
             .map_err(Error::from)
@@ -129,9 +125,9 @@ where
     }
 
     /// Convenience method to add a `WHERE` and bind a value in one call.
-    pub fn where_bind<T>(mut self, clause: &'static str, value: T) -> Self
+    pub fn where_bind<'t, T>(mut self, clause: &'static str, value: T) -> Self
     where
-        T: 'args + Send + sqlx::Type<DB> + sqlx::Encode<'args, DB>,
+        T: Send + sqlx::Type<DB> + sqlx::Encode<'t, DB>,
     {
         self.query = self.query.where_raw(clause);
         self.arguments.add(value);
@@ -223,15 +219,15 @@ where
     }
 
     /// Bind an argument to the query.
-    pub fn bind<T>(mut self, value: T) -> Self
+    pub fn bind<'t, T>(mut self, value: T) -> Self
     where
-        T: 'args + Send + sqlx::Type<DB> + sqlx::Encode<'args, DB>,
+        T: Send + sqlx::Type<DB> + sqlx::Encode<'t, DB>,
     {
         self.arguments.add(value);
         self
     }
 
-    pub fn into_query_and_args(mut self) -> Result<(String, QueryBuilderArgs<'args, DB>)> {
+    pub fn into_query_and_args(mut self) -> Result<(String, QueryBuilderArgs<DB>)> {
         let q = self.query.to_sql(DB::dialect());
         let args = self.arguments;
         let (q, placeholder_count) = util::replace_placeholders(&q, &mut self.placeholder)?;
@@ -247,7 +243,7 @@ where
     }
 }
 
-impl<'args, DB: sqlx::Database + DatabaseMetadata, M: Model<DB>> Default for SelectQueryBuilder<'args, DB, M> {
+impl<DB: sqlx::Database + DatabaseMetadata, M: Model<DB>> Default for SelectQueryBuilder<DB, M> {
     fn default() -> Self {
         Self {
             query: Select::default().from(M::table_name()),

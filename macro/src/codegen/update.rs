@@ -87,7 +87,7 @@ pub fn impl_ModelBuilder__update(db: &dyn OrmliteCodegen, attr: &ModelMeta) -> T
                     set_fields.into_iter().map(|f| format!("\"{}\" = {}", f, placeholder.next().unwrap())).collect::<Vec<_>>().join(", "),
                     placeholder.next().unwrap()
                 );
-                let mut q =::ormlite::query_as::<#db, Self::Model>(&query);
+                let mut q =::ormlite::query_as::<#db, Self::Model>(::ormlite::AssertSqlSafe(query));
                 #(#bind_update)*
                 q = q.bind(update_id);
                 q.fetch_one(db)

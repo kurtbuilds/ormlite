@@ -23,7 +23,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let migration = crate::setup::migrate_self(&[file!()]);
     for s in migration.statements {
         let sql = s.to_sql(sql::Dialect::Sqlite);
-        ormlite::query(&sql)
+        ormlite::query(ormlite::AssertSqlSafe(sql.as_str()))
             .execute(&mut db)
             .await?;
     }

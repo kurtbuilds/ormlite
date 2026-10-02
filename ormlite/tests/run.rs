@@ -11,7 +11,7 @@ const FOO: &str = env!("CARGO_MANIFEST_DIR");
 pub fn set_path_and_run(path: &str) {
     let t = TestCases::new();
     let p = std::path::Path::new(&FOO).join(path);
-    std::env::set_var("MODEL_FOLDERS", p.display().to_string());
+    unsafe { std::env::set_var("MODEL_FOLDERS", p.display().to_string()) };
     t.pass(path);
 }
 
@@ -19,6 +19,6 @@ pub fn set_path_and_run(path: &str) {
 pub fn set_dir_and_run(dir: &str, subpath: &str) {
     let t = TestCases::new();
     let p = std::path::Path::new(&FOO).join(dir);
-    std::env::set_var("MODEL_FOLDERS", p.display().to_string());
+    unsafe { std::env::set_var("MODEL_FOLDERS", p.display().to_string()) };
     t.pass(p.join(subpath).display().to_string());
 }
